@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UP Labs 🧪: แผนการลดน้ำหนัก 14 วัน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .brand-text-dark { color: #073B4C; }
+        .brand-text-blue { color: #118AB2; }
+        .brand-text-green { color: #06D6A0; }
+        .brand-text-yellow { color: #FFD166; }
+        .brand-text-red { color: #FF6B6B; }
+
+        .brand-bg-dark { background-color: #073B4C; }
+        .brand-bg-blue { background-color: #118AB2; }
+        .brand-bg-green { background-color: #06D6A0; }
+        .brand-bg-yellow { background-color: #FFD166; }
+        .brand-bg-red { background-color: #FF6B6B; }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 1.25rem;
+            top: 1.25rem;
+            bottom: -1.25rem;
+            width: 2px;
+            background-color: #e5e7eb;
+            transform: translateX(-50%);
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: 1.25rem;
+            top: 1.25rem;
+            transform: translate(-50%, -50%);
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+    </style>
+</head>
+<body class="brand-bg-dark text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">UP Labs 🧪</h1>
+            <p class="text-xl md:text-2xl text-gray-300">แผนการปฏิวัติการเผาผลาญใน 14 วัน</p>
+            <p class="text-lg text-gray-400 mt-4 max-w-3xl mx-auto">
+                โปรแกรมนี้ออกแบบมาเพื่อ "เปลี่ยนสวิตช์" แหล่งพลังงานของร่างกายคุณ จากการพึ่งพาน้ำตาล มาเป็นการใช้ไขมันสะสมอย่างเต็มประสิทธิภาพ เพื่อการลดน้ำหนักที่ยั่งยืนและสุขภาพที่ดีขึ้น
+            </p>
+        </header>
+
+        <main class="grid grid-cols-1 gap-8">
+
+            <section id="phase1" class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform hover:scale-105 transition-transform duration-300">
+                <div class="md:flex md:items-center">
+                    <div class="md:w-1/3 text-center md:text-left mb-6 md:mb-0">
+                         <h2 class="text-3xl font-bold brand-text-red">เฟสที่ 1: Reset & สลับโหมด</h2>
+                         <p class="text-lg font-semibold text-gray-500">วันที่ 1-3</p>
+                         <p class="mt-2">ช่วงเวลาสำคัญในการเคลียร์พลังงานเก่า (น้ำตาล) และบังคับให้ร่างกายเริ่มมองหาพลังงานใหม่จากไขมันสะสม เป็นการวางรากฐานที่สำคัญที่สุดของโปรแกรม</p>
+                    </div>
+                    <div class="md:w-2/3 md:pl-8">
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="font-bold text-xl brand-text-dark">🥗 อาหาร</h3>
+                                <ul class="list-none mt-2 space-y-2 text-gray-700">
+                                    <li class="flex items-start"><span class="brand-bg-red text-white rounded-full w-6 h-6 text-center mr-3 flex-shrink-0">✓</span><span>ทาน <b class="brand-text-red">โปรตีนเชค</b> เป็นหลัก 4 มื้อ/วัน</span></li>
+                                    <li class="flex items-start"><span class="brand-bg-red text-white rounded-full w-6 h-6 text-center mr-3 flex-shrink-0">✓</span><span>ถ้าหิว เสริมด้วย <b class="brand-text-red">ผักใบเขียวและเต้าหู้</b> เท่านั้น</span></li>
+                                    <li class="flex items-start"><span class="bg-gray-700 text-white rounded-full w-6 h-6 text-center mr-3 flex-shrink-0">✗</span><span><b class="text-gray-700">งดเด็ดขาด:</b> น้ำหวาน, ชา, กาแฟ, ผลไม้</span></li>
+                                </ul>
+                            </div>
+                             <div>
+                                <h3 class="font-bold text-xl brand-text-dark">🏃🏻‍♀️ กิจกรรม</h3>
+                                <ul class="list-none mt-2 space-y-2 text-gray-700">
+                                    <li class="flex items-start"><span class="brand-bg-blue text-white rounded-full w-6 h-6 text-center mr-3 flex-shrink-0">💧</span><span>ดื่มน้ำเปล่าให้มากที่สุดเท่าที่จะทำได้</span></li>
+                                    <li class="flex items-start"><span class="brand-bg-blue text-white rounded-full w-6 h-6 text-center mr-3 flex-shrink-0">🚶</span><span>เดินต่อเนื่อง 1 ชั่วโมงทุกวัน</span></li>
+                                </ul>
+                            </div>
+                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-r-lg">
+                              <p class="font-bold">⚠️ สิ่งที่อาจเจอ (Keto Flu)</p>
+                              <p>ในวันที่ 3-4 อาจมีอาการปวดหัวหรือเพลียเล็กน้อย ไม่ต้องกังวล! นี่คือสัญญาณดีที่ร่างกายกำลังเปลี่ยนไปใช้ไขมันเป็นพลังงาน</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="phase2" class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform hover:scale-105 transition-transform duration-300">
+                <div class="md:flex md:flex-row-reverse md:items-center">
+                    <div class="md:w-1/3 text-center md:text-left mb-6 md:mb-0">
+                         <h2 class="text-3xl font-bold brand-text-yellow">เฟสที่ 2: สร้างวินัย & ทำ IF</h2>
+                         <p class="text-lg font-semibold text-gray-500">วันที่ 4-7</p>
+                         <p class="mt-2">เมื่อร่างกายเริ่มคุ้นเคยกับการใช้ไขมัน เฟสนี้จะเน้นการสร้างวินัยการกินและแนะนำให้รู้จัก Intermittent Fasting (IF) เพื่อเพิ่มประสิทธิภาพการเผาผลาญ</p>
+                    </div>
+                    <div class="md:w-2/3 md:pr-8">
+                       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="font-bold text-xl brand-text-dark mb-2">🍽️ แผนการทานอาหาร</h3>
+                                <div class="relative pl-10 space-y-6">
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot brand-bg-yellow">☀️</div>
+                                        <h4 class="font-semibold">มื้อเช้า</h4>
+                                        <p class="text-gray-600">โปรตีนเชคเหมือนเดิม</p>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot brand-bg-yellow">🏙️</div>
+                                        <h4 class="font-semibold">มื้อเที่ยง (Low Carb)</h4>
+                                        <p class="text-gray-600">ปลานึ่ง, อกไก่, ไข่ต้ม, ผักใบเขียว</p>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot brand-bg-yellow">🌙</div>
+                                        <h4 class="font-semibold">มื้อเย็น (No Carb)</h4>
+                                        <p class="text-gray-600">เชค หรือ ผัก + เต้าหู้</p>
+                                    </div>
+                                </div>
+                            </div>
+                             <div>
+                                <h3 class="font-bold text-xl brand-text-dark mb-2">⏱️ กิจกรรมและ IF</h3>
+                                <p class="mb-4 text-gray-700">ทานอาหารทั้งหมดให้อยู่ในกรอบเวลา 8-10 ชั่วโมง เพื่อให้ร่างกายมีเวลาเผาผลาญไขมันสะสมได้นานขึ้น</p>
+                                <div class="chart-container h-48 max-h-48">
+                                    <canvas id="ifChart1"></canvas>
+                                </div>
+                                 <div class="mt-4 text-center bg-green-100 text-green-800 p-3 rounded-lg">
+                                    <p class="font-bold text-lg">ทำ IF 24 ชั่วโมง <span class="text-2xl">1</span> ครั้งในสัปดาห์นี้</p>
+                                </div>
+                            </div>
+                       </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="phase3" class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform hover:scale-105 transition-transform duration-300">
+                <div class="md:flex md:items-center">
+                    <div class="md:w-1/3 text-center md:text-left mb-6 md:mb-0">
+                         <h2 class="text-3xl font-bold brand-text-green">เฟสที่ 3: สู่ความยืดหยุ่น</h2>
+                         <p class="text-lg font-semibold text-gray-500">วันที่ 8-14</p>
+                         <p class="mt-2">เข้าสู่การเป็น "นักเผาผลาญไขมัน" อย่างแท้จริง เฟสนี้จะปรับโปรแกรมให้ยืดหยุ่นและเข้ากับไลฟ์สไตล์ได้ในระยะยาว พร้อมสร้าง "Metabolic Flexibility"</p>
+                    </div>
+                    <div class="md:w-2/3 md:pl-8">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="font-bold text-xl brand-text-dark mb-2">🥗 อาหาร (Low Carb)</h3>
+                                <p class="mb-4 text-gray-700">มื้อเที่ยงและเย็นสามารถทานอาหาร Low Carb ได้ แต่ต้องควบคุมปริมาณคาร์โบไฮเดรตต่อวัน</p>
+                                <div class="chart-container h-48 max-h-48">
+                                    <canvas id="carbChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-xl brand-text-dark mb-2">🗓️ กิจกรรมและ IF</h3>
+                                 <ul class="list-none mt-2 space-y-3 text-gray-700">
+                                    <li class="flex items-center"><span class="brand-bg-green text-white rounded-md w-8 h-8 text-center mr-3 flex-shrink-0 flex items-center justify-center font-bold">16/8</span><span>ทำ IF 16/8 ทุกวัน (ทานใน 8 ชม., งด 16 ชม.)</span></li>
+                                    <li class="flex items-center"><span class="brand-bg-green text-white rounded-md w-8 h-8 text-center mr-3 flex-shrink-0 flex items-center justify-center font-bold">24</span><span>ทำ IF 24 ชั่วโมง <b class="ml-1 text-xl">2</b> ครั้งต่อสัปดาห์</span></li>
+                                    <li class="flex items-center"><span class="brand-bg-green text-white rounded-md w-8 h-8 text-center mr-3 flex-shrink-0 flex items-center justify-center font-bold">💪</span><span>ออกกำลังกายเบาๆ ได้ตามชอบ</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="results" class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform hover:scale-105 transition-transform duration-300">
+                <h2 class="text-3xl font-bold brand-text-blue text-center mb-6">ผลลัพธ์ที่คาดหวัง & การเปลี่ยนแปลง</h2>
+                <p class="text-center text-gray-600 max-w-2xl mx-auto mb-8">
+                    การทำตามโปรแกรมอย่างมีวินัยจะนำไปสู่การเปลี่ยนแปลงที่น่าทึ่ง ไม่ใช่แค่น้ำหนักที่ลดลง แต่คือสุขภาพโดยรวมที่ดีขึ้นอย่างเห็นได้ชัด
+                </p>
+                <div class="md:flex md:items-center">
+                    <div class="md:w-1/2">
+                       <div class="chart-container h-64 max-h-72">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2 mt-8 md:mt-0 md:pl-8">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="brand-bg-blue bg-opacity-10 p-4 rounded-lg">
+                                <p class="text-4xl">⚖️</p>
+                                <p class="font-bold text-lg brand-text-blue mt-1">น้ำหนักลดลง</p>
+                                <p class="text-sm text-gray-600">ลดลงอย่างเห็นได้ชัด</p>
+                            </div>
+                            <div class="brand-bg-blue bg-opacity-10 p-4 rounded-lg">
+                                <p class="text-4xl">🔥</p>
+                                <p class="font-bold text-lg brand-text-blue mt-1">ไขมันลดลง</p>
+                                <p class="text-sm text-gray-600">สัดส่วนกระชับขึ้น</p>
+                            </div>
+                            <div class="brand-bg-blue bg-opacity-10 p-4 rounded-lg">
+                                <p class="text-4xl">💪</p>
+                                <p class="font-bold text-lg brand-text-blue mt-1">กล้ามเนื้อเพิ่มขึ้น</p>
+                                <p class="text-sm text-gray-600">เผาผลาญดีขึ้น</p>
+                            </div>
+                            <div class="brand-bg-blue bg-opacity-10 p-4 rounded-lg">
+                                <p class="text-4xl">⚡️</p>
+                                <p class="font-bold text-lg brand-text-blue mt-1">พลังงานสม่ำเสมอ</p>
+                                <p class="text-sm text-gray-600">สดชื่น ไม่อ่อนเพลีย</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <footer class="text-center mt-12 text-gray-400 text-sm">
+            <p>นี่คือข้อมูลสรุปเพื่อเป็นแนวทาง โปรดปรึกษาผู้เชี่ยวชาญก่อนเริ่มโปรแกรม</p>
+            <p>Infographic created with modern web technologies. No SVG or Mermaid JS used.</p>
+        </footer>
+
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const wrapLabel = (str, maxWidth) => {
+        if (str.length <= maxWidth) {
+            return str;
+        }
+        const words = str.split(' ');
+        let lines = [];
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+            if (currentLine.length + words[i].length + 1 < maxWidth) {
+                currentLine += ' ' + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+        return lines;
+    };
+
+    const tooltipTitleCallback = function(tooltipItems) {
+        const item = tooltipItems[0];
+        let label = item.chart.data.labels[item.dataIndex];
+        if (Array.isArray(label)) {
+          return label.join(' ');
+        } else {
+          return label;
+        }
+    };
+
+    const defaultChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    title: tooltipTitleCallback
+                }
+            }
+        }
+    };
+
+    if(document.getElementById('ifChart1')) {
+        new Chart(document.getElementById('ifChart1'), {
+            type: 'doughnut',
+            data: {
+                labels: ['ช่วงเวลาทานอาหาร (8-10 ชม.)', 'ช่วงเวลาอดอาหาร (14-16 ชม.)'],
+                datasets: [{
+                    data: [9, 15],
+                    backgroundColor: ['#06D6A0', '#FFD166'],
+                    borderColor: '#FFFFFF',
+                    borderWidth: 4,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                ...defaultChartOptions,
+                plugins: {
+                    ...defaultChartOptions.plugins,
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                           boxWidth: 20,
+                           padding: 15,
+                           font: {
+                             family: "'Kanit', sans-serif"
+                           }
+                        }
+                    }
+                },
+                cutout: '70%',
+            }
+        });
+    }
+
+    if(document.getElementById('carbChart')) {
+        new Chart(document.getElementById('carbChart'), {
+            type: 'bar',
+            data: {
+                labels: ['คาร์โบไฮเดรต (กรัม)'],
+                datasets: [{
+                    label: 'ปริมาณคาร์บต่อวัน',
+                    data: [60],
+                    backgroundColor: ['#06D6A0'],
+                    borderColor: ['#06D6A0'],
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                ...defaultChartOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 80,
+                        grid: {
+                            display: false
+                        },
+                         ticks: {
+                            font: {
+                              family: "'Kanit', sans-serif"
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                         ticks: {
+                            font: {
+                              family: "'Kanit', sans-serif"
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    if(document.getElementById('progressChart')) {
+        const labels = ['Day 1', 'Day 3', 'Day 5', 'Day 7', 'Day 9', 'Day 11', 'Day 14'];
+        new Chart(document.getElementById('progressChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'น้ำหนัก',
+                        data: [100, 99, 97, 95, 94, 93, 92.6],
+                        borderColor: '#FF6B6B',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'ระดับพลังงาน',
+                        data: [60, 50, 70, 80, 85, 90, 95],
+                        borderColor: '#118AB2',
+                        backgroundColor: 'rgba(17, 138, 178, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                 interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                         labels: {
+                           boxWidth: 20,
+                           padding: 15,
+                           font: {
+                             family: "'Kanit', sans-serif"
+                           }
+                        }
+                    },
+                    tooltip: {
+                       callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                         ticks: {
+                            font: {
+                              family: "'Kanit', sans-serif"
+                            }
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'น้ำหนัก (กก.)',
+                            color: '#FF6B6B'
+                        },
+                         ticks: {
+                             color: '#FF6B6B',
+                            font: {
+                              family: "'Kanit', sans-serif"
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'ระดับพลังงาน (%)',
+                            color: '#118AB2'
+                        },
+                         ticks: {
+                             color: '#118AB2',
+                            font: {
+                              family: "'Kanit', sans-serif"
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    },
+                }
+            }
+        });
+    }
+
+});
+</script>
+
+</body>
+</html>

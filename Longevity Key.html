@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>อินโฟกราฟิกข้อมูลสุขภาพ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 250px;
+        }
+        .kpi-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="text-[#003f5c]">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#7a5195] mb-2">คู่มือติดตามสุขภาพฉบับสมบูรณ์</h1>
+            <p class="text-lg text-[#374c80]">ทำความเข้าใจตัวชี้วัดสุขภาพที่สำคัญผ่านสมาร์ทวอทช์ของคุณ</p>
+        </header>
+
+        <main>
+            <section id="core-metrics">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#bc5090]">ส่วนที่ 1: แกนหลักสุขภาพ (Core Health Metrics)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                    
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🫁❤️ VO2 Max</h3>
+                            <div class="text-center my-4">
+                                <p id="vo2MaxScore" class="text-4xl font-bold">--</p>
+                                <p id="vo2MaxEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>ยอดเยี่ยม: &ge; 40</p>
+                                <p>ดี: 30 - 39</p>
+                                <p>ต้องปรับปรุง: &lt; 30</p>
+                            </div>
+                            <p class="text-sm mb-4">ค่าสมรรถภาพการใช้ออกซิเจนของร่างกาย ยิ่งสูงยิ่งฟิต ลดความเสี่ยงโรคหัวใจและหลอดเลือด กราฟนี้แสดงระดับ VO2 Max ของคุณเทียบกับเกณฑ์มาตรฐาน</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="vo2MaxChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">❤️〰️ อัตราการเต้นของหัวใจ (HR)</h3>
+                            <div class="text-center my-4">
+                                <p id="hrScore" class="text-4xl font-bold">--</p>
+                                <p id="hrEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน (Resting HR):</p>
+                                <p>ยอดเยี่ยม: &le; 60 bpm</p>
+                                <p>ดี: 61 - 75 bpm</p>
+                                <p>ต้องปรับปรุง: &gt; 75 bpm</p>
+                            </div>
+                            <p class="text-sm mb-4">อัตราการเต้นของหัวใจขณะพัก (Resting HR) ที่ต่ำลงเป็นสัญญาณของความฟิตที่ดีขึ้น กราฟแสดงแนวโน้ม RHR ของคุณตลอดสัปดาห์</p>
+                        </div>
+                        <div class="chart-container h-[250px] max-h-[250px]">
+                            <canvas id="hrChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🩸 SpO2 (ระดับออกซิเจนในเลือด)</h3>
+                            <div class="text-center my-4">
+                                <p id="spo2Score" class="text-4xl font-bold">--</p>
+                                <p id="spo2Eval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>ยอดเยี่ยม: &ge; 95%</p>
+                                <p>ต้องปรับปรุง: &lt; 95%</p>
+                            </div>
+                            <p class="text-sm mb-4">ค่าความอิ่มตัวของออกซิเจนในเลือด ควรอยู่ที่ 95% ขึ้นไปเพื่อบ่งชี้ว่าปอดทำงานได้ดีและร่างกายได้รับออกซิเจนเพียงพอ</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="spo2Chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🌙⭐ การนอนหลับ (Sleep)</h3>
+                            <div class="text-center my-4">
+                                <p id="sleepScore" class="text-4xl font-bold">--</p>
+                                <p id="sleepEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>ยอดเยี่ยม: &ge; 7 ชม. และมีสัดส่วนหลับลึก/REM ดี</p>
+                                <p>ต้องปรับปรุง: &lt; 7 ชม. หรือสัดส่วนการนอนไม่สมดุล</p>
+                            </div>
+                            <p class="text-sm mb-4">คุณภาพการนอนเป็นสิ่งสำคัญต่อการฟื้นฟูร่างกายและสมอง กราฟนี้แสดงสัดส่วนของระยะการนอนต่างๆ ในคืนที่ผ่านมา</p>
+                        </div>
+                        <div class="chart-container h-[250px] max-h-[250px]">
+                            <canvas id="sleepChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="advanced-metrics" class="mt-16">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#ef5675]">ส่วนที่ 2: ตัวช่วยสุขภาพเชิงลึก (Advanced Longevity Metrics)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                    
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">😊😫 คะแนนความเครียด</h3>
+                            <div class="text-center my-4">
+                                <p id="stressScore" class="text-4xl font-bold">--</p>
+                                <p id="stressEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>ยอดเยี่ยม: &le; 30</p>
+                                <p>ดี: 31 - 60</p>
+                                <p>ต้องพักผ่อน: &gt; 60</p>
+                            </div>
+                            <p class="text-sm mb-4">วัดจากความแปรปรวนของอัตราการเต้นหัวใจ (HRV) เพื่อประเมินระดับความเครียดสะสมของร่างกายในแต่ละช่วงของวัน</p>
+                        </div>
+                        <div class="chart-container h-[250px] max-h-[250px]">
+                            <canvas id="stressChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card text-center items-center">
+                        <h3 class="text-xl font-bold mb-2 flex items-center justify-center">🫁🌬️ อัตราการหายใจ</h3>
+                        <p class="text-sm mb-4">จำนวนครั้งที่หายใจต่อนาที ค่าปกติขณะพักอยู่ที่ 12-20 ครั้ง ซึ่งบ่งบอกถึงการทำงานของปอดที่มีประสิทธิภาพ</p>
+                        <div class="my-auto">
+                            <p class="text-6xl font-bold text-[#7a5195]">16</p>
+                            <p class="font-semibold">ครั้ง/นาที</p>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🌡️ อุณหภูมิผิวหนัง</h3>
+                            <div class="text-center my-4">
+                                <p id="tempScore" class="text-4xl font-bold">--</p>
+                                <p id="tempEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>คงที่: &plusmn; 0.2°C</p>
+                                <p>เปลี่ยนแปลง: &gt; 0.2°C</p>
+                            </div>
+                            <p class="text-sm mb-4">การเปลี่ยนแปลงของอุณหภูมิผิวหนังตอนกลางคืนอาจเป็นสัญญาณเริ่มต้นของอาการป่วยหรือการเปลี่ยนแปลงของฮอร์โมน</p>
+                        </div>
+                        <div class="chart-container h-[250px] max-h-[250px]">
+                            <canvas id="tempChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                         <h3 class="text-xl font-bold mb-4 flex items-center">💪 Training Status</h3>
+                        <p class="text-sm mb-4">ประเมินผลการฝึกซ้อมของคุณว่าเป็นอย่างไร เพื่อให้คุณปรับแผนการออกกำลังกายได้อย่างเหมาะสม</p>
+                        <div class="space-y-3 flex flex-col justify-center flex-grow">
+                            <div class="p-3 rounded-lg bg-[#7a5195] text-white text-center font-semibold">พัฒนา (Productive)</div>
+                            <div class="p-3 rounded-lg bg-[#003f5c] text-white text-center font-semibold">คงที่ (Maintaining)</div>
+                             <div class="p-3 rounded-lg bg-[#ffa600] text-white text-center font-semibold">หนักเกินไป (Overreaching)</div>
+                        </div>
+                    </div>
+
+                     <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🔋 Body Battery / Recovery</h3>
+                            <div class="text-center my-4">
+                                <p id="bodyBatteryScore" class="text-4xl font-bold">--</p>
+                                <p id="bodyBatteryEval" class="font-semibold text-lg text-gray-600">กำลังคำนวณ...</p>
+                            </div>
+                            <div class="text-xs mb-4 text-center text-gray-500">
+                                <p>เกณฑ์ประเมิน:</p>
+                                <p>พร้อมลุย: &ge; 70%</p>
+                                <p>ต้องพักผ่อน: 40 - 69%</p>
+                                <p>ต้องการการฟื้นตัว: &lt; 40%</p>
+                            </div>
+                            <p class="text-sm mb-4">แสดงระดับพลังงานของร่างกาย ช่วยให้คุณตัดสินใจได้ว่าควรจะฝึกซ้อมต่อหรือควรพักผ่อนเพื่อฟื้นฟู</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="bodyBatteryChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 flex items-center">🔥 การเผาผลาญพลังงาน</h3>
+                            <p class="text-sm mb-4">แสดงแคลอรี่ที่ร่างกายใช้ไปทั้งหมด แบ่งเป็นพลังงานที่ใช้ขณะพักและจากการทำกิจกรรมต่างๆ</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="caloriesChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card text-center items-center">
+                         <h3 class="text-xl font-bold mb-2 flex items-center justify-center">👟 Pace / Speed</h3>
+                        <p class="text-sm mb-4">ความเร็วในการเดินหรือวิ่ง เป็นตัวชี้วัดพื้นฐานในการติดตามพัฒนาการด้านความแข็งแรงของร่างกาย</p>
+                        <div class="my-auto">
+                            <p class="text-6xl font-bold text-[#ff764a]">6:30</p>
+                            <p class="font-semibold">นาที/กม.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center mt-16 py-4 border-t border-gray-200">
+            <p class="text-sm text-gray-500">Infographic created with real-time health data visualization. No Mermaid JS or SVG used.</p>
+        </footer>
+
+    </div>
+
+<script>
+const tooltipTitleCallback = (tooltipItems) => {
+    const item = tooltipItems[0];
+    let label = item.chart.data.labels[item.dataIndex];
+    if (Array.isArray(label)) {
+        return label.join(' ');
+    } else {
+        return label;
+    }
+};
+
+const defaultChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: {
+                font: { family: "'Sarabun', sans-serif" },
+                padding: 15,
+                boxWidth: 12,
+            }
+        },
+        tooltip: {
+            callbacks: {
+                title: tooltipTitleCallback
+            },
+            bodyFont: { family: "'Sarabun', sans-serif" },
+            titleFont: { family: "'Sarabun', sans-serif" }
+        }
+    }
+};
+
+const colors = {
+    blueDark: '#003f5c',
+    blueMid: '#374c80',
+    purple: '#7a5195',
+    magenta: '#bc5090',
+    pink: '#ef5675',
+    orange: '#ff764a',
+    yellow: '#ffa600',
+    lightGray: '#e0e0e0'
+};
+
+function createVo2MaxChart() {
+    const vo2Max = 45;
+    const vo2MaxScoreEl = document.getElementById('vo2MaxScore');
+    const vo2MaxEvalEl = document.getElementById('vo2MaxEval');
+    vo2MaxScoreEl.textContent = `${vo2Max}`;
+    if (vo2Max >= 40) {
+        vo2MaxEvalEl.textContent = 'ยอดเยี่ยม';
+        vo2MaxEvalEl.classList.add('text-[#7a5195]');
+    } else if (vo2Max >= 30) {
+        vo2MaxEvalEl.textContent = 'ดี';
+        vo2MaxEvalEl.classList.add('text-[#374c80]');
+    } else {
+        vo2MaxEvalEl.textContent = 'ต้องปรับปรุง';
+        vo2MaxEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('vo2MaxChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['ระดับของคุณ', 'ระดับที่ต้องไปให้ถึง'],
+            datasets: [{
+                label: 'VO2 Max',
+                data: [vo2Max, 60 - vo2Max],
+                backgroundColor: [colors.purple, colors.lightGray],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                cutout: '70%',
+            }]
+        },
+        options: { ...defaultChartOptions, plugins: { ...defaultChartOptions.plugins, legend: { display: false } } }
+    });
+}
+
+function createHrChart() {
+    const restingHR = 57;
+    const hrScoreEl = document.getElementById('hrScore');
+    const hrEvalEl = document.getElementById('hrEval');
+    hrScoreEl.textContent = `${restingHR}`;
+    if (restingHR <= 60) {
+        hrEvalEl.textContent = 'ยอดเยี่ยม';
+        hrEvalEl.classList.add('text-[#7a5195]');
+    } else if (restingHR <= 75) {
+        hrEvalEl.textContent = 'ดี';
+        hrEvalEl.classList.add('text-[#374c80]');
+    } else {
+        hrEvalEl.textContent = 'ต้องปรับปรุง';
+        hrEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('hrChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'],
+            datasets: [{
+                label: 'Resting HR (bpm)',
+                data: [58, 57, 59, 56, 55, 57, 54],
+                backgroundColor: 'rgba(122, 81, 149, 0.1)',
+                borderColor: colors.purple,
+                fill: true,
+                tension: 0.4,
+            }]
+        },
+        options: { ...defaultChartOptions }
+    });
+}
+
+function createSpo2Chart() {
+    const spo2 = 98;
+    const spo2ScoreEl = document.getElementById('spo2Score');
+    const spo2EvalEl = document.getElementById('spo2Eval');
+    spo2ScoreEl.textContent = `${spo2}%`;
+    if (spo2 >= 95) {
+        spo2EvalEl.textContent = 'ยอดเยี่ยม';
+        spo2EvalEl.classList.add('text-[#7a5195]');
+    } else {
+        spo2EvalEl.textContent = 'ต้องปรับปรุง';
+        spo2EvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('spo2Chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['ระดับออกซิเจน', 'ส่วนที่ขาด'],
+            datasets: [{
+                label: 'SpO2',
+                data: [spo2, 100 - spo2],
+                backgroundColor: [colors.blueMid, colors.lightGray],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                cutout: '70%',
+            }]
+        },
+        options: { ...defaultChartOptions, plugins: { ...defaultChartOptions.plugins, legend: { display: false } } }
+    });
+}
+
+function createSleepChart() {
+    const totalSleep = 8.5;
+    const deepSleep = 1.5;
+    const remSleep = 2;
+    const sleepScoreEl = document.getElementById('sleepScore');
+    const sleepEvalEl = document.getElementById('sleepEval');
+    sleepScoreEl.textContent = `${totalSleep} ชม.`;
+    if (totalSleep >= 7 && (deepSleep + remSleep) / totalSleep > 0.3) {
+        sleepEvalEl.textContent = 'ยอดเยี่ยม';
+        sleepEvalEl.classList.add('text-[#7a5195]');
+    } else {
+        sleepEvalEl.textContent = 'ต้องปรับปรุง';
+        sleepEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('sleepChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['ระยะเวลาการนอน'],
+            datasets: [
+                { label: 'หลับลึก', data: [1.5], backgroundColor: colors.blueDark },
+                { label: 'หลับตื้น', data: [4.5], backgroundColor: colors.blueMid },
+                { label: 'REM', data: [2], backgroundColor: colors.purple },
+                { label: 'ตื่น', data: [0.5], backgroundColor: colors.lightGray }
+            ]
+        },
+        options: {
+            ...defaultChartOptions,
+            indexAxis: 'y',
+            scales: { x: { stacked: true }, y: { stacked: true } }
+        }
+    });
+}
+
+function createStressChart() {
+    const stressScore = 60;
+    const stressScoreEl = document.getElementById('stressScore');
+    const stressEvalEl = document.getElementById('stressEval');
+    stressScoreEl.textContent = `${stressScore}`;
+    if (stressScore <= 30) {
+        stressEvalEl.textContent = 'ยอดเยี่ยม';
+        stressEvalEl.classList.add('text-[#7a5195]');
+    } else if (stressScore <= 60) {
+        stressEvalEl.textContent = 'ดี';
+        stressEvalEl.classList.add('text-[#374c80]');
+    } else {
+        stressEvalEl.textContent = 'ต้องพักผ่อน';
+        stressEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('stressChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['เช้า', 'กลางวัน', 'เย็น'],
+            datasets: [{
+                label: 'คะแนนความเครียด',
+                data: [25, stressScore, 45],
+                backgroundColor: [colors.yellow, colors.orange, colors.pink],
+                borderRadius: 4,
+            }]
+        },
+        options: { ...defaultChartOptions }
+    });
+}
+
+function createTempChart() {
+    const tempChange = 0.4;
+    const tempScoreEl = document.getElementById('tempScore');
+    const tempEvalEl = document.getElementById('tempEval');
+    tempScoreEl.textContent = `${tempChange}°C`;
+    if (Math.abs(tempChange) <= 0.2) {
+        tempEvalEl.textContent = 'คงที่';
+        tempEvalEl.classList.add('text-[#7a5195]');
+    } else {
+        tempEvalEl.textContent = 'เปลี่ยนแปลง';
+        tempEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['-3 วัน', '-2 วัน', 'เมื่อวาน', 'คืนนี้'],
+            datasets: [{
+                label: 'การเปลี่ยนแปลง (°C)',
+                data: [-0.1, 0.0, -0.2, tempChange],
+                borderColor: colors.pink,
+                tension: 0.1,
+            }]
+        },
+        options: { ...defaultChartOptions, plugins: { ...defaultChartOptions.plugins, legend: { display: false } } }
+    });
+}
+
+function createBodyBatteryChart() {
+    const bodyBattery = 75;
+    const bodyBatteryScoreEl = document.getElementById('bodyBatteryScore');
+    const bodyBatteryEvalEl = document.getElementById('bodyBatteryEval');
+    bodyBatteryScoreEl.textContent = `${bodyBattery}%`;
+    if (bodyBattery >= 70) {
+        bodyBatteryEvalEl.textContent = 'พร้อมลุย';
+        bodyBatteryEvalEl.classList.add('text-[#7a5195]');
+    } else if (bodyBattery >= 40) {
+        bodyBatteryEvalEl.textContent = 'ต้องพักผ่อน';
+        bodyBatteryEvalEl.classList.add('text-[#374c80]');
+    } else {
+        bodyBatteryEvalEl.textContent = 'ต้องการการฟื้นตัว';
+        bodyBatteryEvalEl.classList.add('text-[#ff764a]');
+    }
+    const ctx = document.getElementById('bodyBatteryChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['พลังงานคงเหลือ', 'พลังงานที่ใช้ไป'],
+            datasets: [{
+                label: 'Body Battery',
+                data: [bodyBattery, 100 - bodyBattery],
+                backgroundColor: [colors.yellow, colors.lightGray],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                cutout: '70%',
+            }]
+        },
+        options: { ...defaultChartOptions, plugins: { ...defaultChartOptions.plugins, legend: { display: false } } }
+    });
+}
+
+function createCaloriesChart() {
+    const ctx = document.getElementById('caloriesChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Active Calories', 'Resting Calories'],
+            datasets: [{
+                label: 'Energy Burned (kcal)',
+                data: [600, 1800],
+                backgroundColor: [colors.orange, colors.magenta],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+            }]
+        },
+        options: { ...defaultChartOptions }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    createVo2MaxChart();
+    createHrChart();
+    createSpo2Chart();
+    createSleepChart();
+    createStressChart();
+    createTempChart();
+    createBodyBatteryChart();
+    createCaloriesChart();
+});
+
+</script>
+</body>
+</html>
