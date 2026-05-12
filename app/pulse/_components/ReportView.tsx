@@ -1,19 +1,19 @@
 /**
- * Shared report view — used by both:
- *  - /pulse/assessments/[id] (coach preview, before publish)
- *  - /r/[share_token]        (public, after publish)
+ * Shared report view — coach preview + public report
  */
 import { Logo } from "@/components/ui/Logo";
 
 interface AiOutput {
   summary?: string;
   observations?: string[];
-  recommendations?: Array<{
+  behavior_changes?: Array<{ title: string; why: string; how: string }>;
+  nutrient_recommendations?: Array<{
     category: string;
     why: string;
     evidence_grade: string;
     skus: Array<{ sku: string; dose: string; timing?: string }>;
   }>;
+  data_notes?: string[];
   next_step?: string;
 }
 
@@ -90,15 +90,43 @@ export function ReportView({ customerName, aiOutput, blocked, blockReasons, gene
           </section>
         )}
 
-        {/* Recommendations */}
-        {(aiOutput?.recommendations?.length ?? 0) > 0 && (
-          <section className="mt-5 space-y-4">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">คำแนะนำ</div>
-            {aiOutput!.recommendations!.map((rec, i) => (
+        {/* Behavior changes */}
+        {(aiOutput?.behavior_changes?.length ?? 0) > 0 && (
+          <section className="mt-5 space-y-3">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">
+              พฤติกรรมที่ลองปรับ
+            </div>
+            {aiOutput!.behavior_changes!.map((bc, i) => (
+              <div key={i} className="rounded-3xl border border-ink-10 bg-white p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-wellness/15 text-base font-extrabold text-wellness">
+                    {i + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-head text-[17px] font-bold text-ink">{bc.title}</h3>
+                    <p className="mt-1.5 font-thai text-[13px] leading-[1.7] text-ink-60">{bc.why}</p>
+                    <div className="mt-3 rounded-xl bg-wellness-ultra px-4 py-3">
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-wellness">วิธีลอง</div>
+                      <p className="mt-1 font-thai text-[13px] leading-[1.6] text-ink">{bc.how}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Nutrient recommendations */}
+        {(aiOutput?.nutrient_recommendations?.length ?? 0) > 0 && (
+          <section className="mt-5 space-y-3">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">
+              Supplement ที่อาจช่วย
+            </div>
+            {aiOutput!.nutrient_recommendations!.map((rec, i) => (
               <div key={i} className="rounded-3xl border border-ink-10 bg-white p-6">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-head text-[18px] font-bold text-ink">{rec.category}</h3>
+                    <h3 className="font-head text-[17px] font-bold text-ink">{rec.category}</h3>
                     <p className="mt-1.5 font-thai text-[13px] leading-[1.7] text-ink-60">{rec.why}</p>
                   </div>
                   <GradeBadge grade={rec.evidence_grade} />
@@ -129,9 +157,19 @@ export function ReportView({ customerName, aiOutput, blocked, blockReasons, gene
           </section>
         )}
 
-        {/* Disclaimer */}
+        {/* Data notes (data freshness/missing) */}
+        {(aiOutput?.data_notes?.length ?? 0) > 0 && (
+          <section className="mt-5 rounded-2xl border border-ink-10 bg-ink-5/40 p-5">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">หมายเหตุข้อมูล</div>
+            <ul className="mt-2 space-y-1 font-thai text-[12px] leading-[1.6] text-ink-60">
+              {aiOutput!.data_notes!.map((n, i) => <li key={i}>· {n}</li>)}
+            </ul>
+          </section>
+        )}
+
+        {/* Soft disclaimer (no pharmacist mention) */}
         <div className="mt-8 rounded-2xl border border-ink-10 bg-ink-5/50 px-5 py-4 font-thai text-[11px] leading-[1.6] text-ink-60">
-          <strong className="text-ink">หมายเหตุ:</strong> เอกสารฉบับนี้คือ wellness recommendation ที่ผ่านการตรวจสอบจากเภสัชกรของ UP Wellness — ไม่ใช่การวินิจฉัยทางการแพทย์ ปรึกษาแพทย์ก่อนเริ่ม supplement หากคุณมีโรคประจำตัว ตั้งครรภ์ ให้นมบุตร หรือกินยาประจำ
+          <strong className="text-ink">หมายเหตุ:</strong> เอกสารฉบับนี้คือ wellness recommendation เพื่อการดูแลตัวเองในชีวิตประจำวัน · ไม่ใช่การวินิจฉัยทางการแพทย์ · ถ้ามีโรคประจำตัว · ตั้งครรภ์ · ให้นมบุตร · หรือกินยาประจำ ขอให้ปรึกษาแพทย์ก่อนเริ่ม supplement
         </div>
 
         <footer className="mt-8 text-center font-mono text-[10px] text-ink-40">

@@ -1,91 +1,118 @@
 /**
- * Gemini 1.5 Flash wrapper — free tier API.
- * Get key at: https://aistudio.google.com/app/apikey → env var GEMINI_API_KEY
+ * Gemini wrapper — free tier. Get key: https://aistudio.google.com/app/apikey
  *
- * Used as RE-PHRASER ONLY — turns rule engine output into coach-tone Thai.
- * Strict prompt: no new claims, no new SKUs, just rephrase.
+ * Re-phraser + analyzer. Takes master snapshot + matched rules and produces:
+ *  - summary, observations
+ *  - behavior recommendations (soft tone, not preachy)
+ *  - nutrient recommendations (Nutrilite SKUs from whitelist)
+ *  - next_step
  */
+
+import type { MasterSnapshot } from "./master-data";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
-const SYSTEM_PROMPT = `คุณคือ rephrasing layer สำหรับ UP Wellness wellness coach
-หน้าที่: เปลี่ยน rule engine output เป็นภาษาไทยโทน coach ที่อบอุ่น น่าเชื่อถือ ตรงประเด็น
-กฎเหล็ก:
-- ห้ามแนะนำ nutrient หรือ SKU ที่ไม่อยู่ใน input
-- ห้ามวินิจฉัยโรค ("คุณเป็น...") ใช้คำว่า "ข้อมูล associated with..." / "อาจ support..."
-- ห้ามใช้คำว่า "รักษา" "ป้องกัน" "miracle" "100%"
-- ใช้คำว่า "อาจช่วย" "associated" "support" "พบในการศึกษา"
-- ภาษาไทยใช้สรรพนาม "เรา/คุณ" — เป็นกันเอง แต่มีน้ำหนัก
-- โครงสร้าง: 1) สังเกตจากข้อมูล 2) แปลผล 3) แนะนำ SKU + dose + เหตุผล
-- ห้ามมีบรรทัด ที่ใช้ markdown heading ใหญ่ — ใช้ bullet หรือบรรทัดสั้นๆ
+const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness — wellness coaching tool
+หน้าที่: วิเคราะห์ข้อมูลสุขภาพหลายแหล่งของลูกค้า (BCA + CGM + wearable + Inbody + intake)
+แล้วสรุปเป็นรายงาน + คำแนะนำที่เข้าใจง่าย น่าทำตาม ไม่ทำให้ลูกค้ารู้สึก anti
 
-OUTPUT: JSON เท่านั้น ตาม schema:
+หลักการเขียน:
+- โทน: เป็นกันเอง น่าเชื่อถือ ไม่บรรยายแบบหมอ ไม่ใช้คำสั่ง
+- ใช้ "เรา/คุณ" — ห้ามใช้ "ผู้ป่วย" หรือ "ผู้รับการตรวจ"
+- ห้ามใช้คำว่า "รักษา · ป้องกัน · หาย · ดีขึ้นแน่นอน · 100% · miracle"
+- ใช้แทนด้วย "อาจช่วย · associated with · จากที่เห็น · ลองดู · เป็นไปได้ว่า"
+- ห้ามเขียน citation ในข้อความ — ตัด PubMed/study references ออก
+- ห้ามอ้างเภสัชกร แพทย์ ใน body text (มี disclaimer ท้ายอยู่แล้ว)
+- พฤติกรรม recommendation ใช้ "ลอง..." "อาจช่วยถ้า..." ไม่ใช่ "ต้อง..."
+
+เรื่อง Data freshness:
+- ถ้าค่าใดเก่า (days_stale > 30) — เขียนระบุว่า "ข้อมูลล่าสุดจาก [วัน] อาจไม่ตรงปัจจุบัน"
+- ถ้าค่าใดไม่มี — อย่าแต่ง · บอกตรงๆว่า "ยังไม่มีข้อมูล [X] · แนะนำให้วัด"
+- ใช้ค่าล่าสุดก่อนเสมอ ถ้าไม่มีใช้แนวโน้มเก่า
+
+โครงสร้าง observation:
+- ดูทั้ง pattern ของ wearable, BCA composition, CGM (ถ้ามี)
+- เชื่อมโยง 2-3 metric เข้าด้วยกัน เช่น "RHR สูง + sleep ต่ำ → suggest pattern X"
+- คิดเชิง probability — "เป็นไปได้ว่า..." ไม่ใช่ "คุณคือ..."
+
+Behavior recommendations:
+- เน้น 1-3 พฤติกรรมที่ specific + ทำได้ใน 7 วัน
+- ระบุเวลา/ความถี่ที่ทำได้จริง (เช่น "เดิน 15 นาทีหลังอาหารเที่ยง")
+- เชื่อมโยงกับข้อมูลของลูกค้า เช่น "เพราะ steps คุณตอนนี้ 4,200 ขอเพิ่มเป็น 6,000 ก่อน"
+- โทนใช้ "ลองดู" "ทดลอง 1 สัปดาห์" "ค่อยๆ เพิ่ม" — ไม่บังคับ
+
+Nutrient recommendations:
+- ใช้เฉพาะ SKU ที่อยู่ใน matched rules (ห้ามแต่ง)
+- บอก dose + timing ตาม input
+- ไม่ใส่ citation ในข้อความ · เก็บ evidence_grade A/B/C เฉยๆ
+
+OUTPUT: JSON เท่านั้น schema:
 {
-  "summary":      "ภาพรวม 2-3 ประโยค ของสิ่งที่เห็นจากข้อมูล",
-  "observations": ["จุดที่ 1...", "จุดที่ 2..."],
-  "recommendations": [
+  "summary":      "ภาพรวม 3-4 ประโยค ที่ครอบคลุมการเชื่อมโยง data หลายแหล่ง",
+  "observations": ["ข้อสังเกต 1...", "ข้อสังเกต 2..."],
+  "behavior_changes": [
     {
-      "category":  "ชื่อหมวด nutrient",
-      "why":       "เหตุผลทางวิทยาศาสตร์ (รวม citation จาก input)",
-      "evidence_grade": "A | B | C",
-      "skus": [{ "sku": "ชื่อ SKU", "dose": "วิธีกิน", "timing": "เวลา (optional)" }]
+      "title": "ชื่อพฤติกรรม",
+      "why":   "เพราะอะไร (อิงข้อมูลลูกค้า)",
+      "how":   "วิธีทำ specific + measurable + 7-day target"
     }
   ],
-  "next_step": "ข้อแนะนำขั้นต่อไปสำหรับลูกค้า 1-2 ประโยค"
+  "nutrient_recommendations": [
+    {
+      "category":  "หมวด nutrient",
+      "why":       "เหตุผลที่เห็นจากข้อมูล (ไม่ใส่ citation)",
+      "evidence_grade": "A | B | C",
+      "skus": [{ "sku": "ชื่อ SKU", "dose": "...", "timing": "..." }]
+    }
+  ],
+  "data_notes": ["ข้อสังเกตเรื่องข้อมูลที่หาย/เก่า (optional)"],
+  "next_step":  "ขั้นต่อไปสำหรับลูกค้า"
 }`;
 
-export interface GeminiRephraseInput {
-  customer_name: string;
-  age?:          number;
-  gender?:       string;
-  biomarkers:    Record<string, any>;
-  matched_rules: Array<{
-    name: string;
-    nutrient_category: string;
-    why_th: string;
-    evidence_grade: string;
-    citation: string;
-    skus: Array<{ sku: string; dose: string; timing?: string }>;
-  }>;
-  intake: {
-    goal:        string | null;
-    budget:      string | null;
-    medications: string[];
-    conditions:  string[];
-  };
-}
-
 export interface GeminiOutput {
-  summary:      string;
-  observations: string[];
-  recommendations: Array<{
-    category:        string;
-    why:             string;
-    evidence_grade:  string;
-    skus:            Array<{ sku: string; dose: string; timing?: string }>;
+  summary:        string;
+  observations:   string[];
+  behavior_changes: Array<{ title: string; why: string; how: string }>;
+  nutrient_recommendations: Array<{
+    category:       string;
+    why:            string;
+    evidence_grade: string;
+    skus:           Array<{ sku: string; dose: string; timing?: string }>;
   }>;
-  next_step:    string;
+  data_notes:     string[];
+  next_step:      string;
 }
 
-export async function rephraseWithGemini(input: GeminiRephraseInput): Promise<GeminiOutput> {
+export interface GeminiInput {
+  master:        MasterSnapshot;
+  matched_rules: Array<{
+    name:              string;
+    nutrient_category: string;
+    why_th:            string;
+    evidence_grade:    string;
+    skus:              Array<{ sku: string; dose: string; timing?: string }>;
+  }>;
+}
+
+export async function rephraseWithGemini(input: GeminiInput): Promise<GeminiOutput> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
-  const userPrompt = `ลูกค้า: ${input.customer_name}${input.age ? ` (อายุ ${input.age} ปี)` : ""}${input.gender ? ` · ${input.gender === "male" ? "ชาย" : "หญิง"}` : ""}
+  const userPrompt = `# ข้อมูลลูกค้า (Master Snapshot)
 
-ข้อมูลจาก wearable (7 วัน):
-${JSON.stringify(input.biomarkers, null, 2)}
+${JSON.stringify(input.master, null, 2)}
 
-ข้อมูลจาก intake:
-- เป้าหมาย: ${input.intake.goal ?? "—"}
-- งบประมาณ: ${input.intake.budget ?? "—"}
-- ยาประจำ: ${input.intake.medications.join(", ") || "ไม่มี"}
-- โรคประจำตัว: ${input.intake.conditions.join(", ") || "ไม่มี"}
+# Rules ที่ match จาก rule engine
 
-Rules ที่ match (rephrase สิ่งเหล่านี้เป็นภาษาไทยที่ลูกค้าอ่านเข้าใจ):
 ${JSON.stringify(input.matched_rules, null, 2)}
 
-แปลและจัดเรียงเป็น output JSON ตาม schema`;
+# Task
+
+วิเคราะห์ master snapshot และ output JSON ตาม schema
+- เชื่อมโยงข้อมูลหลายแหล่ง (BCA · CGM · wearable · intake) ในการวิเคราะห์
+- ระบุข้อมูลที่ stale หรือหายในส่วน data_notes
+- Behavior changes 2-3 ข้อ + Nutrient recommendations จาก matched_rules
+- ภาษาไทย โทนเป็นกันเอง ห้ามอ้าง pharmacist/doctor/citation`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
@@ -96,12 +123,10 @@ ${JSON.stringify(input.matched_rules, null, 2)}
         contents: [{ parts: [{ text: userPrompt }] }],
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
-          temperature:     0.4,
-          maxOutputTokens: 8192,
+          temperature:      0.4,
+          maxOutputTokens:  8192,
           responseMimeType: "application/json",
-          // Disable thinking for Gemini 2.5 — we only need rephrasing, no deep reasoning
-          // Saves token budget so response doesn't get truncated
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig:   { thinkingBudget: 0 },
         },
       }),
     },
@@ -119,18 +144,16 @@ ${JSON.stringify(input.matched_rules, null, 2)}
   try {
     parsed = JSON.parse(text);
   } catch {
-    // Try to repair truncated JSON: trim to last complete brace/bracket
-    const trimmed = text.replace(/,\s*$/, "").replace(/[,\s]*$/, "") + "}}}}]}";
+    const trimmed = text.replace(/[,\s]*$/, "") + "]}";
     try { parsed = JSON.parse(trimmed); }
     catch {
-      const reason = finishReason ? ` (finishReason=${finishReason})` : "";
-      throw new Error(`Gemini invalid JSON${reason}: ${text.slice(0, 300)}`);
+      throw new Error(`Gemini invalid JSON (finishReason=${finishReason}): ${text.slice(0, 300)}`);
     }
   }
 
-  // Validate: every SKU in output must exist in input
+  // SKU whitelist validation
   const allowedSkus = new Set(input.matched_rules.flatMap((r) => r.skus.map((s) => s.sku)));
-  for (const rec of parsed.recommendations ?? []) {
+  for (const rec of parsed.nutrient_recommendations ?? []) {
     rec.skus = (rec.skus ?? []).filter((s) => allowedSkus.has(s.sku));
   }
 

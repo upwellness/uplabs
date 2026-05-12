@@ -169,6 +169,12 @@ export default function PulsePage() {
                   </div>
                   {error && <p className="mt-2 text-xs text-status-warning">{error}</p>}
                 </div>
+                <Link
+                  href={`/pulse/master/${customer.id}`}
+                  className="rounded-full border border-ink-10 px-4 py-2 text-[12px] font-semibold text-ink hover:border-ink-20"
+                >
+                  📋 Master Data
+                </Link>
               </div>
 
               {/* Workflow steps */}
