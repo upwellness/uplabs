@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Detects Supabase auth tokens in URL (#access_token=... or ?code=...) on
- * page load, hands them to the browser client to be exchanged into a
- * cookie session, then routes the user to the right page.
+ * Catches Supabase auth tokens carried in the URL after a redirect.
  *
- * Why needed: middleware runs before client JS and can only read cookies.
- * Recovery / magic links arrive with tokens in the URL fragment, so the
- * middleware sees "no session" and bounces to /login. This component
- * catches that case after redirect and finishes the handshake.
+ * Three cases:
+ *  1. Implicit flow — `#access_token=...&refresh_token=...&type=recovery`
+ *  2. PKCE flow     — `?code=...`
+ *  3. None          — no-op
+ *
+ * In all cases the goal is the same: exchange the token into a cookie
+ * session (via supabase-js) and then route the user to the right page.
+ * Lives in the root layout so it runs on every page mount.
  */
 
 import { useEffect } from "react";
@@ -21,31 +23,41 @@ export function SessionInit() {
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
-    const hasHashToken = hash.includes("access_token=");
-    const hasCode = new URLSearchParams(search).has("code");
-    if (!hasHashToken && !hasCode) return;
+    const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+    const searchParams = new URLSearchParams(search);
+
+    const access_token  = hashParams.get("access_token");
+    const refresh_token = hashParams.get("refresh_token");
+    const code          = searchParams.get("code");
+    const type          = hashParams.get("type") ?? searchParams.get("type");
+
+    if (!access_token && !code) return;
 
     const supa = createClient();
 
-    const finish = async () => {
-      // The browser client auto-detects URL tokens when first accessed.
-      // Wait briefly so the cookie write completes.
-      await new Promise((r) => setTimeout(r, 150));
-      const { data } = await supa.auth.getSession();
-      if (!data.session) return;
+    (async () => {
+      try {
+        if (access_token && refresh_token) {
+          // Implicit flow — set session directly
+          const { error } = await supa.auth.setSession({ access_token, refresh_token });
+          if (error) { console.error("setSession failed:", error); return; }
+        } else if (code) {
+          // PKCE flow — exchange code for session
+          const { error } = await supa.auth.exchangeCodeForSession(code);
+          if (error) { console.error("exchangeCodeForSession failed:", error); return; }
+        }
 
-      // Decide where to land
-      const fragmentParams = new URLSearchParams(hash.slice(1));
-      const type = fragmentParams.get("type"); // recovery | magiclink | signup
-      const target = type === "recovery" ? "/reset-password" : "/";
+        // Decide destination
+        const target = type === "recovery" ? "/reset-password" : "/";
 
-      // Clean tokens out of the URL before routing
-      window.history.replaceState({}, "", target);
-      router.replace(target);
-      router.refresh();
-    };
-
-    finish();
+        // Strip tokens from address bar then navigate
+        window.history.replaceState({}, "", target);
+        // Hard reload so the server re-runs middleware with the new cookie
+        window.location.replace(target);
+      } catch (err) {
+        console.error("SessionInit error:", err);
+      }
+    })();
   }, [router]);
 
   return null;
