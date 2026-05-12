@@ -10,6 +10,8 @@ export interface UserListRow {
   email: string | null;
   display_name: string | null;
   role: Role;
+  abo_number: string | null;
+  phone: string | null;
   created_at: string;
   last_sign_in_at: string | null;
   granted_app_slugs: string[];
@@ -28,7 +30,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   if (aErr) throw aErr;
 
   const [{ data: profiles }, { data: grants }] = await Promise.all([
-    admin.from("profiles").select("id, email, display_name, role"),
+    admin.from("profiles").select("id, email, display_name, role, abo_number, phone"),
     admin.from("user_app_grants").select("user_id, app_slug"),
   ]);
 
@@ -47,6 +49,8 @@ export async function listUsers(): Promise<UserListRow[]> {
       email: u.email ?? p?.email ?? null,
       display_name: p?.display_name ?? null,
       role: (p?.role ?? "other") as Role,
+      abo_number: p?.abo_number ?? null,
+      phone: p?.phone ?? null,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       granted_app_slugs: grantsMap.get(u.id) ?? [],
@@ -71,6 +75,28 @@ export async function updateUserEmail(userId: string, email: string) {
   const { error: aErr } = await admin.auth.admin.updateUserById(userId, { email });
   if (aErr) return { error: aErr.message };
   await admin.from("profiles").update({ email }).eq("id", userId);
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+export async function updateAboNumber(userId: string, abo_number: string) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const value = abo_number.trim() || null;
+  const { error } = await admin.from("profiles").update({ abo_number: value }).eq("id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+export async function updatePhone(userId: string, phone: string) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  // Normalize: strip non-digits, +66 → 0
+  const cleaned = phone.replace(/\D/g, "").replace(/^66/, "0");
+  const value = cleaned || null;
+  const { error } = await admin.from("profiles").update({ phone: value }).eq("id", userId);
+  if (error) return { error: error.message };
   revalidatePath("/admin/users");
   return { ok: true };
 }

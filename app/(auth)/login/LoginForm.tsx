@@ -20,7 +20,7 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
     <form action={submit} className="space-y-4">
       <input type="hidden" name="next" value={next ?? "/"} />
 
-      <Field name="email" type="email" label="Email" placeholder="you@example.com" required autoFocus />
+      <Field name="identifier" type="text" label="Email / ABO / เบอร์โทร" placeholder="you@example.com · 7866861 · 0812345678" required autoFocus autoComplete="username" />
       <Field name="password" type="password" label="Password" placeholder="••••••••" required />
 
       {error && (

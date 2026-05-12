@@ -7,6 +7,7 @@ import { APPS } from "@/lib/apps-registry";
 import { formatDate } from "@/lib/utils";
 import {
   updateUserRole, updateUserEmail, updateDisplayName,
+  updateAboNumber, updatePhone,
   sendResetEmail, generateResetLink, toggleAppGrant,
   type UserListRow,
 } from "./actions";
@@ -17,6 +18,8 @@ export function UserRow({ user }: { user: UserListRow }) {
   const [linkOut, setLinkOut] = useState<string | null>(null);
   const [emailEdit, setEmailEdit] = useState(user.email ?? "");
   const [nameEdit,  setNameEdit]  = useState(user.display_name ?? "");
+  const [aboEdit,   setAboEdit]   = useState(user.abo_number ?? "");
+  const [phoneEdit, setPhoneEdit] = useState(user.phone ?? "");
   const [, start] = useTransition();
 
   const run = async (key: string, fn: () => Promise<{ error?: string; ok?: boolean; url?: string | null } | void>) => {
@@ -92,7 +95,26 @@ export function UserRow({ user }: { user: UserListRow }) {
                     busy={busy === "email"}
                     type="email"
                   />
+                  <InlineField
+                    label="ABO Number"
+                    value={aboEdit}
+                    onChange={setAboEdit}
+                    onSave={() => run("abo", () => updateAboNumber(user.id, aboEdit))}
+                    busy={busy === "abo"}
+                    placeholder="7866861"
+                  />
+                  <InlineField
+                    label="เบอร์โทร"
+                    value={phoneEdit}
+                    onChange={setPhoneEdit}
+                    onSave={() => run("phone", () => updatePhone(user.id, phoneEdit))}
+                    busy={busy === "phone"}
+                    placeholder="0812345678"
+                  />
                 </div>
+                <p className="mt-2 font-thai text-[11px] text-ink-40">
+                  ผู้ใช้สามารถ login ด้วย email · ABO number · เบอร์โทร อย่างใดอย่างหนึ่ง
+                </p>
 
                 <div className="mt-5 border-t border-ink-10 pt-4">
                   <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">Password Reset</div>
@@ -157,13 +179,14 @@ export function UserRow({ user }: { user: UserListRow }) {
   );
 }
 
-function InlineField({ label, value, onChange, onSave, busy, type = "text" }: {
+function InlineField({ label, value, onChange, onSave, busy, type = "text", placeholder }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   onSave: () => void;
   busy: boolean;
   type?: string;
+  placeholder?: string;
 }) {
   return (
     <div>
@@ -172,8 +195,9 @@ function InlineField({ label, value, onChange, onSave, busy, type = "text" }: {
         <input
           type={type}
           value={value}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 rounded-lg border border-ink-10 bg-white px-3 py-2 text-sm outline-none focus:border-rose"
+          className="flex-1 rounded-lg border border-ink-10 bg-white px-3 py-2 text-sm outline-none focus:border-rose placeholder:text-ink-20"
         />
         <Button size="sm" variant="primary" onClick={onSave} disabled={busy}>
           {busy ? "..." : "Save"}

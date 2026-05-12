@@ -9,15 +9,26 @@ function siteUrl() {
 }
 
 export async function signIn(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const identifier = String(formData.get("identifier") ?? formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/");
 
-  if (!email || !password) {
-    return { error: "กรุณากรอก email และ password" };
+  if (!identifier || !password) {
+    return { error: "กรุณากรอก email/ABO/เบอร์โทร และ password" };
   }
 
   const supa = createClient();
+
+  // Resolve identifier → email (looks up ABO number or phone if not an email)
+  let email = identifier;
+  if (!identifier.includes("@")) {
+    const { data, error: rpcErr } = await supa.rpc("resolve_email", { identifier });
+    if (rpcErr || !data) {
+      return { error: "ไม่พบบัญชีนี้ — ตรวจ ABO/เบอร์โทร/email อีกครั้ง" };
+    }
+    email = data as string;
+  }
+
   const { error } = await supa.auth.signInWithPassword({ email, password });
   if (error) {
     return { error: "Email หรือ password ไม่ถูกต้อง" };
