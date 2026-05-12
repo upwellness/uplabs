@@ -126,23 +126,31 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
   const json = await res.json();
 
   const out: AggregateRow[] = [];
-  for (const bucket of json.buckets ?? []) {
+  // Google Fit returns "bucket" (singular) — not "buckets"
+  const buckets = json.bucket ?? json.buckets ?? [];
+
+  for (const bucket of buckets) {
     const ts = new Date(Number(bucket.startTimeMillis)).toISOString();
 
     for (const ds of bucket.dataset ?? []) {
-      const type = ds.dataSourceId as string;
+      const type = (ds.dataSourceId ?? "") as string;
+
       for (const pt of ds.point ?? []) {
-        // Heart rate (avg bpm)
+        // Heart rate — aggregate returns summary [avg, max, min]
         if (type.includes("heart_rate")) {
           const avg = pt.value?.[0]?.fpVal;
-          if (avg) out.push({ recorded_at: ts, metric_type: "hr_bpm", value: avg, unit: "bpm" });
+          const max = pt.value?.[1]?.fpVal;
+          const min = pt.value?.[2]?.fpVal;
+          if (avg) out.push({ recorded_at: ts, metric_type: "hr_bpm", value: +avg.toFixed(1), unit: "bpm" });
+          if (min) out.push({ recorded_at: ts, metric_type: "rhr",    value: +min.toFixed(1), unit: "bpm" });
+          if (max) out.push({ recorded_at: ts, metric_type: "hr_max", value: +max.toFixed(1), unit: "bpm" });
         }
-        // Steps
+        // Steps — int value
         else if (type.includes("step_count")) {
           const total = pt.value?.[0]?.intVal ?? 0;
-          out.push({ recorded_at: ts, metric_type: "steps", value: total, unit: "count" });
+          if (total > 0) out.push({ recorded_at: ts, metric_type: "steps", value: total, unit: "count" });
         }
-        // Sleep (segment count → minutes)
+        // Sleep — segment duration → minutes
         else if (type.includes("sleep")) {
           const start = Number(pt.startTimeNanos) / 1e6;
           const end   = Number(pt.endTimeNanos) / 1e6;
