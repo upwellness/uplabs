@@ -10,21 +10,24 @@ import { TrendCharts } from "./_components/TrendCharts";
 import { CustomerPicker } from "./_components/CustomerPicker";
 import { MeasurementForm } from "./_components/MeasurementForm";
 import { MeasurementTable } from "./_components/MeasurementTable";
+import { ReportBuilder } from "./_components/ReportBuilder";
 import {
   classifyBodyFat, classifyMusclePct, classifyVisceralFat,
   classifyBMI, classifyBodyAge,
 } from "@/lib/medical-status";
 import { deriveBMI, deriveFatMass, deriveMuscleMass, deriveChronoAge } from "@/lib/bca-derive";
-import type { Customer, MeasurementWithDerived } from "@/lib/types";
+import type { Customer, Measurement, MeasurementWithDerived } from "@/lib/types";
 
 export default function BCAPage() {
   const [customer,     setCustomer]     = useState<Customer | null>(null);
   const [measurements, setMeasurements] = useState<MeasurementWithDerived[]>([]);
   const [formOpen,     setFormOpen]     = useState(false);
+  const [editing,      setEditing]      = useState<MeasurementWithDerived | null>(null);
+  const [reportOpen,   setReportOpen]   = useState(false);
+  const [reportFocus,  setReportFocus]  = useState<MeasurementWithDerived | null>(null);
   const [loadingMs,    setLoadingMs]    = useState(false);
   const [error,        setError]        = useState<string | null>(null);
 
-  /* ── Load customer + measurements on picker change ── */
   const handleSelectCustomer = useCallback(async (c: Customer) => {
     setCustomer(c);
     setMeasurements([]);
@@ -42,34 +45,70 @@ export default function BCAPage() {
     }
   }, []);
 
-  /* ── Save new measurement to DB then prepend ── */
-  const handleSubmit = useCallback(async (
-    m: Omit<MeasurementWithDerived, "id" | "customer_id" | "bmi" | "fat_mass" | "muscle_mass" | "chrono_age">,
-  ) => {
+  /* Enrich a raw measurement with derived fields */
+  const enrich = useCallback((m: Measurement): MeasurementWithDerived => ({
+    ...m,
+    bmi:         deriveBMI(m.weight, customer!.height),
+    fat_mass:    deriveFatMass(m.weight, m.fat_pct),
+    muscle_mass: deriveMuscleMass(m.weight, m.muscle_pct),
+    chrono_age:  deriveChronoAge(customer!.birth_year, m.recorded_at),
+  }), [customer]);
+
+  /* Save new OR edit existing */
+  const handleSubmit = useCallback(async (data: Omit<Measurement, "id" | "customer_id">) => {
     if (!customer) return;
     try {
-      const res  = await fetch(`/api/customers/${customer.id}/measurements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(m),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
-
-      // Enrich locally so UI updates immediately
-      const enriched: MeasurementWithDerived = {
-        ...json.measurement,
-        bmi:         deriveBMI(m.weight, customer.height),
-        fat_mass:    deriveFatMass(m.weight, m.fat_pct),
-        muscle_mass: deriveMuscleMass(m.weight, m.muscle_pct),
-        chrono_age:  deriveChronoAge(customer.birth_year, m.recorded_at),
-      };
-      setMeasurements((prev) => [enriched, ...prev]);
+      if (editing) {
+        // EDIT
+        const res = await fetch(`/api/measurements/${editing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "แก้ไขไม่สำเร็จ");
+        const updated = enrich(json.measurement);
+        setMeasurements((prev) => prev.map((m) => (m.id === updated.id ? updated : m))
+          .sort((a, b) => +new Date(b.recorded_at) - +new Date(a.recorded_at)));
+      } else {
+        // CREATE
+        const res = await fetch(`/api/customers/${customer.id}/measurements`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
+        const enriched = enrich(json.measurement);
+        setMeasurements((prev) => [enriched, ...prev]);
+      }
       setFormOpen(false);
+      setEditing(null);
     } catch (e: any) {
       alert(e.message);
     }
-  }, [customer]);
+  }, [customer, editing, enrich]);
+
+  const handleEdit = useCallback((m: MeasurementWithDerived) => {
+    setEditing(m);
+    setFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (m: MeasurementWithDerived) => {
+    try {
+      const res = await fetch(`/api/measurements/${m.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "ลบไม่สำเร็จ");
+      setMeasurements((prev) => prev.filter((x) => x.id !== m.id));
+    } catch (e: any) {
+      alert(e.message);
+    }
+  }, []);
+
+  const openReportFromSession = (m: MeasurementWithDerived) => {
+    setReportFocus(m);
+    setReportOpen(true);
+  };
 
   const latest   = measurements[0];
   const previous = measurements[1];
@@ -89,7 +128,6 @@ export default function BCAPage() {
 
   return (
     <main className="min-h-screen bg-surface">
-      {/* ── Header ── */}
       <header className="sticky top-0 z-40 border-b border-ink-10 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-content items-center justify-between px-10">
           <div className="flex items-center gap-6">
@@ -104,16 +142,14 @@ export default function BCAPage() {
 
       <div className="mx-auto max-w-content px-10 py-10">
 
-        {/* ── Empty state ── */}
         {!customer && (
           <section className="flex flex-col items-center justify-center py-40 text-center">
             <div className="mb-4 text-5xl">📊</div>
             <h2 className="font-head text-2xl font-extrabold text-ink">เลือกลูกค้าเพื่อเริ่มต้น</h2>
-            <p className="mt-3 font-thai text-sm text-ink-60">คลิก "เลือกลูกค้า" ที่มุมขวาบน แล้วเลือกชื่อที่ต้องการดู</p>
+            <p className="mt-3 font-thai text-sm text-ink-60">คลิก "เลือกลูกค้า" ที่มุมขวาบน</p>
           </section>
         )}
 
-        {/* ── Patient Card ── */}
         {customer && (
           <section className="rounded-3xl border border-ink-10 bg-white p-8">
             <div className="flex flex-wrap items-start justify-between gap-6">
@@ -127,17 +163,18 @@ export default function BCAPage() {
                   <span className="h-1 w-1 rounded-full bg-ink-20" />
                   <span>สูง {customer.height ?? "—"} cm</span>
                   <span className="h-1 w-1 rounded-full bg-ink-20" />
-                  {loadingMs
-                    ? <span className="animate-pulse text-ink-40">กำลังโหลด...</span>
-                    : <span>{measurements.length} measurements</span>
-                  }
+                  {loadingMs ? <span className="animate-pulse text-ink-40">กำลังโหลด...</span> : <span>{measurements.length} measurements</span>}
                 </div>
                 {error && <p className="mt-2 text-xs text-status-warning">{error}</p>}
               </div>
-              <Button variant="rose" onClick={() => setFormOpen(true)}>+ บันทึกการวัดใหม่</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => { setReportFocus(null); setReportOpen(true); }} disabled={measurements.length === 0}>
+                  📄 สร้างรายงาน
+                </Button>
+                <Button variant="rose" onClick={() => { setEditing(null); setFormOpen(true); }}>+ บันทึกใหม่</Button>
+              </div>
             </div>
 
-            {/* Summary cards */}
             {latest && stats && (
               <div className="mt-8 grid gap-3 grid-cols-2 lg:grid-cols-5">
                 <SummaryCard label="น้ำหนัก" value={latest.weight ?? 0} unit="kg"
@@ -155,49 +192,39 @@ export default function BCAPage() {
           </section>
         )}
 
-        {/* ── Gauges ── */}
         {customer && latest && stats && (
           <section className="mt-6 grid gap-4 lg:grid-cols-2">
             {stats.fat && (
-              <MetricGauge
-                title="Body Fat Percentage" subtitle={`ACE · เพศ${customer.gender === "male" ? "ชาย" : "หญิง"}`}
+              <MetricGauge title="Body Fat Percentage" subtitle={`ACE · เพศ${customer.gender === "male" ? "ชาย" : "หญิง"}`}
                 value={stats.fat.value} unit="%" min={5} max={45}
                 markers={customer.gender === "male"
                   ? [{ v: 13, label: "Athletic" }, { v: 17, label: "Fitness" }, { v: 24, label: "Average" }, { v: 29, label: "Obese" }]
                   : [{ v: 20, label: "Athletic" }, { v: 24, label: "Fitness" }, { v: 31, label: "Average" }, { v: 36, label: "Obese" }]}
-                level={stats.fat.level} sub={`Fat Mass · ${latest.fat_mass} kg`}
-              />
+                level={stats.fat.level} sub={`Fat Mass · ${latest.fat_mass} kg`} />
             )}
             {stats.muscle && (
-              <MetricGauge
-                title="Muscle Mass %" subtitle="ค่าสูง = กล้ามเนื้อแข็งแรง"
+              <MetricGauge title="Muscle Mass %" subtitle="ค่าสูง = กล้ามเนื้อแข็งแรง"
                 value={stats.muscle.value} unit="%" min={20} max={50}
                 markers={customer.gender === "male"
                   ? [{ v: 33, label: "Low" }, { v: 40, label: "Normal" }, { v: 44, label: "High" }]
                   : [{ v: 24, label: "Low" }, { v: 31, label: "Normal" }, { v: 35, label: "High" }]}
-                level={stats.muscle.level} sub={`Muscle Mass · ${latest.muscle_mass} kg`} higherIsBetter
-              />
+                level={stats.muscle.level} sub={`Muscle Mass · ${latest.muscle_mass} kg`} higherIsBetter />
             )}
             {stats.bmi && (
-              <MetricGauge
-                title="BMI" subtitle="WHO Asian-Pacific standards"
+              <MetricGauge title="BMI" subtitle="WHO Asian-Pacific standards"
                 value={stats.bmi.value} unit="" min={15} max={40}
                 markers={[{ v: 18.5, label: "Under" }, { v: 23, label: "Normal" }, { v: 25, label: "Over" }, { v: 30, label: "Obese" }]}
-                level={stats.bmi.level} sub="WHO Asian standards"
-              />
+                level={stats.bmi.level} sub="WHO Asian standards" />
             )}
             {stats.visceral && (
-              <MetricGauge
-                title="Visceral Fat" subtitle="Tanita scale · เป้าหมาย ≤ 9"
+              <MetricGauge title="Visceral Fat" subtitle="Tanita scale · เป้าหมาย ≤ 9"
                 value={stats.visceral.value} unit="" min={1} max={20}
                 markers={[{ v: 9, label: "Optimal" }, { v: 12, label: "High" }, { v: 14, label: "Very High" }]}
-                level={stats.visceral.level} sub="ค่าต่ำกว่า 10 = ปลอดภัย"
-              />
+                level={stats.visceral.level} sub="ค่าต่ำกว่า 10 = ปลอดภัย" />
             )}
           </section>
         )}
 
-        {/* ── Trend Charts (multi-panel) ── */}
         {customer && measurements.length > 0 && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
             <div className="mb-6">
@@ -208,29 +235,35 @@ export default function BCAPage() {
           </section>
         )}
 
-        {/* ── Loading skeleton ── */}
         {customer && loadingMs && measurements.length === 0 && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
             <div className="h-72 animate-pulse rounded-2xl bg-surface" />
           </section>
         )}
 
-        {/* ── History Table ── */}
         {customer && measurements.length > 0 && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
-            <div className="mb-6">
-              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">History</div>
-              <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">ประวัติการวัด</h2>
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">History</div>
+                <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">ประวัติการวัด</h2>
+                <p className="mt-1 font-thai text-[12px] text-ink-40">คลิกแถวเพื่อสร้างรายงานของรอบนั้น</p>
+              </div>
             </div>
-            <MeasurementTable measurements={measurements} gender={customer.gender} />
+            <MeasurementTable
+              measurements={measurements}
+              gender={customer.gender}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSelect={openReportFromSession}
+            />
           </section>
         )}
 
-        {/* ── Empty measurements ── */}
         {customer && !loadingMs && measurements.length === 0 && !error && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-10 text-center">
             <div className="text-3xl mb-3">📋</div>
-            <div className="font-thai text-sm text-ink-60">ยังไม่มีข้อมูลการวัด — กดปุ่ม "บันทึกการวัดใหม่" เพื่อเริ่มต้น</div>
+            <div className="font-thai text-sm text-ink-60">ยังไม่มีข้อมูลการวัด — กด "บันทึกใหม่" เพื่อเริ่มต้น</div>
           </section>
         )}
 
@@ -240,13 +273,26 @@ export default function BCAPage() {
       </div>
 
       {formOpen && customer && (
-        <MeasurementForm customer={customer} onCancel={() => setFormOpen(false)} onSubmit={handleSubmit as any} />
+        <MeasurementForm
+          customer={customer}
+          initial={editing ?? undefined}
+          onCancel={() => { setFormOpen(false); setEditing(null); }}
+          onSubmit={handleSubmit}
+        />
+      )}
+
+      {reportOpen && customer && (
+        <ReportBuilder
+          customer={customer}
+          measurements={measurements}
+          highlight={reportFocus}
+          onClose={() => { setReportOpen(false); setReportFocus(null); }}
+        />
       )}
     </main>
   );
 }
 
-/* ── SummaryCard ── */
 function SummaryCard({ label, value, unit, level, delta, deltaInverted }: {
   label: string; value: number; unit: string;
   level?: import("@/lib/medical-status").StatusLevel;

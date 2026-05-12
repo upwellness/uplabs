@@ -6,20 +6,24 @@ import type { Customer, Measurement } from "@/lib/types";
 
 interface MeasurementFormProps {
   customer: Customer;
+  initial?: Partial<Measurement>;
   onCancel: () => void;
   onSubmit: (m: Omit<Measurement, "id" | "customer_id">) => void;
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const toDateInput = (iso?: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : todayISO());
 
-export function MeasurementForm({ customer, onCancel, onSubmit }: MeasurementFormProps) {
-  const [weight, setWeight] = useState<string>("");
-  const [fat, setFat] = useState<string>("");
-  const [muscle, setMuscle] = useState<string>("");
-  const [visceral, setVisceral] = useState<string>("");
-  const [bodyAge, setBodyAge] = useState<string>("");
-  const [bmr, setBmr] = useState<string>("");
-  const [date, setDate] = useState<string>(todayISO());
+export function MeasurementForm({ customer, initial, onCancel, onSubmit }: MeasurementFormProps) {
+  const isEdit = Boolean(initial?.id);
+
+  const [weight,   setWeight]   = useState<string>(initial?.weight   != null ? String(initial.weight)   : "");
+  const [fat,      setFat]      = useState<string>(initial?.fat_pct  != null ? String(initial.fat_pct)  : "");
+  const [muscle,   setMuscle]   = useState<string>(initial?.muscle_pct != null ? String(initial.muscle_pct) : "");
+  const [visceral, setVisceral] = useState<string>(initial?.visceral != null ? String(initial.visceral) : "");
+  const [bodyAge,  setBodyAge]  = useState<string>(initial?.body_age != null ? String(initial.body_age) : "");
+  const [bmr,      setBmr]      = useState<string>(initial?.bmr      != null ? String(initial.bmr)      : "");
+  const [date,     setDate]     = useState<string>(toDateInput(initial?.recorded_at));
 
   const num = (v: string) => (v === "" ? null : Number(v));
 
@@ -28,11 +32,11 @@ export function MeasurementForm({ customer, onCancel, onSubmit }: MeasurementFor
     onSubmit({
       recorded_at: new Date(date).toISOString(),
       weight: Number(weight),
-      fat_pct: num(fat),
+      fat_pct:    num(fat),
       muscle_pct: num(muscle),
-      visceral: num(visceral),
-      body_age: num(bodyAge),
-      bmr: num(bmr),
+      visceral:   num(visceral),
+      body_age:   num(bodyAge),
+      bmr:        num(bmr),
     });
   };
 
@@ -43,14 +47,13 @@ export function MeasurementForm({ customer, onCancel, onSubmit }: MeasurementFor
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 backdrop-blur-sm md:items-center"
       onClick={onCancel}
     >
-      <div
-        className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="border-b border-ink-10 px-7 py-5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">New Measurement</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">
+            {isEdit ? "Edit Measurement" : "New Measurement"}
+          </div>
           <div className="mt-1 font-head text-xl font-extrabold tracking-tight text-ink">
-            บันทึกค่าการวัด — {customer.name}
+            {isEdit ? "แก้ไขค่าการวัด" : "บันทึกค่าการวัด"} — {customer.name}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 p-7">
@@ -64,7 +67,7 @@ export function MeasurementForm({ customer, onCancel, onSubmit }: MeasurementFor
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-ink-10 bg-surface px-7 py-4">
           <Button variant="ghost" onClick={onCancel}>ยกเลิก</Button>
-          <Button variant="rose" onClick={submit}>บันทึกการวัด</Button>
+          <Button variant="rose" onClick={submit}>{isEdit ? "บันทึกการแก้ไข" : "บันทึกการวัด"}</Button>
         </div>
       </div>
     </div>
@@ -74,13 +77,8 @@ export function MeasurementForm({ customer, onCancel, onSubmit }: MeasurementFor
 function Field({
   label, value, onChange, placeholder, type = "text", required, full,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
-  full?: boolean;
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string; required?: boolean; full?: boolean;
 }) {
   return (
     <label className={`block ${full ? "col-span-2" : ""}`}>
