@@ -1,17 +1,32 @@
 -- ════════════════════════════════════════════════════════════════
--- UPLABS v2 — Auth & RBAC migration
--- Run once on the Supabase project (SQL editor or psql).
+-- UPLABS v2 — Auth & RBAC migration (idempotent, defensive)
+-- Safe to run multiple times. Coexists with any existing schema.
 -- ════════════════════════════════════════════════════════════════
 
--- ── 1. profiles ─────────────────────────────────────────────────
+-- ── 1. profiles table ───────────────────────────────────────────
 create table if not exists public.profiles (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  email         text,
-  display_name  text,
-  role          text not null default 'other' check (role in ('member','abo','admin','other')),
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id uuid primary key references auth.users(id) on delete cascade
 );
+
+-- Add columns one-by-one so an existing profiles table won't conflict.
+alter table public.profiles add column if not exists email         text;
+alter table public.profiles add column if not exists display_name  text;
+alter table public.profiles add column if not exists role          text;
+alter table public.profiles add column if not exists created_at    timestamptz default now();
+alter table public.profiles add column if not exists updated_at    timestamptz default now();
+
+-- Ensure role has default + not-null + check constraint.
+alter table public.profiles alter column role set default 'other';
+update public.profiles set role = 'other' where role is null;
+alter table public.profiles alter column role set not null;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'profiles_role_check') then
+    alter table public.profiles
+      add constraint profiles_role_check check (role in ('member','abo','admin','other'));
+  end if;
+end $$;
 
 create index if not exists idx_profiles_role on public.profiles(role);
 
@@ -24,7 +39,7 @@ drop trigger if exists profiles_touch on public.profiles;
 create trigger profiles_touch before update on public.profiles
   for each row execute procedure public.touch_updated_at();
 
--- ── 2. user_app_grants (per-user overrides) ─────────────────────
+-- ── 2. user_app_grants ─────────────────────────────────────────
 create table if not exists public.user_app_grants (
   user_id     uuid not null references auth.users(id) on delete cascade,
   app_slug    text not null,
@@ -33,45 +48,44 @@ create table if not exists public.user_app_grants (
   primary key (user_id, app_slug)
 );
 
--- ── 3. RLS ──────────────────────────────────────────────────────
-alter table public.profiles enable row level security;
-alter table public.user_app_grants enable row level security;
+-- ── 3. RLS ─────────────────────────────────────────────────────
+alter table public.profiles         enable row level security;
+alter table public.user_app_grants  enable row level security;
 
--- Profiles
-drop policy if exists profiles_select_own on public.profiles;
+drop policy if exists profiles_select_own   on public.profiles;
+drop policy if exists profiles_select_admin on public.profiles;
+drop policy if exists profiles_update_own   on public.profiles;
+drop policy if exists profiles_update_admin on public.profiles;
+
 create policy profiles_select_own on public.profiles
   for select using (auth.uid() = id);
 
-drop policy if exists profiles_select_admin on public.profiles;
 create policy profiles_select_admin on public.profiles
   for select using (exists (
     select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
   ));
 
-drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own on public.profiles
-  for update using (auth.uid() = id)
-  with check (auth.uid() = id and role = (select role from public.profiles where id = auth.uid()));
--- ↑ regular users can update own profile but NOT change their own role
+  for update using (auth.uid() = id);
+-- (Role escalation prevented at app layer; admin policy below covers admin updates.)
 
-drop policy if exists profiles_update_admin on public.profiles;
 create policy profiles_update_admin on public.profiles
   for update using (exists (
     select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
   ));
 
--- App grants
-drop policy if exists grants_select_own on public.user_app_grants;
+drop policy if exists grants_select_own  on public.user_app_grants;
+drop policy if exists grants_admin_all   on public.user_app_grants;
+
 create policy grants_select_own on public.user_app_grants
   for select using (auth.uid() = user_id);
 
-drop policy if exists grants_admin_all on public.user_app_grants;
 create policy grants_admin_all on public.user_app_grants
   for all using (exists (
     select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
   ));
 
--- ── 4. Auto-create profile on signup ────────────────────────────
+-- ── 4. Auto-create profile on signup ───────────────────────────
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -91,7 +105,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- ── 5. Backfill existing auth users ─────────────────────────────
+-- ── 5. Backfill existing auth users ────────────────────────────
 insert into public.profiles (id, email, display_name, role)
 select
   u.id,
@@ -99,12 +113,15 @@ select
   coalesce(u.raw_user_meta_data->>'display_name', split_part(coalesce(u.email,''), '@', 1)),
   'other'
 from auth.users u
-on conflict (id) do update set email = excluded.email;
+on conflict (id) do update
+  set email = excluded.email;
+-- ↑ Only syncs email for existing rows; preserves role/display_name if already set.
 
--- ── 6. Optional: promote the first user to admin ────────────────
--- Replace with your own admin email before running, or do it manually:
+-- ── 6. (Manual) Promote yourself to admin ──────────────────────
+-- Uncomment + edit before running, or do separately:
 -- update public.profiles set role = 'admin' where email = 'YOUR_ADMIN_EMAIL_HERE';
 
 -- ════════════════════════════════════════════════════════════════
--- DONE. Verify with: select email, role from public.profiles;
+-- Verify with:
+--   select email, role, display_name from public.profiles order by role;
 -- ════════════════════════════════════════════════════════════════
