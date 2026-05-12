@@ -66,6 +66,21 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 }
 
+/* ── Tight Y-domain: ~8% padding of actual data range (min 0.5)
+ * Makes ups/downs visible even when the absolute change is small.
+ */
+function tightDomain(values: (number | null | undefined)[], opts?: { floor?: number }): [number, number] {
+  const clean = values.filter((v): v is number => v != null && !isNaN(v));
+  if (clean.length === 0) return [0, 1];
+  const min = Math.min(...clean);
+  const max = Math.max(...clean);
+  const range = max - min || 1;
+  const pad = Math.max(range * 0.12, 0.5);
+  const lo = opts?.floor != null ? Math.max(opts.floor, min - pad) : min - pad;
+  const hi = max + pad;
+  return [+lo.toFixed(1), +hi.toFixed(1)];
+}
+
 const labelFmt = (v: any) => {
   if (v == null || v === 0) return "";
   const n = Number(v);
@@ -201,16 +216,17 @@ function ChartPanel({ title, children }: { title: string; children: React.ReactN
 /* ── Individual charts ──────────────────────────── */
 
 function WeightChart({ data }: { data: any[] }) {
+  const domain = tightDomain(data.map((d) => d.weight));
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
         <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" kg" domain={["dataMin - 1", "dataMax + 1"]} />
+        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" kg" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="weight_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="weight" name="น้ำหนัก" stroke={COLORS.weight} strokeWidth={2.5}
+        <Line type="linear" dataKey="weight_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="weight" name="น้ำหนัก" stroke={COLORS.weight} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.weight, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="weight" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.weight} />
         </Line>
@@ -220,21 +236,23 @@ function WeightChart({ data }: { data: any[] }) {
 }
 
 function FatChart({ data }: { data: any[] }) {
+  const massDomain = tightDomain(data.map((d) => d.fat_mass), { floor: 0 });
+  const pctDomain  = tightDomain(data.map((d) => d.fat_pct),  { floor: 0 });
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
         <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-        <YAxis yAxisId="left"  stroke={COLORS.fatMass} fontSize={11} tickLine={false} axisLine={false} unit=" kg" domain={["dataMin - 1", "dataMax + 1"]} />
-        <YAxis yAxisId="right" stroke={COLORS.fatPct}  fontSize={11} tickLine={false} axisLine={false} unit="%"   orientation="right" domain={["dataMin - 1", "dataMax + 1"]} />
+        <YAxis yAxisId="left"  stroke={COLORS.fatMass} fontSize={11} tickLine={false} axisLine={false} unit=" kg" domain={massDomain} />
+        <YAxis yAxisId="right" stroke={COLORS.fatPct}  fontSize={11} tickLine={false} axisLine={false} unit="%"   orientation="right" domain={pctDomain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line yAxisId="left" type="monotone" dataKey="fat_mass_trend" name="แนวโน้ม Fat Mass" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line yAxisId="left" type="monotone" dataKey="fat_mass" name="Fat Mass (kg)" stroke={COLORS.fatMass} strokeWidth={2.5}
+        <Line yAxisId="left" type="linear" dataKey="fat_mass_trend" name="แนวโน้ม Fat Mass" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line yAxisId="left" type="linear" dataKey="fat_mass" name="Fat Mass (kg)" stroke={COLORS.fatMass} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.fatMass, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="fat_mass" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.fatMass} />
         </Line>
-        <Line yAxisId="right" type="monotone" dataKey="fat_pct" name="% Fat" stroke={COLORS.fatPct} strokeWidth={2}
+        <Line yAxisId="right" type="linear" dataKey="fat_pct" name="% Fat" stroke={COLORS.fatPct} strokeWidth={2}
           strokeDasharray="3 3" dot={{ r: 3, fill: COLORS.fatPct, strokeWidth: 0 }} connectNulls />
       </ComposedChart>
     </ResponsiveContainer>
@@ -242,16 +260,17 @@ function FatChart({ data }: { data: any[] }) {
 }
 
 function MuscleChart({ data }: { data: any[] }) {
+  const domain = tightDomain(data.map((d) => d.muscle_pct), { floor: 0 });
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
         <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit="%" domain={["dataMin - 1", "dataMax + 1"]} />
+        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit="%" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="muscle_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="muscle_pct" name="กล้ามเนื้อ %" stroke={COLORS.muscle} strokeWidth={2.5}
+        <Line type="linear" dataKey="muscle_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="muscle_pct" name="กล้ามเนื้อ %" stroke={COLORS.muscle} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.muscle, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="muscle_pct" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.muscle} />
         </Line>
@@ -261,16 +280,17 @@ function MuscleChart({ data }: { data: any[] }) {
 }
 
 function VisceralChart({ data }: { data: any[] }) {
+  const domain = tightDomain(data.map((d) => d.visceral), { floor: 0 });
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
         <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} domain={[0, "dataMax + 2"]} />
+        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="visceral_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="visceral" name="Visceral" stroke={COLORS.visceral} strokeWidth={2.5}
+        <Line type="linear" dataKey="visceral_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="visceral" name="Visceral" stroke={COLORS.visceral} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.visceral, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="visceral" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.visceral} />
         </Line>
@@ -280,17 +300,20 @@ function VisceralChart({ data }: { data: any[] }) {
 }
 
 function BodyAgeChart({ data }: { data: any[] }) {
+  // Combine both body_age + chrono_age into one domain so they share scale
+  const combined = [...data.map((d) => d.body_age), ...data.map((d) => d.chrono_age)];
+  const domain = tightDomain(combined, { floor: 0 });
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
         <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
         <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" yr" domain={["dataMin - 2", "dataMax + 2"]} />
+        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" yr" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="chrono_age" name="อายุจริง" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="3 3" dot={false} connectNulls />
-        <Line type="monotone" dataKey="body_age_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="body_age" name="Body Age" stroke={COLORS.bodyAge} strokeWidth={2.5}
+        <Line type="linear" dataKey="chrono_age" name="อายุจริง" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="3 3" dot={false} connectNulls />
+        <Line type="linear" dataKey="body_age_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="body_age" name="Body Age" stroke={COLORS.bodyAge} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.bodyAge, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="body_age" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.bodyAge} />
         </Line>
