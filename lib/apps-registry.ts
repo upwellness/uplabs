@@ -26,6 +26,7 @@ export const APPS: AppMeta[] = [
   // ── Business ──
   { slug: "bca",          name: "BCA Tracker",     description: "ติดตาม Body Composition ของลูกค้าแบบต่อเนื่อง",     icon: "📊", audience: "business", href: "/bca",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "cgm",          name: "CGM Analyzer",    description: "วิเคราะห์ glucose monitoring patterns",            icon: "📈", audience: "business", href: "/cgm",          status: "live", allowedRoles: ["abo", "admin"] },
+  { slug: "pulse",        name: "UP Pulse",        description: "Wearable biomarker → Nutrient → Nutrilite mapping",icon: "📱", audience: "business", href: "/pulse",        status: "beta", allowedRoles: ["abo", "admin"] },
   { slug: "nutriscan",    name: "NutriScan AI",    description: "AI วิเคราะห์โภชนาการจากรูปภาพ",                     icon: "🥗", audience: "business", href: "/nutriscan",    status: "soon", allowedRoles: ["abo", "admin"] },
   { slug: "designer",     name: "Program Designer",description: "ออกแบบโปรแกรม wellness เฉพาะบุคคล",                icon: "🎨", audience: "business", href: "/designer",     status: "soon", allowedRoles: ["abo", "admin"] },
   { slug: "checkform",    name: "Check Form",      description: "Form ประเมิน lead ใหม่อย่างมีระบบ",                icon: "📋", audience: "business", href: "/checkform",    status: "soon", allowedRoles: ["abo", "admin"] },

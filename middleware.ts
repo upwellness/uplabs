@@ -7,6 +7,8 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/auth/callback",
   "/setup",
+  "/connect",                 // UP Pulse customer-facing connect flow
+  "/api/pulse/oauth",         // OAuth start + callback (called by Google)
 ];
 
 const isPublic = (path: string) =>
