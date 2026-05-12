@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
+import { BrowserCheck } from "./BrowserCheck";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default async function ConnectPage({ params }: { params: { token: string 
   }
 
   const name = (invite.customers as any)?.name ?? "คุณ";
+  const h = headers();
+  const host = h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const fullUrl = `${proto}://${host}/connect/${params.token}`;
 
   return (
     <main className="min-h-screen bg-surface">
@@ -33,6 +38,7 @@ export default async function ConnectPage({ params }: { params: { token: string 
       </header>
 
       <section className="mx-auto max-w-2xl px-6 py-12">
+        <BrowserCheck url={fullUrl} />
         <div className="rounded-3xl border border-ink-10 bg-white p-8">
           <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">UP Pulse · Connect</div>
           <h1 className="mt-2 font-head text-[28px] font-extrabold tracking-tight text-ink">
