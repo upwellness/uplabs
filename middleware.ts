@@ -6,7 +6,7 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
-  "/_health",
+  "/setup",
 ];
 
 const isPublic = (path: string) =>
@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
     const path = req.nextUrl.pathname;
     if (isPublic(path)) return NextResponse.next();
     const redirect = req.nextUrl.clone();
-    redirect.pathname = "/_health";
+    redirect.pathname = "/setup";
     return NextResponse.rewrite(redirect);
   }
 
@@ -67,7 +67,7 @@ export async function middleware(req: NextRequest) {
     // Allow public paths through; rewrite the rest to a friendly health page.
     if (isPublic(req.nextUrl.pathname)) return NextResponse.next();
     const redirect = req.nextUrl.clone();
-    redirect.pathname = "/_health";
+    redirect.pathname = "/setup";
     return NextResponse.rewrite(redirect);
   }
 }
