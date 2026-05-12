@@ -356,12 +356,19 @@ function AssessmentRow({ a, siteUrl, onPublish, onCopy }: {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <a href={reportUrl} target="_blank" rel="noopener" className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
-          👁 ดูรายงาน
+        <a href={`/pulse/assessments/${a.id}`} target="_blank" rel="noopener" className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
+          👁 Preview (เฉพาะโค้ช)
         </a>
-        <button onClick={() => onCopy(reportUrl)} className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
-          📋 Copy link
-        </button>
+        {a.sent_at && (
+          <>
+            <a href={reportUrl} target="_blank" rel="noopener" className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
+              🔗 ดูแบบลูกค้า
+            </a>
+            <button onClick={() => onCopy(reportUrl)} className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
+              📋 Copy link ลูกค้า
+            </button>
+          </>
+        )}
         {!a.sent_at && !a.blocked && (
           <button onClick={() => onPublish(a)} className="rounded-md bg-rose px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose/90">
             🚀 เผยแพร่ให้ลูกค้า
