@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Inter, Sarabun, JetBrains_Mono } from "next/font/google";
+import { SessionInit } from "@/components/SessionInit";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -42,7 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="th"
       className={`${manrope.variable} ${inter.variable} ${sarabun.variable} ${jetbrains.variable}`}
     >
-      <body className="font-body">{children}</body>
+      <body className="font-body">
+        <SessionInit />
+        {children}
+      </body>
     </html>
   );
 }
