@@ -102,6 +102,14 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
       { dataTypeName: "com.google.heart_rate.bpm" },
       { dataTypeName: "com.google.step_count.delta" },
       { dataTypeName: "com.google.sleep.segment" },
+      { dataTypeName: "com.google.active_minutes" },
+      { dataTypeName: "com.google.calories.expended" },
+      { dataTypeName: "com.google.calories.bmr" },
+      { dataTypeName: "com.google.heart_minutes" },
+      { dataTypeName: "com.google.weight" },
+      { dataTypeName: "com.google.body.fat.percentage" },
+      { dataTypeName: "com.google.distance.delta" },
+      { dataTypeName: "com.google.power.sample" },
     ],
     bucketByTime: { durationMillis: oneDay },
     startTimeMillis: startMs,
@@ -136,7 +144,7 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
       const type = (ds.dataSourceId ?? "") as string;
 
       for (const pt of ds.point ?? []) {
-        // Heart rate — aggregate returns summary [avg, max, min]
+        // ── Heart rate — daily summary [avg, max, min] ──
         if (type.includes("heart_rate")) {
           const avg = pt.value?.[0]?.fpVal;
           const max = pt.value?.[1]?.fpVal;
@@ -145,24 +153,65 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
           if (min) out.push({ recorded_at: ts, metric_type: "rhr",    value: +min.toFixed(1), unit: "bpm" });
           if (max) out.push({ recorded_at: ts, metric_type: "hr_max", value: +max.toFixed(1), unit: "bpm" });
         }
-        // Steps — int value
+        // ── Steps ──
         else if (type.includes("step_count")) {
           const total = pt.value?.[0]?.intVal ?? 0;
           if (total > 0) out.push({ recorded_at: ts, metric_type: "steps", value: total, unit: "count" });
         }
-        // Sleep — segment duration → minutes
+        // ── Sleep segments with stages ──
         else if (type.includes("sleep")) {
           const start = Number(pt.startTimeNanos) / 1e6;
           const end   = Number(pt.endTimeNanos) / 1e6;
           const mins  = Math.round((end - start) / 60_000);
+          const stage = pt.value?.[0]?.intVal;
+          // Stage codes (per Google Fit): 1=awake, 2=sleep, 3=oob, 4=light, 5=deep, 6=rem
           if (mins > 0) {
+            const stageMap: Record<number, string> = {
+              2: "sleep_total", 4: "sleep_light", 5: "sleep_deep", 6: "sleep_rem",
+            };
+            const metric = stageMap[stage as number] ?? "sleep_minutes";
             out.push({
               recorded_at: new Date(start).toISOString(),
-              metric_type: "sleep_minutes",
+              metric_type: metric,
               value: mins,
               unit: "minutes",
             });
           }
+        }
+        // ── Active minutes ──
+        else if (type.includes("active_minutes")) {
+          const m = pt.value?.[0]?.intVal ?? 0;
+          if (m > 0) out.push({ recorded_at: ts, metric_type: "active_minutes", value: m, unit: "minutes" });
+        }
+        // ── Calories expended (kcal) ──
+        else if (type.includes("calories.expended")) {
+          const k = pt.value?.[0]?.fpVal ?? 0;
+          if (k > 0) out.push({ recorded_at: ts, metric_type: "calories_expended", value: +k.toFixed(0), unit: "kcal" });
+        }
+        // ── BMR (kcal/day) ──
+        else if (type.includes("calories.bmr")) {
+          const k = pt.value?.[0]?.fpVal ?? 0;
+          if (k > 0) out.push({ recorded_at: ts, metric_type: "bmr", value: +k.toFixed(0), unit: "kcal" });
+        }
+        // ── Heart minutes (intensity points) ──
+        else if (type.includes("heart_minutes")) {
+          const m = pt.value?.[0]?.fpVal ?? 0;
+          if (m > 0) out.push({ recorded_at: ts, metric_type: "heart_minutes", value: +m.toFixed(1), unit: "minutes" });
+        }
+        // ── Weight (kg) ──
+        else if (type.includes(":weight") || type.endsWith("weight")) {
+          const w = pt.value?.[0]?.fpVal;
+          if (w) out.push({ recorded_at: ts, metric_type: "weight", value: +w.toFixed(2), unit: "kg" });
+        }
+        // ── Body fat % ──
+        else if (type.includes("body.fat")) {
+          const f = pt.value?.[0]?.fpVal;
+          if (f) out.push({ recorded_at: ts, metric_type: "body_fat_pct", value: +f.toFixed(1), unit: "%" });
+        }
+        // ── Distance (meters → km) ──
+        else if (type.includes("distance")) {
+          const d = pt.value?.[0]?.fpVal ?? 0;
+          if (d > 0) out.push({ recorded_at: ts, metric_type: "distance_km", value: +(d / 1000).toFixed(2), unit: "km" });
         }
       }
     }

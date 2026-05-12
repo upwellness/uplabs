@@ -296,12 +296,24 @@ function groupReadings(readings: PulseReading[]) {
   }
 
   const LABELS: Record<string, string> = {
-    hr_bpm:        "Heart Rate",
-    rhr:           "Resting HR",
-    hrv_rmssd:     "HRV",
-    sleep_minutes: "Sleep",
-    steps:         "Steps",
-    spo2:          "SpO2",
+    hr_bpm:            "Heart Rate (avg)",
+    rhr:               "Resting HR",
+    hr_max:            "Heart Rate (max)",
+    hrv_rmssd:         "HRV",
+    sleep_minutes:     "Sleep (mixed)",
+    sleep_total:       "Sleep (total)",
+    sleep_light:       "Light Sleep",
+    sleep_deep:        "Deep Sleep",
+    sleep_rem:         "REM Sleep",
+    steps:             "Steps",
+    active_minutes:    "Active Minutes",
+    calories_expended: "Calories",
+    bmr:               "BMR",
+    heart_minutes:     "Heart Minutes",
+    weight:            "Weight",
+    body_fat_pct:      "Body Fat %",
+    distance_km:       "Distance",
+    spo2:              "SpO2",
   };
 
   return Array.from(map.entries()).map(([metric_type, g]) => ({
