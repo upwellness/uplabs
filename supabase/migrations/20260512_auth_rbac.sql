@@ -30,6 +30,21 @@ end $$;
 
 create index if not exists idx_profiles_role on public.profiles(role);
 
+-- If a legacy `name` column exists with NOT NULL, relax it so backfill succeeds.
+-- (We populate it from display_name where present, then drop the constraint.)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='name'
+  ) then
+    update public.profiles
+      set name = coalesce(name, display_name, split_part(coalesce(email,''), '@', 1), 'user')
+      where name is null;
+    alter table public.profiles alter column name drop not null;
+  end if;
+end $$;
+
 -- updated_at trigger
 create or replace function public.touch_updated_at()
 returns trigger language plpgsql as $$
@@ -88,14 +103,24 @@ create policy grants_admin_all on public.user_app_grants
 -- ── 4. Auto-create profile on signup ───────────────────────────
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_display text := coalesce(new.raw_user_meta_data->>'display_name', split_part(coalesce(new.email,''), '@', 1));
+  has_name_col boolean;
 begin
-  insert into public.profiles (id, email, display_name)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'display_name', split_part(coalesce(new.email,''), '@', 1))
-  )
-  on conflict (id) do nothing;
+  select exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='name'
+  ) into has_name_col;
+
+  if has_name_col then
+    execute format(
+      'insert into public.profiles (id, email, display_name, name) values ($1, $2, $3, $3) on conflict (id) do nothing'
+    ) using new.id, new.email, v_display;
+  else
+    insert into public.profiles (id, email, display_name)
+    values (new.id, new.email, v_display)
+    on conflict (id) do nothing;
+  end if;
   return new;
 end;
 $$;
