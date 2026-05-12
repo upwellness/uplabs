@@ -6,7 +6,7 @@
  * Strict prompt: no new claims, no new SKUs, just rephrase.
  */
 
-const GEMINI_MODEL = "gemini-1.5-flash-latest";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `คุณคือ rephrasing layer สำหรับ UP Wellness wellness coach
 หน้าที่: เปลี่ยน rule engine output เป็นภาษาไทยโทน coach ที่อบอุ่น น่าเชื่อถือ ตรงประเด็น
