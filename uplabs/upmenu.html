@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPLABS — Central Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rose:       #8C4C4C;
+    --rose-pale:  #F0E0E0;
+    --green:      #396755;
+    --green-pale: #D6EDE4;
+    --teal:       #2A7B8F;
+    --teal-pale:  #D0EEF4;
+    --amber:      #D4882A;
+    --amber-pale: #FDF0DB;
+    --ink:        #1A1517;
+    --ink-60:     #5A5057;
+    --ink-30:     #9E979A;
+    --border:     #DDD5D5;
+    --surface:    #F5F0EB;
+    --bg:         #FFF8F7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--rose);
+    padding: 20px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800; font-size: 22px; color: white; letter-spacing: -0.5px;
+  }
+  .logo span { color: rgba(255,255,255,0.5); font-weight: 300; }
+  .header-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  /* ── MAIN ── */
+  main { padding: 24px 16px 40px; max-width: 480px; margin: 0 auto; }
+
+  .welcome {
+    background: white; border-radius: 16px; border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .welcome-icon { font-size: 32px; }
+  .welcome-text h2 { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .welcome-text p  { font-size: 13px; color: var(--ink-60); }
+
+  /* ── SECTION ── */
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-30);
+    padding: 0 4px; margin-bottom: 10px; margin-top: 24px;
+  }
+
+  /* ── APP GRID ── */
+  .app-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .app-card {
+    background: white; border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 16px; text-decoration: none; color: var(--ink);
+    display: flex; flex-direction: column; gap: 10px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .app-card:active { transform: scale(0.97); }
+  .app-card:hover  { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  .app-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .icon-rose   { background: var(--rose-pale); }
+  .icon-green  { background: var(--green-pale); }
+  .icon-teal   { background: var(--teal-pale); }
+  .icon-amber  { background: var(--amber-pale); }
+
+  .app-name { font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .app-desc { font-size: 12px; color: var(--ink-60); line-height: 1.4; }
+
+  .app-tag {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 3px 8px; border-radius: 100px;
+    width: fit-content;
+  }
+  .tag-customer { background: var(--teal-pale);  color: var(--teal); }
+  .tag-business { background: var(--rose-pale);  color: var(--rose); }
+  .tag-internal { background: var(--amber-pale); color: var(--amber); }
+  .tag-content  { background: var(--green-pale); color: var(--green); }
+
+  /* ── SINGLE CARD ── */
+  .app-card-full {
+    background: white; border-radius: 16px; border: 1px solid var(--border);
+    padding: 16px; text-decoration: none; color: var(--ink);
+    display: flex; align-items: center; gap: 14px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    margin-bottom: 10px;
+  }
+  .app-card-full:hover  { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .app-card-full:active { transform: scale(0.98); }
+  .app-card-full .app-icon { flex-shrink: 0; }
+  .app-card-full .app-info { flex: 1; }
+  .app-card-full .app-name { font-size: 15px; }
+  .app-card-full .app-desc { font-size: 13px; }
+  .chevron { color: var(--ink-30); font-size: 18px; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 20px;
+    font-size: 12px; color: var(--ink-30);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">UP<span>LABS</span></div>
+    <div class="header-sub">Health Intelligence Platform</div>
+  </div>
+  <div style="font-size:24px">🧬</div>
+</header>
+
+<main>
+
+  <!-- Welcome -->
+  <div class="welcome" style="margin-top:16px">
+    <div class="welcome-icon">👋</div>
+    <div class="welcome-text">
+      <h2>สวัสดีค่ะ</h2>
+      <p>เลือก app ที่ต้องการใช้งานด้านล่าง</p>
+    </div>
+  </div>
+
+  <!-- Customer Apps -->
+  <div class="section-label">🌿 สำหรับลูกค้า</div>
+  <div class="app-grid">
+    <a class="app-card" href="customer/healthcheck.html">
+      <div class="app-icon icon-teal">🏥</div>
+      <div>
+        <div class="app-name">Health Check</div>
+        <div class="app-desc">ประเมินสุขภาพ metabolic ครบชุด</div>
+      </div>
+      <div class="app-tag tag-customer">ลูกค้า</div>
+    </a>
+    <a class="app-card" href="customer/metaflexquiz.html">
+      <div class="app-icon icon-green">🔥</div>
+      <div>
+        <div class="app-name">MetaFlex Quiz</div>
+        <div class="app-desc">วัดความยืดหยุ่นระบบเผาผลาญ</div>
+      </div>
+      <div class="app-tag tag-customer">ลูกค้า</div>
+    </a>
+  </div>
+
+  <!-- Business Apps -->
+  <div class="section-label">💼 สำหรับนักธุรกิจ</div>
+  <div class="app-grid">
+    <a class="app-card" href="business/upbca.html">
+      <div class="app-icon icon-rose">📊</div>
+      <div>
+        <div class="app-name">BCA Tracker</div>
+        <div class="app-desc">Body Composition Analysis</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+    <a class="app-card" href="business/upcgm.html">
+      <div class="app-icon icon-teal">📈</div>
+      <div>
+        <div class="app-name">CGM Analyzer</div>
+        <div class="app-desc">วิเคราะห์ glucose monitoring</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+    <a class="app-card" href="business/upnutriscan.html">
+      <div class="app-icon icon-green">🥗</div>
+      <div>
+        <div class="app-name">NutriScan AI</div>
+        <div class="app-desc">AI วิเคราะห์อาหารจากรูป</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+    <a class="app-card" href="business/updesigner.html">
+      <div class="app-icon icon-amber">🎨</div>
+      <div>
+        <div class="app-name">Designer</div>
+        <div class="app-desc">ออกแบบโปรแกรม wellness</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+    <a class="app-card" href="business/upcheckform.html">
+      <div class="app-icon icon-rose">📋</div>
+      <div>
+        <div class="app-name">Check Form</div>
+        <div class="app-desc">Form ประเมิน lead ใหม่</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+    <a class="app-card" href="business/upprospect.html">
+      <div class="app-icon icon-teal">🎯</div>
+      <div>
+        <div class="app-name">Prospect</div>
+        <div class="app-desc">Lead intelligence dashboard</div>
+      </div>
+      <div class="app-tag tag-business">Business</div>
+    </a>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Internal Tools -->
+  <div class="section-label">🔒 เครื่องมือภายใน</div>
+  <a class="app-card-full" href="internal/updose.html">
+    <div class="app-icon icon-amber">💊</div>
+    <div class="app-info">
+      <div class="app-name">Master Dose Comparison</div>
+      <div class="app-desc">เปรียบ dosage Nutrilite แต่ละระดับ</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+  <a class="app-card-full" href="internal/updosecalc.html">
+    <div class="app-icon icon-amber">🧮</div>
+    <div class="app-info">
+      <div class="app-name">Dose Calculator</div>
+      <div class="app-desc">คำนวณ dose ส่วนตัว</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+  <a class="app-card-full" href="internal/pharmamate.html">
+    <div class="app-icon icon-rose">⚕️</div>
+    <div class="app-info">
+      <div class="app-name">PharmaMate AI</div>
+      <div class="app-desc">AI ผู้ช่วยเภสัชกร</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+  <a class="app-card-full" href="internal/sallynote.html">
+    <div class="app-icon icon-green">📓</div>
+    <div class="app-info">
+      <div class="app-name">Pharmacist Note</div>
+      <div class="app-desc">คู่มือโรคทั่วไป + คำแนะนำ</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+
+  <div class="divider"></div>
+
+  <!-- Content -->
+  <div class="section-label">📚 เนื้อหา</div>
+  <a class="app-card-full" href="../content/uplabs-start.html">
+    <div class="app-icon icon-green">🚀</div>
+    <div class="app-info">
+      <div class="app-name">UP Labs Start</div>
+      <div class="app-desc">แผนลดน้ำหนัก 14 วัน</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+  <a class="app-card-full" href="../content/uplabs-faqs.html">
+    <div class="app-icon icon-teal">❓</div>
+    <div class="app-info">
+      <div class="app-name">FAQs</div>
+      <div class="app-desc">คำถามที่พบบ่อยของ UP Labs</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+  <a class="app-card-full" href="../content/longevity-key.html">
+    <div class="app-icon icon-rose">🔑</div>
+    <div class="app-info">
+      <div class="app-name">Longevity Key</div>
+      <div class="app-desc">Infographic สุขภาพ longevity</div>
+    </div>
+    <div class="chevron">›</div>
+  </a>
+
+</main>
+
+<footer>
+  UPLABS · UP Wellness · v1.0 · 2026
+</footer>
+
+</body>
+</html>

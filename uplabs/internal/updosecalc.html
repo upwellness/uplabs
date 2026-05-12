@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nutrilite — My Dose Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f4f8;
+  --bg2: #e4ecf4;
+  --panel: #ffffff;
+  --panel2: #f7fafc;
+  --border: #d0dcea;
+  --border2: #bccbde;
+  --text: #1a2535;
+  --text2: #4a6080;
+  --text3: #8aa0b8;
+  --accent: #1565c0;
+  --accent-light: #e3eefa;
+  --green: #1b8a4c;
+  --green-bg: #e6f6ed;
+  --yellow: #b06000;
+  --yellow-bg: #fef6e4;
+  --red: #c0392b;
+  --red-bg: #fde8e6;
+  --purple: #6d28d9;
+  --purple-bg: #ede9fe;
+  --teal: #0e7490;
+  --teal-bg: #e0f5f9;
+  --shadow: 0 2px 12px rgba(30,60,100,0.08);
+  --shadow-lg: 0 8px 32px rgba(30,60,100,0.13);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans Thai', 'IBM Plex Mono', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header {
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 32px 40px 24px;
+  box-shadow: var(--shadow);
+}
+.header-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px;
+}
+.header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 3vw, 36px); font-weight: 800;
+  color: var(--text); line-height: 1.1;
+}
+.header h1 span { color: var(--accent); }
+.header-sub { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+/* LAYOUT */
+.layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  min-height: calc(100vh - 120px);
+}
+
+/* LEFT PANEL — CONFIG */
+.config-panel {
+  background: var(--panel);
+  border-right: 2px solid var(--border);
+  padding: 24px 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+  position: sticky;
+  top: 0;
+}
+.config-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+  color: var(--text); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.config-title .icon { font-size: 18px; }
+
+/* PRODUCT ITEM */
+.product-item {
+  background: var(--panel2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px; margin-bottom: 8px;
+  overflow: hidden; transition: border-color .2s;
+}
+.product-item:has(.toggle-check:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.product-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer;
+}
+.toggle-check { display: none; }
+.toggle-box {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 2px solid var(--border2); flex-shrink: 0;
+  background: white; transition: all .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.product-item:has(.toggle-check:checked) .toggle-box {
+  background: var(--accent); border-color: var(--accent);
+}
+.toggle-box::after {
+  content: ''; display: none; width: 5px; height: 9px;
+  border: 2px solid white; border-top: none; border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+}
+.product-item:has(.toggle-check:checked) .toggle-box::after { display: block; }
+.product-name { font-size: 13px; font-weight: 600; flex: 1; }
+.product-cat {
+  font-size: 9px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* DOSE CONTROL */
+.dose-control {
+  display: none; padding: 8px 12px 12px 40px;
+  border-top: 1px solid var(--border);
+}
+.product-item:has(.toggle-check:checked) .dose-control { display: block; }
+.dose-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dose-label { font-size: 11px; color: var(--text2); width: 80px; flex-shrink: 0; }
+.dose-stepper {
+  display: flex; align-items: center; gap: 0;
+  border: 1.5px solid var(--border2); border-radius: 7px; overflow: hidden;
+}
+.dose-btn {
+  width: 28px; height: 28px; border: none;
+  background: var(--bg2); color: var(--text);
+  font-size: 16px; cursor: pointer; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s; line-height: 1;
+}
+.dose-btn:hover { background: var(--border2); }
+.dose-val {
+  width: 38px; height: 28px; text-align: center;
+  border: none; border-left: 1px solid var(--border2); border-right: 1px solid var(--border2);
+  background: white; font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  outline: none;
+}
+.dose-unit { font-size: 11px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+.dose-freq {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.freq-btn {
+  padding: 3px 9px; border-radius: 100px; border: 1px solid var(--border2);
+  background: white; font-size: 10px; cursor: pointer; transition: all .15s;
+  font-family: 'IBM Plex Mono', monospace; color: var(--text2);
+}
+.freq-btn.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+.nutrients-preview {
+  margin-top: 8px; font-size: 10px; color: var(--text3);
+  font-family: 'IBM Plex Mono', monospace; line-height: 1.6;
+  background: white; border-radius: 6px; padding: 6px 10px;
+  border: 1px solid var(--border);
+}
+
+/* ACTION BUTTON */
+.calc-btn {
+  width: 100%; padding: 12px; margin-top: 16px;
+  background: var(--accent); color: white;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Syne', sans-serif;
+  transition: all .2s; box-shadow: 0 4px 12px rgba(21,101,192,0.25);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.calc-btn:hover { background: #1251a3; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(21,101,192,0.35); }
+.reset-btn {
+  width: 100%; padding: 8px; margin-top: 8px;
+  background: white; color: var(--text2);
+  border: 1.5px solid var(--border); border-radius: 10px; font-size: 12px;
+  cursor: pointer; font-family: 'IBM Plex Mono', monospace; transition: all .2s;
+}
+.reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* RIGHT — CHART AREA */
+.chart-area {
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+.chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.chart-area-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;
+}
+.legend {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.leg-line { width: 18px; height: 2px; flex-shrink: 0; border-radius: 2px; }
+
+/* STATS ROW */
+.stats-row {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--panel); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.stat-num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+.stat-lbl { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; line-height: 1.3; }
+
+/* EMPTY STATE */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 400px; color: var(--text3); text-align: center; gap: 12px;
+}
+.empty-icon { font-size: 56px; opacity: .4; }
+.empty-txt { font-size: 14px; line-height: 1.6; max-width: 320px; }
+
+/* CHART WRAPPER */
+.chart-wrapper { overflow-x: auto; overflow-y: visible; padding-bottom: 8px; }
+.chart-svg-wrap { min-width: 600px; position: relative; }
+
+/* OVERLAP ALERT */
+.overlap-box {
+  background: var(--teal-bg); border: 1.5px solid var(--teal);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px;
+  color: var(--teal); line-height: 1.7;
+}
+.overlap-box strong { font-size: 13px; display: block; margin-bottom: 4px; }
+
+/* TOOLTIP */
+.tooltip {
+  position: fixed; background: var(--panel); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 14px 18px; font-size: 12px; pointer-events: none;
+  opacity: 0; transition: opacity .15s; z-index: 9999; max-width: 280px;
+  box-shadow: var(--shadow-lg);
+}
+.tooltip.visible { opacity: 1; }
+.tt-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 8px; }
+.tt-row { display: flex; justify-content: space-between; gap: 16px; color: var(--text2); margin: 3px 0; font-size: 11px; }
+.tt-val { font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--text); }
+.tt-sep { border-top: 1px solid var(--border); margin: 6px 0; }
+.tt-note { font-size: 11px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+.tt-overlap { font-size: 11px; color: var(--teal); margin-top: 6px; font-weight: 600; }
+
+/* DISCLAIMER */
+.disclaimer {
+  background: var(--yellow-bg); border: 1.5px solid #e5a000;
+  border-radius: 10px; padding: 12px 18px; font-size: 12px; color: var(--yellow);
+  line-height: 1.7; margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .config-panel { max-height: none; position: static; border-right: none; border-bottom: 2px solid var(--border); }
+  .chart-area { padding: 20px; }
+  .header { padding: 24px 20px 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-tag">Nutrilite Thailand · Interactive Dose Calculator · 2025</div>
+  <h1>My <span>Dose</span> Calculator</h1>
+  <p class="header-sub">เลือกสินค้าที่ทาน → กำหนดจำนวนเม็ด/ซอง → คำนวณ % Therapeutic อัตโนมัติ พร้อมรวมสารที่ซ้ำซ้อนระหว่างผลิตภัณฑ์</p>
+</div>
+
+<div class="layout">
+  <!-- LEFT: CONFIG -->
+  <div class="config-panel">
+    <div class="config-title"><span class="icon">⚙️</span> เลือกสินค้าที่ทาน</div>
+    <div id="productList"></div>
+    <button class="calc-btn" onclick="calculate()">📊 คำนวณและแสดงกราฟ</button>
+    <button class="reset-btn" onclick="resetAll()">↺ รีเซ็ตทั้งหมด</button>
+  </div>
+
+  <!-- RIGHT: CHART -->
+  <div class="chart-area">
+    <div class="chart-header">
+      <div class="chart-area-title" id="chartTitle">เลือกสินค้าและกด คำนวณ</div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:#1b8a4c"></div>ครบ Therapeutic</div>
+        <div class="leg"><div class="leg-dot" style="background:#b06000"></div>Sub-Therapeutic</div>
+        <div class="leg"><div class="leg-dot" style="background:#c0392b"></div>ต่ำกว่า Minimum</div>
+        <div class="leg"><div class="leg-line" style="background:#1b8a4c"></div>100% Therapeutic</div>
+        <div class="leg"><div class="leg-line" style="background:#b06000;opacity:.7"></div>Min (15%)</div>
+        <div class="leg"><div class="leg-line" style="background:#c0392b;opacity:.6"></div>Toxic</div>
+      </div>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div id="overlapBox"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">💊</div>
+      <div class="empty-txt">เลือกสินค้า Nutrilite ที่คุณทานอยู่<br>จากด้านซ้าย แล้วกด <strong>คำนวณ</strong></div>
+    </div>
+    <div class="chart-wrapper" id="chartWrapper" style="display:none">
+      <div class="chart-svg-wrap"><svg id="mainChart" style="display:block;overflow:visible"></svg></div>
+    </div>
+    <div class="disclaimer" id="disclaimerBox" style="display:none">
+      ⚠️ Therapeutic Dose คำนวณจากงานวิจัยและ Clinical Trials (IOM, NIH ODS, AHA, EFSA, Cochrane) | สารที่ซ้ำซ้อนระหว่างผลิตภัณฑ์ถูกรวมให้อัตโนมัติ | % อาจผันแปรตาม sex/age/weight | ควรปรึกษาแพทย์ก่อนปรับ Dose
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-row"><span>Dose ที่คุณทาน</span><span class="tt-val" id="tt-yours"></span></div>
+  <div class="tt-row"><span>% Therapeutic</span><span class="tt-val" id="tt-pct"></span></div>
+  <div class="tt-row"><span>Minimum Effective</span><span class="tt-val" id="tt-min"></span></div>
+  <div class="tt-row"><span>Therapeutic Target</span><span class="tt-val" id="tt-thera"></span></div>
+  <div class="tt-row"><span>Toxic / UL Dose</span><span class="tt-val" id="tt-toxic"></span></div>
+  <div id="tt-overlap-row" style="display:none" class="tt-overlap"></div>
+  <div class="tt-sep"></div>
+  <div class="tt-note" id="tt-note"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  PRODUCT + NUTRIENT DATABASE
+// ════════════════════════════════════════════════════════════
+// Each product has: id, name, cat, unitLabel, defaultDose, nutrients[]
+// Each nutrient: nutrientId, name, amountPerUnit, unit
+// Therapeutic targets (shared across products for same nutrientId)
+
+const THERAPEUTICS = {
+  vitC:       { name:'Vitamin C',        thera:500,   min:30,    toxic:2000,  unit:'mg',  note:'500 mg = plasma saturation; UL 2,000 mg' },
+  vitD:       { name:'Vitamin D3',       thera:1700,  min:400,   toxic:4000,  unit:'IU',  note:'Endocrine Society: 1,500-2,000 IU/day; UL 4,000 IU' },
+  vitE:       { name:'Vitamin E',        thera:30,    min:15,    toxic:1000,  unit:'mg',  note:'RDA 15 mg; UL 1,000 mg' },
+  vitA:       { name:'Vitamin A',        thera:800,   min:400,   toxic:3000,  unit:'mcg', note:'RDA 700-900 mcg; Retinol UL 3,000 mcg' },
+  vitB:       { name:'Vitamin B Complex',thera:100,   min:20,    toxic:999,   unit:'%RDA',note:'1 เม็ด = 100% Thai RDI; B6 UL = 100 mg' },
+  calcium:    { name:'Calcium',          thera:1050,  min:400,   toxic:2500,  unit:'mg',  note:'IOM RDA: 1,000-1,200 mg; UL 2,500 mg' },
+  magnesium:  { name:'Magnesium',        thera:365,   min:100,   toxic:350,   unit:'mg',  note:'IOM RDA: 310-420 mg; Supplement UL 350 mg' },
+  iron:       { name:'Iron (Female)',    thera:15,    min:8,     toxic:45,    unit:'mg',  note:'Female RDA: 18 mg; Male: 8 mg; UL: 45 mg' },
+  folate:     { name:'Folate',           thera:400,   min:200,   toxic:1000,  unit:'mcg', note:'RDA 400 mcg DFE; NTD prevention; UL 1,000 mcg' },
+  zinc:       { name:'Zinc',             thera:10,    min:4,     toxic:40,    unit:'mg',  note:'IOM RDA: 8-11 mg; UL: 40 mg' },
+  iodine:     { name:'Iodine',           thera:150,   min:20,    toxic:1100,  unit:'mcg', note:'RDA 150 mcg; UL 1,100 mcg' },
+  selenium:   { name:'Selenium',         thera:55,    min:20,    toxic:400,   unit:'mcg', note:'RDA 55 mcg; UL 400 mcg' },
+  omega3:     { name:'Omega-3 EPA+DHA',  thera:1200,  min:250,   toxic:5000,  unit:'mg',  note:'AHA CVD: 1,000-2,000 mg; UL 5,000 mg; >1g: Afib risk' },
+  coq10:      { name:'CoQ10',            thera:200,   min:30,    toxic:3000,  unit:'mg',  note:'Q-SYMBIO: 300 mg; General: 100-200 mg; UL: 3,000 mg' },
+  garlic:     { name:'Allicin (Garlic)', thera:6.3,   min:2.7,   toxic:999,   unit:'mg',  note:'Ried 2016: 900 mg powder = 2.7 mg allicin; No formal UL' },
+  probiotics: { name:'Probiotics (CFU)', thera:10,    min:1,     toxic:999,   unit:'B CFU',note:'WHO/FAO: 1B min; Therapeutic 10B CFU; Safe — no UL' },
+  fiber:      { name:'Soluble Fiber',    thera:8.5,   min:3,     toxic:999,   unit:'g',   note:'EFSA: 3g beta-glucan; Total soluble fiber 7-10g; No UL' },
+  protein:    { name:'Plant Protein',    thera:60,    min:20,    toxic:999,   unit:'g',   note:'0.8 g/kg BW; 60 kg person = 48 g; No UL' },
+  lutein:     { name:'Lutein',           thera:10,    min:2.5,   toxic:999,   unit:'mg',  note:'AREDS2: 10 mg/day; No UL' },
+  lycopene:   { name:'Lycopene',         thera:20,    min:2.5,   toxic:999,   unit:'mg',  note:'Prostate: 15-30 mg/day; No UL' },
+  quercetin:  { name:'Quercetin',        thera:300,   min:150,   toxic:999,   unit:'mg',  note:'BP/CRP: 150-500 mg; No formal UL' },
+  curcumin:   { name:'Curcumin (Turmeric)',thera:500, min:250,   toxic:999,   unit:'mg',  note:'500-1000 mg + Piperine; No UL' },
+  ginkgo:     { name:'Ginkgo EGb',       thera:180,   min:80,    toxic:999,   unit:'mg',  note:'Cochrane: 120-240 mg EGb 761; No UL' },
+  ginseng:    { name:'Siberian Ginseng', thera:750,   min:100,   toxic:999,   unit:'mg',  note:'Adaptogen: 400-1,200 mg; No UL' },
+  greentea:   { name:'Green Tea Catechins',thera:375, min:100,   toxic:800,   unit:'mg',  note:'LDL lowering: 375 mg catechins; EGCG UL: 800 mg' },
+  phyto:      { name:'Phytonutrient Blend',thera:100, min:20,    toxic:999,   unit:'% WHO', note:'WHO: 400g F&V/day; Phyto blend as broad-spectrum coverage' },
+};
+
+const PRODUCTS = [
+  { id:'doublex', name:'Nutrilite Double X', cat:'Multi', unitLabel:'เม็ด (3 เม็ด = 1 เสิร์ฟ)', defaultDose:3,
+    nutrients:[
+      { nid:'vitC',    per:66.7  }, // 200 mg / 3 tablets
+      { nid:'vitD',    per:266.7 }, // 800 IU / 3 tablets
+      { nid:'vitE',    per:8.9   }, // 26.8 mg / 3 tablets
+      { nid:'vitA',    per:450   }, // 1350 mcg / 3 tablets (RE)
+      { nid:'vitB',    per:33.3  }, // ~100%RDA/3 per 1 tablet → 33.3 %RDA per tablet
+      { nid:'calcium', per:83.3  }, // 250 mg / 3 tablets
+      { nid:'magnesium',per:33.3 }, // 100 mg / 3 tablets
+      { nid:'zinc',    per:2.5   }, // 7.5 mg / 3 tablets
+      { nid:'iodine',  per:25    }, // 75 mcg / 3 tablets
+      { nid:'selenium',per:11.7  }, // 35 mcg / 3 tablets
+      { nid:'lutein',  per:0.33  }, // 1 mg / 3 tablets (Marigold)
+      { nid:'lycopene',per:0.17  }, // 0.5 mg / 3 tablets (Tomato)
+      { nid:'quercetin',per:16.7 }, // 50 mg / 3 tablets (Fava d'Anta)
+      { nid:'curcumin',per:6.17  }, // 18.5 mg / 3 tablets (Turmeric)
+      { nid:'phyto',   per:16.7  }, // 1/6 serving per tablet
+    ]
+  },
+  { id:'bioc', name:'Bio C Plus', cat:'Vitamin', unitLabel:'เม็ด', defaultDose:1,
+    nutrients:[ { nid:'vitC', per:500 } ]
+  },
+  { id:'tripleomega', name:'Triple Omega (ใหม่ 2025)', cat:'Omega', unitLabel:'ซอฟท์เจล', defaultDose:1,
+    nutrients:[ { nid:'omega3', per:500 } ] // 286 EPA + 214 DHA = 500 mg
+  },
+  { id:'salmonOmega', name:'Salmon Omega (เก่า)', cat:'Omega', unitLabel:'ซอฟท์เจล', defaultDose:1,
+    nutrients:[ { nid:'omega3', per:300 } ] // 180 EPA + 120 DHA = 300 mg
+  },
+  { id:'coq10plus', name:'CoQ10 Plus', cat:'Herbal', unitLabel:'แคปซูล', defaultDose:3,
+    nutrients:[ { nid:'coq10', per:30 } ] // 90 mg / 3 caps = 30 mg each
+  },
+  { id:'camgd', name:'Calcium Magnesium D', cat:'Mineral', unitLabel:'เม็ด (3 เม็ด = 1 เสิร์ฟ)', defaultDose:3,
+    nutrients:[
+      { nid:'calcium',   per:166.7 }, // 500 mg / 3 tablets
+      { nid:'magnesium', per:83.3  }, // 250 mg / 3 tablets
+      { nid:'vitD',      per:133.3 }, // 400 IU / 3 tablets
+    ]
+  },
+  { id:'garlic', name:'Nutrilite Garlic', cat:'Herbal', unitLabel:'เม็ด', defaultDose:2,
+    nutrients:[ { nid:'garlic', per:1.5 } ] // ~3 mg allicin / 2 tabs = 1.5 per tab
+  },
+  { id:'ironfolic', name:'Iron Folic', cat:'Mineral', unitLabel:'เม็ด', defaultDose:1,
+    nutrients:[
+      { nid:'iron',   per:15  },
+      { nid:'folate', per:400 },
+    ]
+  },
+  { id:'postb', name:'Vitamin B Plus (Post B)', cat:'Vitamin', unitLabel:'เม็ด', defaultDose:1,
+    nutrients:[ { nid:'vitB', per:100 } ] // 100% RDA per tablet
+  },
+  { id:'probiotics', name:'Balance Within Probiotic', cat:'Other', unitLabel:'ซอง', defaultDose:1,
+    nutrients:[ { nid:'probiotics', per:6.3 } ] // 6.3 B CFU per sachet
+  },
+  { id:'fiber', name:'Fiber Powder (Fiber Blend)', cat:'Other', unitLabel:'ซอง', defaultDose:1,
+    nutrients:[ { nid:'fiber', per:4.5 } ] // 4.5 g soluble fiber per sachet
+  },
+  { id:'protein', name:'All Plant Protein Powder', cat:'Other', unitLabel:'scoop', defaultDose:1,
+    nutrients:[ { nid:'protein', per:11.5 } ] // ~11.5 g per scoop
+  },
+  { id:'sibgink', name:'Siberian Ginseng & Ginkgo', cat:'Herbal', unitLabel:'เม็ด (3 เม็ด = 1 เสิร์ฟ)', defaultDose:3,
+    nutrients:[
+      { nid:'ginkgo',  per:33.35 }, // 100 mg / 3 tabs
+      { nid:'ginseng', per:66.65 }, // 200 mg / 3 tabs
+    ]
+  },
+  { id:'lesterol', name:'Lesterol (CH Balance)', cat:'Herbal', unitLabel:'แคปซูล', defaultDose:2,
+    nutrients:[ { nid:'greentea', per:50 } ] // ~100 mg catechins / 2 caps = 50 each
+  },
+  { id:'vitd', name:'Vitamin D3 (Standalone)', cat:'Vitamin', unitLabel:'เม็ด', defaultDose:1,
+    nutrients:[ { nid:'vitD', per:700 } ] // avg 400-1000 IU
+  },
+];
+
+// State
+const state = {};
+PRODUCTS.forEach(p => {
+  state[p.id] = { enabled: false, dose: p.defaultDose, freq: 'daily' };
+});
+
+// ── BUILD CONFIG PANEL ───────────────────────────────────────
+function buildConfigPanel() {
+  const catOrder = ['Multi','Vitamin','Mineral','Omega','Herbal','Other'];
+  const catLabel = { Multi:'🌟 Multi', Vitamin:'💊 Vitamins', Mineral:'🪨 Minerals', Omega:'🐟 Omega/Lipids', Herbal:'🌿 Herbal', Other:'🧪 Other' };
+  const groups = {};
+  catOrder.forEach(c => groups[c] = []);
+  PRODUCTS.forEach(p => { if(groups[p.cat]) groups[p.cat].push(p); });
+
+  const list = document.getElementById('productList');
+  list.innerHTML = '';
+
+  catOrder.forEach(cat => {
+    if (!groups[cat].length) return;
+    const catDiv = document.createElement('div');
+    catDiv.style.cssText = 'font-size:10px;font-family:IBM Plex Mono,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin:12px 0 6px;padding-left:2px';
+    catDiv.textContent = catLabel[cat] || cat;
+    list.appendChild(catDiv);
+
+    groups[cat].forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'product-item';
+      item.id = 'item-' + p.id;
+
+      // Nutrients preview string
+      const nutPreview = p.nutrients.map(n => {
+        const t = THERAPEUTICS[n.nid];
+        return `${t.name}: ${n.per * p.defaultDose} ${t.unit}/วัน`;
+      }).join('\n');
+
+      item.innerHTML = `
+        <label class="product-header" for="chk-${p.id}">
+          <input type="checkbox" class="toggle-check" id="chk-${p.id}" onchange="toggleProduct('${p.id}',this.checked)">
+          <div class="toggle-box"></div>
+          <div style="flex:1">
+            <div class="product-name">${p.name}</div>
+            <div class="product-cat">${p.cat}</div>
+          </div>
+        </label>
+        <div class="dose-control">
+          <div class="dose-row">
+            <div class="dose-label">จำนวน/วัน</div>
+            <div class="dose-stepper">
+              <button class="dose-btn" onclick="adjustDose('${p.id}',-0.5)">−</button>
+              <input class="dose-val" id="dval-${p.id}" type="number" min="0" step="0.5" value="${p.defaultDose}" onchange="setDose('${p.id}',this.value)">
+              <button class="dose-btn" onclick="adjustDose('${p.id}',0.5)">+</button>
+            </div>
+            <div class="dose-unit">${p.unitLabel}</div>
+          </div>
+          <div class="dose-row">
+            <div class="dose-label">ความถี่</div>
+            <div class="dose-freq">
+              <button class="freq-btn active" id="freq-${p.id}-daily" onclick="setFreq('${p.id}','daily')">ทุกวัน</button>
+              <button class="freq-btn" id="freq-${p.id}-alt" onclick="setFreq('${p.id}','alt')">วันเว้น</button>
+              <button class="freq-btn" id="freq-${p.id}-weekly" onclick="setFreq('${p.id}','weekly')">สัปดาห์ละครั้ง</button>
+            </div>
+          </div>
+          <div class="nutrients-preview" id="nprev-${p.id}">${nutPreview}</div>
+        </div>`;
+      list.appendChild(item);
+    });
+  });
+}
+
+function toggleProduct(id, checked) {
+  state[id].enabled = checked;
+  updateNutrientPreview(id);
+}
+
+function adjustDose(id, delta) {
+  const current = state[id].dose;
+  const newVal = Math.max(0, Math.round((current + delta) * 2) / 2);
+  state[id].dose = newVal;
+  document.getElementById('dval-' + id).value = newVal;
+  updateNutrientPreview(id);
+}
+
+function setDose(id, val) {
+  const v = Math.max(0, parseFloat(val) || 0);
+  state[id].dose = v;
+  updateNutrientPreview(id);
+}
+
+function setFreq(id, freq) {
+  state[id].freq = freq;
+  ['daily','alt','weekly'].forEach(f => {
+    const btn = document.getElementById(`freq-${id}-${f}`);
+    if (btn) btn.classList.toggle('active', f === freq);
+  });
+  updateNutrientPreview(id);
+}
+
+function getFreqMultiplier(freq) {
+  return { daily: 1, alt: 0.5, weekly: 1/7 }[freq] || 1;
+}
+
+function updateNutrientPreview(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  const dose = state[id].dose;
+  const freqM = getFreqMultiplier(state[id].freq);
+  const effDose = dose * freqM;
+  const lines = p.nutrients.map(n => {
+    const t = THERAPEUTICS[n.nid];
+    const total = (n.per * effDose).toFixed(1);
+    const pct = Math.round(n.per * effDose / t.thera * 100);
+    const col = pct >= 80 ? '#1b8a4c' : pct >= 15 ? '#b06000' : '#c0392b';
+    return `<span style="color:${col}">${t.name}: ${total} ${t.unit} (${pct}% therapeutic)</span>`;
+  }).join('\n');
+  const prev = document.getElementById('nprev-' + id);
+  if (prev) prev.innerHTML = lines;
+}
+
+function resetAll() {
+  PRODUCTS.forEach(p => {
+    state[p.id] = { enabled: false, dose: p.defaultDose, freq: 'daily' };
+    const chk = document.getElementById('chk-' + p.id);
+    if (chk) chk.checked = false;
+    const dval = document.getElementById('dval-' + p.id);
+    if (dval) dval.value = p.defaultDose;
+    setFreq(p.id, 'daily');
+    updateNutrientPreview(p.id);
+  });
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('chartWrapper').style.display = 'none';
+  document.getElementById('disclaimerBox').style.display = 'none';
+  document.getElementById('statsRow').innerHTML = '';
+  document.getElementById('overlapBox').innerHTML = '';
+  document.getElementById('chartTitle').textContent = 'เลือกสินค้าและกด คำนวณ';
+}
+
+// ── CALCULATE ────────────────────────────────────────────────
+function calculate() {
+  const active = PRODUCTS.filter(p => state[p.id].enabled);
+  if (!active.length) {
+    document.getElementById('chartTitle').textContent = '⚠️ กรุณาเลือกสินค้าอย่างน้อย 1 รายการ';
+    return;
+  }
+
+  // Aggregate nutrients across all active products
+  const totals = {}; // nutrientId -> { total: mg, sources: [] }
+  active.forEach(p => {
+    const dose = state[p.id].dose;
+    const freqM = getFreqMultiplier(state[p.id].freq);
+    const effDose = dose * freqM;
+    p.nutrients.forEach(n => {
+      if (!totals[n.nid]) totals[n.nid] = { total: 0, sources: [] };
+      const contrib = n.per * effDose;
+      totals[n.nid].total += contrib;
+      totals[n.nid].sources.push({ product: p.name, amount: contrib, dose, unit: THERAPEUTICS[n.nid].unit });
+    });
+  });
+
+  // Build chart data
+  const chartData = Object.entries(totals).map(([nid, data]) => {
+    const t = THERAPEUTICS[nid];
+    const pct = Math.round(data.total / t.thera * 100 * 10) / 10;
+    return {
+      nid, pct,
+      total: data.total,
+      unit: t.unit,
+      name: t.name,
+      minPct: Math.round(t.min / t.thera * 100),
+      toxicPct: Math.round(t.toxic / t.thera * 100),
+      thera: t.thera,
+      min: t.min,
+      toxic: t.toxic,
+      note: t.note,
+      sources: data.sources,
+      isOverlap: data.sources.length > 1,
+    };
+  }).sort((a,b) => b.pct - a.pct);
+
+  // Overlaps
+  const overlaps = chartData.filter(d => d.isOverlap);
+
+  renderOverlapBox(overlaps);
+  renderStats(chartData);
+  renderChart(chartData);
+
+  const names = active.map(p => p.name.replace('Nutrilite ',''));
+  document.getElementById('chartTitle').textContent = `ผลการคำนวณ: ${names.slice(0,3).join(', ')}${names.length > 3 ? ' +' + (names.length-3) + ' อื่น' : ''}`;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('chartWrapper').style.display = 'block';
+  document.getElementById('disclaimerBox').style.display = 'block';
+}
+
+// ── OVERLAP BOX ──────────────────────────────────────────────
+function renderOverlapBox(overlaps) {
+  const box = document.getElementById('overlapBox');
+  if (!overlaps.length) { box.innerHTML = ''; return; }
+  const lines = overlaps.map(d => {
+    const srcs = d.sources.map(s => `${s.product} (${s.amount.toFixed(1)} ${s.unit})`).join(' + ');
+    return `• <strong>${d.name}</strong>: ${srcs} = รวม ${d.total.toFixed(1)} ${d.unit} (${d.pct}%)`;
+  }).join('<br>');
+  box.innerHTML = `<div class="overlap-box"><strong>🔄 พบสารซ้ำซ้อนระหว่างผลิตภัณฑ์ — รวมอัตโนมัติแล้ว:</strong>${lines}</div>`;
+}
+
+// ── STATS ────────────────────────────────────────────────────
+function renderStats(data) {
+  const strip = document.getElementById('statsRow');
+  const below15 = data.filter(d => d.pct < 15).length;
+  const sub = data.filter(d => d.pct >= 15 && d.pct < 80).length;
+  const good = data.filter(d => d.pct >= 80 && d.pct <= 200).length;
+  const over = data.filter(d => d.pct > 200).length;
+  const avg = Math.round(data.reduce((a,d) => a + Math.min(d.pct, 200), 0) / data.length);
+  const overUL = data.filter(d => d.toxicPct < 9000 && d.pct > d.toxicPct).length;
+
+  const cards = [
+    { num: data.length, label: 'สารอาหารที่ได้รับ', color: '#1565c0' },
+    { num: below15, label: '⚠ ต่ำกว่า Min (<15%)', color: '#c0392b' },
+    { num: sub, label: 'Sub-Therapeutic (15–79%)', color: '#b06000' },
+    { num: good, label: '✅ Therapeutic Zone', color: '#1b8a4c' },
+    { num: over, label: 'เกิน 200% Therapeutic', color: '#6d28d9' },
+    { num: overUL, label: '☠ เกิน Toxic/UL', color: '#c0392b', warning: true },
+  ];
+  strip.innerHTML = cards.map(c => `
+    <div class="stat-card" style="${c.warning && c.num > 0 ? 'border-color:var(--red);background:var(--red-bg)' : ''}">
+      <div class="stat-num" style="color:${c.color}">${c.num}</div>
+      <div class="stat-lbl">${c.label}</div>
+    </div>`).join('');
+}
+
+// ── CHART ────────────────────────────────────────────────────
+function renderChart(data) {
+  const svg = document.getElementById('mainChart');
+  svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs) { const e = document.createElementNS(ns, tag); Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k,v)); return e; }
+  function txt(s, attrs) { const t = el('text', attrs); t.textContent = s; return t; }
+
+  const M = { top: 44, right: 48, bottom: 170, left: 90 };
+  const containerW = svg.parentElement.parentElement.clientWidth || 900;
+  const W = Math.max(700, Math.max(containerW - 10, data.length * 72 + M.left + M.right));
+  const Y_MAX = 280;
+  const plotW = W - M.left - M.right;
+  const plotH = 420;
+  const H = plotH + M.top + M.bottom;
+
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const g = el('g', {});
+  svg.appendChild(g);
+
+  function yPct(p) { return M.top + plotH - Math.min(p, Y_MAX) / Y_MAX * plotH; }
+
+  // ZONES
+  const zones = [
+    { y1:0,   y2:15,  fill:'rgba(192,57,43,0.06)',  label:'ต่ำกว่า Min' },
+    { y1:15,  y2:80,  fill:'rgba(176,96,0,0.05)',   label:'Sub-Therapeutic' },
+    { y1:80,  y2:200, fill:'rgba(27,138,76,0.07)',  label:'Therapeutic Zone' },
+    { y1:200, y2:280, fill:'rgba(109,40,217,0.05)', label:'> 2× Therapeutic' },
+  ];
+  zones.forEach(z => {
+    const y1 = yPct(Math.min(z.y2, Y_MAX));
+    const y2 = yPct(z.y1);
+    g.appendChild(el('rect', { x:M.left, y:y1, width:plotW, height:y2-y1, fill:z.fill }));
+  });
+
+  // GRID LINES
+  const ticks = [0, 15, 50, 80, 100, 150, 200, 250];
+  const tickColors = { 100:'#1b8a4c', 15:'#b06000', 80:'#8aae9a', 200:'#1565c0' };
+  ticks.forEach(p => {
+    const y = yPct(p);
+    const color = tickColors[p] || '#d0dcea';
+    const dash = p === 100 ? 'none' : '4,4';
+    const sw = p === 100 ? 2 : 1;
+    g.appendChild(el('line', { x1:M.left, y1:y, x2:M.left+plotW, y2:y, stroke:color, 'stroke-width':sw, 'stroke-dasharray':dash, opacity: p===100?1:0.7 }));
+    const lbl = p+'%' + (p===100?' ← TARGET':p===15?' ← MIN':p===200?' ← 2×':'');
+    const t = txt(lbl, { x:M.left-8, y:y+4, 'text-anchor':'end', fill:color, 'font-size': p===100?11:9, 'font-family':'IBM Plex Mono,monospace', 'font-weight':p===100?'600':'400', opacity:p===100?1:0.8 });
+    g.appendChild(t);
+  });
+
+  // ZONE LABELS on right
+  const zoneLabels = [{p:7.5,lbl:'⚠ BELOW MIN'},{p:47.5,lbl:'SUB-THERAPEUTIC'},{p:140,lbl:'THERAPEUTIC ZONE'},{p:240,lbl:'>2× THERAPEUTIC'}];
+  const zColors = ['#c0392b','#b06000','#1b8a4c','#6d28d9'];
+  zoneLabels.forEach((z, i) => {
+    const t = txt(z.lbl, { x:M.left+plotW-6, y:yPct(z.p)+4, 'text-anchor':'end', fill:zColors[i], 'font-size':9, 'font-family':'IBM Plex Mono,monospace', opacity:0.5 });
+    g.appendChild(t);
+  });
+
+  // BARS + DOTS
+  const colW = plotW / data.length;
+  const barW = Math.max(14, Math.min(36, colW * 0.55));
+
+  data.forEach((d, i) => {
+    const cx = M.left + i * colW + colW / 2;
+    const cy = yPct(d.pct);
+    const dotColor = d.pct >= 80 ? '#1b8a4c' : d.pct >= 15 ? '#b06000' : '#c0392b';
+    const dotBg = d.pct >= 80 ? 'rgba(27,138,76,0.12)' : d.pct >= 15 ? 'rgba(176,96,0,0.1)' : 'rgba(192,57,43,0.1)';
+
+    // Vertical grid
+    g.appendChild(el('line', { x1:cx, y1:M.top, x2:cx, y2:M.top+plotH, stroke:'#e4ecf4', 'stroke-width':1 }));
+
+    // Range bar
+    const yMin = yPct(d.minPct);
+    const yToxCapped = yPct(Math.min(d.toxicPct, Y_MAX));
+    g.appendChild(el('rect', { x:cx-barW/2, y:Math.min(yToxCapped,yMin), width:barW, height:Math.abs(yMin-yToxCapped), rx:4, fill:'#e9edf2', stroke:'#c8d4e0', 'stroke-width':1 }));
+
+    // Min marker
+    g.appendChild(el('rect', { x:cx-barW/2, y:yMin-2, width:barW, height:4, rx:2, fill:'rgba(176,96,0,0.5)' }));
+
+    // 100% marker
+    const y100 = yPct(100);
+    g.appendChild(el('line', { x1:cx-barW/2-4, y1:y100, x2:cx+barW/2+4, y2:y100, stroke:'#1b8a4c', 'stroke-width':1.5, opacity:0.5 }));
+
+    // Toxic marker
+    if (d.toxicPct < 9000 && d.toxicPct <= Y_MAX) {
+      const yTox = yPct(d.toxicPct);
+      g.appendChild(el('rect', { x:cx-barW/2, y:yTox-2, width:barW, height:4, rx:2, fill:'rgba(192,57,43,0.5)' }));
+      g.appendChild(txt('☠', { x:cx+barW/2+5, y:yTox+4, fill:'#c0392b', 'font-size':9, opacity:0.7 }));
+    }
+
+    // Overlap badge
+    if (d.isOverlap) {
+      g.appendChild(el('circle', { cx:cx+barW/2-2, cy:yPct(d.pct)-barW/2-2, r:5, fill:'#0e7490' }));
+      g.appendChild(txt('R', { x:cx+barW/2-2, y:yPct(d.pct)-barW/2+1, 'text-anchor':'middle', fill:'white', 'font-size':6, 'font-weight':'700' }));
+    }
+
+    // Value bar fill (from 0 to label dose)
+    const yZero = yPct(0);
+    const barFillH = Math.abs(yZero - cy);
+    if (barFillH > 0) {
+      g.appendChild(el('rect', { x:cx-barW/2+2, y:Math.min(cy,yZero), width:barW-4, height:barFillH, rx:3,
+        fill: d.pct >= 80 ? 'rgba(27,138,76,0.25)' : d.pct >= 15 ? 'rgba(176,96,0,0.2)' : 'rgba(192,57,43,0.18)' }));
+    }
+
+    // Dot
+    g.appendChild(el('circle', { cx, cy, r:10, fill:dotBg }));
+    g.appendChild(el('circle', { cx, cy, r:8, fill:dotColor, stroke:'white', 'stroke-width':1.5 }));
+
+    // Pct label above dot
+    const dispPct = d.pct < 10 ? d.pct.toFixed(1) : Math.round(d.pct);
+    g.appendChild(txt(dispPct+'%', { x:cx, y:cy-14, 'text-anchor':'middle', fill:dotColor, 'font-size':10, 'font-family':'IBM Plex Mono,monospace', 'font-weight':'700' }));
+
+    // Amount label below dot
+    const dispAmt = d.total < 10 ? d.total.toFixed(1) : Math.round(d.total);
+    g.appendChild(txt(`${dispAmt} ${d.unit}`, { x:cx, y:cy+20, 'text-anchor':'middle', fill:'#8aa0b8', 'font-size':9, 'font-family':'IBM Plex Mono,monospace' }));
+
+    // X axis label (multiline)
+    const nameParts = d.name.split(' ');
+    const lines = [];
+    let cur = '';
+    nameParts.forEach(w => { if ((cur+w).length > 14 && cur) { lines.push(cur.trim()); cur=w+' '; } else cur+=w+' '; });
+    if (cur.trim()) lines.push(cur.trim());
+    const xAxisY = M.top + plotH + 22;
+    lines.forEach((line, li) => {
+      g.appendChild(txt(line, { x:cx, y:xAxisY+li*13, 'text-anchor':'middle', fill:'#2a3a4e', 'font-size':11, 'font-family':'Noto Sans Thai,IBM Plex Mono,monospace', 'font-weight':li===0?'600':'400' }));
+    });
+
+    // Sources tag
+    if (d.isOverlap) {
+      g.appendChild(txt(`🔄 ${d.sources.length} sources`, { x:cx, y:xAxisY+lines.length*13+4, 'text-anchor':'middle', fill:'#0e7490', 'font-size':9, 'font-family':'IBM Plex Mono,monospace' }));
+    }
+
+    // Hover area
+    const hitRect = el('rect', { x:cx-colW/2, y:M.top, width:colW, height:plotH, fill:'transparent', style:'cursor:pointer' });
+    hitRect.addEventListener('mouseenter', e => showTT(e, d));
+    hitRect.addEventListener('mousemove', e => moveTT(e));
+    hitRect.addEventListener('mouseleave', hideTT);
+    g.appendChild(hitRect);
+  });
+
+  // AXES
+  g.appendChild(el('line', { x1:M.left, y1:M.top, x2:M.left, y2:M.top+plotH, stroke:'#bccbde', 'stroke-width':2 }));
+  g.appendChild(el('line', { x1:M.left, y1:M.top+plotH, x2:M.left+plotW, y2:M.top+plotH, stroke:'#bccbde', 'stroke-width':1.5 }));
+
+  // Y-axis title
+  const yTitle = txt('% ของ Therapeutic Dose (Clinical Evidence Target = 100%)', { x:0, y:0, fill:'#8aa0b8', 'font-size':11, 'font-family':'IBM Plex Mono,monospace', transform:`translate(16,${M.top+plotH/2}) rotate(-90)`, 'text-anchor':'middle' });
+  g.appendChild(yTitle);
+}
+
+function showTT(e, d) {
+  const tt = document.getElementById('tooltip');
+  document.getElementById('tt-name').textContent = d.name;
+  document.getElementById('tt-yours').textContent = `${d.total.toFixed(1)} ${d.unit}/วัน`;
+  const dotColor = d.pct >= 80 ? '#1b8a4c' : d.pct >= 15 ? '#b06000' : '#c0392b';
+  const ttPct = document.getElementById('tt-pct');
+  ttPct.textContent = d.pct + '% ของ Therapeutic';
+  ttPct.style.color = dotColor;
+  document.getElementById('tt-min').textContent = `${d.min} ${d.unit}/วัน (${d.minPct}%)`;
+  document.getElementById('tt-thera').textContent = `${d.thera} ${d.unit}/วัน`;
+  document.getElementById('tt-toxic').textContent = d.toxic > 9000 ? 'ไม่มี UL formal' : `${d.toxic} ${d.unit}/วัน`;
+  document.getElementById('tt-note').textContent = d.note;
+  const overlapRow = document.getElementById('tt-overlap-row');
+  if (d.isOverlap) {
+    overlapRow.style.display = 'block';
+    overlapRow.textContent = '🔄 รวมจาก: ' + d.sources.map(s => `${s.product.replace('Nutrilite ','')} (${s.amount.toFixed(1)} ${s.unit})`).join(' + ');
+  } else { overlapRow.style.display = 'none'; }
+  tt.classList.add('visible');
+  moveTT(e);
+}
+function moveTT(e) {
+  const tt = document.getElementById('tooltip');
+  let x = e.clientX + 16, y = e.clientY - 20;
+  if (x + 290 > window.innerWidth) x = e.clientX - 294;
+  if (y < 8) y = 8;
+  tt.style.left = x + 'px'; tt.style.top = y + 'px';
+}
+function hideTT() { document.getElementById('tooltip').classList.remove('visible'); }
+
+// INIT
+buildConfigPanel();
+PRODUCTS.forEach(p => updateNutrientPreview(p.id));
+window.addEventListener('resize', () => { if (document.getElementById('chartWrapper').style.display !== 'none') calculate(); });
+</script>
+</body>
+</html>

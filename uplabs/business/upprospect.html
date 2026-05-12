@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amway Lead Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #050810;
+  --s1: #090d18;
+  --s2: #0d1425;
+  --s3: #111c30;
+  --s4: #15233a;
+  --bd: #1a2d45;
+  --bd2: #223a58;
+  --bd3: #2d4d70;
+  --c1: #3b9eff;
+  --c2: #8b5cf6;
+  --c3: #10d98a;
+  --c4: #f59e0b;
+  --c5: #f43f5e;
+  --c6: #06b6d4;
+  --tx: #e2eaf5;
+  --tx2: #a8bdd0;
+  --mu: #4a6580;
+  --mu2: #2a3f55;
+  --f: 'Noto Sans Thai', sans-serif;
+  --m: 'JetBrains Mono', monospace;
+  --r: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { height:100%; }
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--f);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─ NOISE OVERLAY ─ */
+body::after {
+  content:'';
+  position:fixed;inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:.4;
+}
+
+/* ─ TOPBAR ─ */
+.topbar {
+  height: 52px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+}
+.logo {
+  font-family: var(--m);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c1);
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(59,158,255,.5);
+  flex-shrink: 0;
+}
+.logo span { color: var(--mu); }
+.tb-divider { width: 1px; height: 20px; background: var(--bd); }
+.tb-nav { display: flex; gap: 4px; }
+.tb-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--mu);
+  font-size: 12px;
+  font-family: var(--f);
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tb-btn.on { background: var(--s3); color: var(--tx); }
+.tb-btn:hover:not(.on) { color: var(--tx2); }
+.tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.conn-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-family: var(--m);
+  color: var(--mu);
+}
+.conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mu2); transition: all .3s; }
+.conn-dot.ok { background: var(--c3); box-shadow: 0 0 8px var(--c3); }
+.conn-dot.err { background: var(--c5); }
+.btn-cfg {
+  padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: transparent; color: var(--mu);
+  font-size: 11px; font-family: var(--m);
+  cursor: pointer; transition: all .2s;
+}
+.btn-cfg:hover { border-color: var(--c1); color: var(--c1); }
+
+/* ─ LAYOUT ─ */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  overflow: hidden;
+}
+
+/* ─ SIDEBAR ─ */
+.sidebar {
+  background: var(--s1);
+  border-right: 1px solid var(--bd);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sb-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sb-head h3 { font-size: 10px; font-family: var(--m); letter-spacing: 1.5px; color: var(--mu); }
+.sb-count {
+  font-size: 10px; font-family: var(--m);
+  color: var(--c1);
+}
+.sb-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bd);
+}
+.sb-search input {
+  width: 100%;
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--f);
+  outline: none;
+  transition: border-color .2s;
+}
+.sb-search input:focus { border-color: var(--c1); }
+.sb-search input::placeholder { color: var(--mu2); }
+.sb-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+.sb-list::-webkit-scrollbar { width: 3px; }
+.sb-list::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 2px; }
+
+.lead-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  position: relative;
+}
+.lead-item:hover { background: var(--s2); border-color: var(--bd); }
+.lead-item.active { background: var(--s3); border-color: var(--bd2); }
+.lead-item-name { font-size: 13px; font-weight: 600; color: var(--tx); margin-bottom: 2px; }
+.lead-item-sub { font-size: 11px; color: var(--mu); }
+.lead-item-score {
+  position: absolute; right: 10px; top: 10px;
+  font-size: 10px; font-family: var(--m); font-weight: 700;
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sc-a { background: rgba(16,217,138,.14); color: var(--c3); }
+.sc-b { background: rgba(245,158,11,.14); color: var(--c4); }
+.sc-c { background: rgba(99,102,241,.14); color: #a78bfa; }
+.sc-none { background: var(--s3); color: var(--mu); }
+.lead-item-tags { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+.mini-tag {
+  font-size: 9px; padding: 1px 5px; border-radius: 3px;
+  background: rgba(59,158,255,.08); color: var(--c1);
+  border: 1px solid rgba(59,158,255,.15);
+}
+.sb-add-btn {
+  margin: 10px;
+  padding: 9px;
+  background: transparent;
+  border: 1px dashed var(--bd2);
+  border-radius: 8px;
+  color: var(--mu);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: var(--f);
+  text-align: center;
+}
+.sb-add-btn:hover { border-color: var(--c1); color: var(--c1); }
+
+/* ─ MAIN CONTENT ─ */
+.main {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 2px; }
+
+/* ─ VIEWS ─ */
+.view { display: none; padding: 22px 24px; }
+.view.on { display: block; }
+
+/* ─ SETTINGS VIEW ─ */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 800px; }
+.scard {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.scard-h {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 8px;
+}
+.scard-h h3 { font-size: 11px; font-family: var(--m); letter-spacing: 1px; }
+.scard-h .ico { font-size: 14px; }
+.scard-b { padding: 14px 16px; display: grid; gap: 12px; }
+.field label {
+  display: block;
+  font-size: 9px; font-family: var(--m);
+  letter-spacing: 1px; color: var(--mu);
+  margin-bottom: 5px;
+}
+.field input, .field select {
+  width: 100%;
+  background: var(--s2); border: 1px solid var(--bd);
+  color: var(--tx); padding: 8px 11px;
+  border-radius: 6px; font-size: 12px; font-family: var(--m);
+  outline: none; transition: border-color .2s;
+}
+.field input:focus, .field select:focus { border-color: var(--c1); }
+.field input::placeholder { color: var(--mu2); font-family: var(--f); letter-spacing: 0; }
+.field .hint { font-size: 10px; color: var(--mu); margin-top: 4px; }
+.field .hint a { color: var(--c1); text-decoration: none; }
+.btn-save {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #1a6bb5, #0d4480);
+  color: #fff; border: none; border-radius: 6px;
+  font-size: 12px; font-family: var(--m);
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 0 16px rgba(59,158,255,.2);
+}
+.btn-save:hover { box-shadow: 0 0 24px rgba(59,158,255,.35); }
+.sql-block {
+  background: var(--s2); border: 1px solid var(--bd);
+  border-radius: 6px; padding: 12px;
+  font-family: var(--m); font-size: 10px;
+  color: var(--c3); line-height: 1.8;
+  white-space: pre; overflow-x: auto;
+  grid-column: 1/-1;
+}
+.test-btn {
+  padding: 7px 16px;
+  background: transparent; border: 1px solid var(--bd);
+  color: var(--mu); font-size: 11px; font-family: var(--m);
+  border-radius: 6px; cursor: pointer; transition: all .2s;
+}
+.test-btn:hover { border-color: var(--c3); color: var(--c3); }
+
+/* ─ FORM VIEW ─ */
+.form-header {
+  margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.form-header h2 { font-size: 18px; font-weight: 700; color: var(--tx); }
+.form-header p { font-size: 12px; color: var(--mu); margin-top: 3px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 900px; }
+.form-section {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.form-section.full { grid-column: 1/-1; }
+.fs-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 8px;
+}
+.fs-head .label-tag {
+  font-size: 9px; font-family: var(--m); letter-spacing: 2px;
+  padding: 2px 8px; border-radius: 4px;
+}
+.fs-head .label-tag.fam { background: rgba(59,158,255,.1); color: var(--c1); border: 1px solid rgba(59,158,255,.2); }
+.fs-head .label-tag.occ { background: rgba(245,158,11,.1); color: var(--c4); border: 1px solid rgba(245,158,11,.2); }
+.fs-head .label-tag.rec { background: rgba(16,217,138,.1); color: var(--c3); border: 1px solid rgba(16,217,138,.2); }
+.fs-head .label-tag.msg { background: rgba(139,92,246,.1); color: #c4b5fd; border: 1px solid rgba(139,92,246,.2); }
+.fs-head h4 { font-size: 13px; font-weight: 600; color: var(--tx); }
+.fs-body { padding: 16px; display: grid; gap: 12px; }
+.fs-body.g2 { grid-template-columns: 1fr 1fr; }
+.fs-body.g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.f-label { font-size: 10px; font-family: var(--m); letter-spacing: .8px; color: var(--mu); display: block; margin-bottom: 5px; }
+.f-input, .f-select, .f-textarea {
+  width: 100%;
+  background: var(--s2); border: 1px solid var(--bd);
+  color: var(--tx); padding: 9px 12px;
+  border-radius: 7px; font-size: 13px; font-family: var(--f);
+  outline: none; transition: border-color .2s, background .2s;
+  resize: vertical;
+}
+.f-input:focus, .f-select:focus, .f-textarea:focus {
+  border-color: var(--c1);
+  background: var(--s3);
+}
+.f-input::placeholder, .f-textarea::placeholder { color: var(--mu2); }
+
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-opt {
+  padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--bd); background: transparent;
+  color: var(--mu); font-size: 12px; cursor: pointer;
+  transition: all .2s; font-family: var(--f);
+}
+.radio-opt.on { border-color: var(--c1); color: var(--c1); background: rgba(59,158,255,.08); }
+
+.tag-input-wrap { position: relative; }
+.tag-display { display: flex; flex-wrap: wrap; gap: 5px; min-height: 38px;
+  background: var(--s2); border: 1px solid var(--bd); border-radius: 7px;
+  padding: 6px 10px; cursor: text; transition: border-color .2s; align-items: center; }
+.tag-display.focused { border-color: var(--c1); }
+.tag-pill {
+  background: rgba(59,158,255,.12); color: var(--c1);
+  border: 1px solid rgba(59,158,255,.25);
+  border-radius: 5px; padding: 2px 8px; font-size: 11px;
+  display: flex; align-items: center; gap: 4px;
+}
+.tag-pill .rm { cursor: pointer; color: var(--mu); font-size: 12px; line-height: 1; }
+.tag-pill .rm:hover { color: var(--c5); }
+.tag-hidden-input {
+  border: none; background: transparent; outline: none;
+  color: var(--tx); font-size: 13px; font-family: var(--f);
+  min-width: 80px; flex: 1;
+}
+
+.form-actions {
+  grid-column: 1/-1;
+  display: flex; gap: 10px; align-items: center;
+  padding-top: 4px;
+}
+.btn-submit {
+  padding: 11px 28px;
+  background: linear-gradient(135deg, #1a6bb5, #0d4480);
+  color: #fff; border: none; border-radius: 8px;
+  font-size: 13px; font-family: var(--f); font-weight: 600;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 0 20px rgba(59,158,255,.2);
+}
+.btn-submit:hover { box-shadow: 0 0 32px rgba(59,158,255,.4); transform: translateY(-1px); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-cancel {
+  padding: 11px 20px;
+  background: transparent; border: 1px solid var(--bd);
+  color: var(--mu); border-radius: 8px;
+  font-size: 13px; font-family: var(--f); cursor: pointer; transition: all .2s;
+}
+.btn-cancel:hover { border-color: var(--c5); color: var(--c5); }
+.save-status { font-size: 11px; font-family: var(--m); color: var(--mu); }
+.save-status.ok { color: var(--c3); }
+.save-status.err { color: var(--c5); }
+
+/* ─ LEAD DETAIL VIEW ─ */
+.detail-header {
+  display: flex; align-items: flex-start; gap: 16px;
+  margin-bottom: 20px; padding-bottom: 20px;
+  border-bottom: 1px solid var(--bd);
+}
+.detail-avatar {
+  width: 60px; height: 60px; border-radius: 14px;
+  background: var(--s2); display: flex; align-items: center;
+  justify-content: center; font-size: 26px; flex-shrink: 0;
+  border: 1px solid var(--bd);
+}
+.detail-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.detail-meta { font-size: 13px; color: var(--mu); }
+.detail-badges { display: flex; gap: 6px; margin-top: 8px; }
+.dbadge {
+  padding: 3px 10px; border-radius: 5px; font-size: 11px;
+}
+.dbadge.score { font-family: var(--m); font-weight: 700; }
+.detail-actions { margin-left: auto; display: flex; gap: 8px; align-items: flex-start; }
+.btn-action {
+  padding: 9px 18px; border-radius: 8px;
+  font-size: 12px; font-family: var(--f); cursor: pointer; border: none;
+  transition: all .2s; font-weight: 500;
+}
+.btn-edit { background: var(--s3); color: var(--tx2); border: 1px solid var(--bd); }
+.btn-edit:hover { border-color: var(--c1); color: var(--c1); }
+.btn-analyse {
+  background: linear-gradient(135deg, rgba(139,92,246,.3), rgba(99,102,241,.2));
+  color: #c4b5fd; border: 1px solid rgba(139,92,246,.35);
+}
+.btn-analyse:hover { background: linear-gradient(135deg, rgba(139,92,246,.45), rgba(99,102,241,.35)); box-shadow: 0 0 20px rgba(139,92,246,.2); }
+.btn-analyse:disabled { opacity: .5; cursor: not-allowed; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.dcard {
+  background: var(--s1); border: 1px solid var(--bd);
+  border-radius: var(--r); overflow: hidden;
+}
+.dcard.full { grid-column: 1/-1; }
+.dc-head {
+  padding: 10px 14px; border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 8px;
+}
+.dc-head .dot { width: 7px; height: 7px; border-radius: 50%; }
+.dc-head h4 { font-size: 10px; font-family: var(--m); letter-spacing: 1.5px; color: var(--tx2); }
+.dc-body { padding: 14px; }
+.dc-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+.dc-row:last-child { margin-bottom: 0; }
+.dc-key { color: var(--mu); }
+.dc-val { color: var(--tx); text-align: right; max-width: 60%; }
+
+/* ─ AGENT RESULTS ─ */
+.agent-section { margin-top: 20px; }
+.agent-section-title {
+  font-size: 10px; font-family: var(--m); letter-spacing: 2px; color: var(--mu);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.agent-section-title::after { content:''; flex:1; height:1px; background:var(--bd); }
+
+.agent-running {
+  background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r);
+  padding: 20px; text-align: center; display: none;
+}
+.agent-running.show { display: block; }
+.pulse-ring {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid var(--c2); margin: 0 auto 12px;
+  animation: pulse-r 1.2s ease-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+@keyframes pulse-r {
+  0% { box-shadow: 0 0 0 0 rgba(139,92,246,.5); }
+  70% { box-shadow: 0 0 0 16px rgba(139,92,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
+}
+.agent-log-mini {
+  font-size: 10px; font-family: var(--m); color: var(--mu);
+  line-height: 1.8; max-height: 80px; overflow: hidden;
+}
+.agent-log-mini .ll { display: block; }
+.ll.ok { color: var(--c3); }
+.ll.i { color: var(--c1); }
+.ll.w { color: var(--c4); }
+
+.result-card {
+  background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r);
+  overflow: hidden; margin-bottom: 14px; display: none;
+}
+.result-card.show { display: block; }
+.rc-head {
+  padding: 10px 14px; border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rc-head h4 { font-size: 10px; font-family: var(--m); letter-spacing: 1.5px; }
+.rc-head.analyse h4 { color: #a78bfa; }
+.rc-head.writer h4 { color: var(--c3); }
+.rc-body { padding: 14px 16px; }
+.an-score-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.big-score {
+  width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--m);
+}
+.big-score .num { font-size: 22px; font-weight: 700; line-height: 1; }
+.big-score .lab { font-size: 8px; color: var(--mu); margin-top: 2px; }
+.an-angle { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.an-reason { font-size: 12px; color: var(--tx2); line-height: 1.6; margin-bottom: 10px; }
+.an-items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.an-item { background: var(--s2); border: 1px solid var(--bd); border-radius: 7px; padding: 8px 10px; }
+.an-item-label { font-size: 8px; font-family: var(--m); letter-spacing: 1px; margin-bottom: 4px; }
+.an-item-val { font-size: 12px; color: var(--tx); line-height: 1.5; }
+
+.msg-bubble {
+  background: var(--s2); border-left: 3px solid var(--c3);
+  border-radius: 8px; padding: 14px;
+  font-size: 14px; line-height: 1.8;
+  position: relative;
+}
+.msg-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.msg-tone {
+  font-size: 9px; font-family: var(--m); letter-spacing: 1px;
+  padding: 2px 8px; border-radius: 4px;
+  background: rgba(16,217,138,.07); color: var(--c3);
+  border: 1px solid rgba(16,217,138,.15);
+}
+.copy-msg-btn {
+  padding: 4px 12px; border-radius: 5px;
+  border: 1px solid var(--bd); background: transparent;
+  color: var(--mu); font-size: 10px; font-family: var(--m);
+  cursor: pointer; transition: all .2s;
+}
+.copy-msg-btn:hover { border-color: var(--c3); color: var(--c3); }
+
+/* ─ EMPTY STATE ─ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 12px; color: var(--mu);
+}
+.empty-icon { font-size: 48px; opacity: .4; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--tx2); }
+.empty-sub { font-size: 13px; color: var(--mu); }
+
+/* ─ NOTICE ─ */
+.notice {
+  padding: 10px 14px; border-radius: 7px; font-size: 12px;
+  margin-bottom: 14px; display: none; line-height: 1.6;
+}
+.notice.show { display: block; }
+.notice.err { background: rgba(244,63,94,.07); border: 1px solid rgba(244,63,94,.22); color: #fda4af; }
+.notice.ok { background: rgba(16,217,138,.07); border: 1px solid rgba(16,217,138,.22); color: var(--c3); }
+.notice.info { background: rgba(59,158,255,.07); border: 1px solid rgba(59,158,255,.18); color: #93c5fd; }
+
+/* ─ MODAL OVERLAY ─ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(5,8,16,.85); backdrop-filter: blur(4px);
+  z-index: 500; display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--s1); border: 1px solid var(--bd2);
+  border-radius: 14px; padding: 28px; width: 480px; max-width: 95vw;
+}
+.modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: var(--mu); margin-bottom: 20px; line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">AMWAY<span>/</span>LEAD<span>/</span>CRM</div>
+  <div class="tb-divider"></div>
+  <div class="tb-nav">
+    <button class="tb-btn on" onclick="showView('leads',this)" id="nav-leads">📋 Lead List</button>
+    <button class="tb-btn" onclick="showView('form',this)" id="nav-form">➕ Add Lead</button>
+    <button class="tb-btn" onclick="showView('settings',this)" id="nav-settings">⚙️ Settings</button>
+  </div>
+  <div class="tb-right">
+    <div class="conn-status">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-label">ยังไม่เชื่อมต่อ</span>
+    </div>
+    <button class="btn-cfg" onclick="showView('settings',document.getElementById('nav-settings'))">🔑 Config</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-head">
+      <h3>LEADS</h3>
+      <span class="sb-count" id="sb-count">0 คน</span>
+    </div>
+    <div class="sb-search">
+      <input type="text" id="sb-search" placeholder="ค้นหาชื่อ, อาชีพ..." oninput="filterSidebar(this.value)">
+    </div>
+    <div class="sb-list" id="sb-list">
+      <div class="empty-state" style="height:200px">
+        <div class="empty-icon">👥</div>
+        <div class="empty-sub">ยังไม่มี leads</div>
+      </div>
+    </div>
+    <button class="sb-add-btn" onclick="newLead()">＋ เพิ่ม Lead ใหม่</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SETTINGS VIEW -->
+    <div class="view on" id="view-settings">
+      <div class="form-header">
+        <div>
+          <h2>⚙️ Settings</h2>
+          <p>ตั้งค่า Supabase และ Claude API</p>
+        </div>
+      </div>
+      <div class="notice info show" id="setup-notice">
+        🚀 <strong>เริ่มต้นการใช้งาน:</strong> ทำตามขั้นตอนด้านล่างก่อนใช้งาน — ใช้เวลาประมาณ 3 นาที
+      </div>
+      <div class="settings-grid">
+
+        <div class="scard">
+          <div class="scard-h"><span class="ico">🗄️</span><h3 style="color:var(--c3)">SUPABASE CONFIG</h3></div>
+          <div class="scard-b">
+            <div class="field">
+              <label>SUPABASE URL</label>
+              <input type="text" id="sb-url" placeholder="https://xxxxx.supabase.co">
+              <div class="hint">Project Settings → API → Project URL</div>
+            </div>
+            <div class="field">
+              <label>ANON PUBLIC KEY</label>
+              <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              <div class="hint">Project Settings → API → anon public key</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-save" onclick="saveConfig()">💾 บันทึก</button>
+              <button class="test-btn" onclick="testSupabase()">🔌 ทดสอบ</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="scard">
+          <div class="scard-h"><span class="ico">📋</span><h3 style="color:var(--c4)">SQL — สร้าง TABLE</h3></div>
+          <div class="scard-b">
+            <p style="font-size:12px;color:var(--mu);line-height:1.6">
+              ไปที่ <strong style="color:var(--tx2)">Supabase → SQL Editor</strong> แล้ว run SQL ด้านล่างนี้ก่อน 1 ครั้ง:
+            </p>
+            <div class="sql-block" id="sql-block">CREATE TABLE IF NOT EXISTS aw_prospects (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+
+  -- Identity
+  name text NOT NULL,
+  nickname text,
+  age integer,
+  gender text,
+  facebook_url text,
+
+  -- FORM: Family
+  family_status text,
+  family_obligations text,
+  num_children integer DEFAULT 0,
+  family_notes text,
+
+  -- FORM: Occupation
+  occupation text,
+  company text,
+  income_level text,
+  job_satisfaction text,
+  financial_notes text,
+
+  -- FORM: Recreation
+  hobbies text[],
+  activities text,
+  lifestyle text,
+  social_media_style text,
+
+  -- FORM: Message / Other
+  relationship text,
+  how_we_met text,
+  extra_notes text,
+
+  -- Agent results
+  analyse_score integer,
+  analyse_category text,
+  analyse_angle text,
+  analyse_reason text,
+  analyse_pain text,
+  analyse_product text,
+  analyse_approach text,
+  writer_message text,
+  writer_tone text,
+  writer_hook text,
+  analysed_at timestamptz
+);
+
+ALTER TABLE aw_prospects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON aw_prospects FOR ALL USING (true);</div>
+            <button class="test-btn" onclick="copySQL()">📋 Copy SQL</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- LEADS LIST VIEW (empty, shows detail when clicked) -->
+    <div class="view" id="view-leads">
+      <div class="empty-state" style="height:calc(100vh - 120px)" id="leads-empty">
+        <div class="empty-icon">🎯</div>
+        <div class="empty-title">เลือก Lead จากด้านซ้าย</div>
+        <div class="empty-sub">หรือกด "Add Lead" เพื่อเพิ่ม Lead ใหม่</div>
+      </div>
+      <!-- Detail panel filled dynamically -->
+      <div id="lead-detail" style="display:none"></div>
+    </div>
+
+    <!-- FORM VIEW -->
+    <div class="view" id="view-form">
+      <div class="form-header">
+        <div>
+          <h2 id="form-title">➕ เพิ่ม Lead ใหม่</h2>
+          <p>กรอกข้อมูลที่ส่องมาจาก Facebook</p>
+        </div>
+      </div>
+      <div class="notice err" id="form-err"></div>
+      <div class="notice ok" id="form-ok"></div>
+      <input type="hidden" id="edit-id">
+
+      <div class="form-grid">
+
+        <!-- IDENTITY -->
+        <div class="form-section">
+          <div class="fs-head">
+            <span class="label-tag fam">IDENTITY</span>
+            <h4>ข้อมูลพื้นฐาน</h4>
+          </div>
+          <div class="fs-body g2">
+            <div style="grid-column:1/-1">
+              <label class="f-label">ชื่อ-นามสกุล <span style="color:var(--c5)">*</span></label>
+              <input class="f-input" id="f-name" placeholder="สมชาย ใจดี">
+            </div>
+            <div>
+              <label class="f-label">ชื่อเล่น</label>
+              <input class="f-input" id="f-nick" placeholder="โจ้">
+            </div>
+            <div>
+              <label class="f-label">อายุ (ปี)</label>
+              <input class="f-input" type="number" id="f-age" placeholder="28">
+            </div>
+            <div>
+              <label class="f-label">เพศ</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="gender" data-val="ชาย" onclick="setRadio(this)">ชาย</button>
+                <button class="radio-opt" data-field="gender" data-val="หญิง" onclick="setRadio(this)">หญิง</button>
+                <button class="radio-opt" data-field="gender" data-val="อื่นๆ" onclick="setRadio(this)">อื่นๆ</button>
+              </div>
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="f-label">Facebook Profile URL</label>
+              <input class="f-input" id="f-fb" placeholder="https://facebook.com/...">
+            </div>
+          </div>
+        </div>
+
+        <!-- FAMILY -->
+        <div class="form-section">
+          <div class="fs-head">
+            <span class="label-tag fam">FAMILY</span>
+            <h4>ครอบครัว & พันธะ</h4>
+          </div>
+          <div class="fs-body">
+            <div>
+              <label class="f-label">สถานะครอบครัว</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="family_status" data-val="โสด" onclick="setRadio(this)">โสด</button>
+                <button class="radio-opt" data-field="family_status" data-val="แต่งงาน" onclick="setRadio(this)">แต่งงาน</button>
+                <button class="radio-opt" data-field="family_status" data-val="มีแฟน" onclick="setRadio(this)">มีแฟน</button>
+                <button class="radio-opt" data-field="family_status" data-val="หย่า" onclick="setRadio(this)">หย่า</button>
+              </div>
+            </div>
+            <div>
+              <label class="f-label">จำนวนลูก</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="num_children" data-val="0" onclick="setRadio(this)">ไม่มี</button>
+                <button class="radio-opt" data-field="num_children" data-val="1" onclick="setRadio(this)">1</button>
+                <button class="radio-opt" data-field="num_children" data-val="2" onclick="setRadio(this)">2</button>
+                <button class="radio-opt" data-field="num_children" data-val="3+" onclick="setRadio(this)">3+</button>
+              </div>
+            </div>
+            <div>
+              <label class="f-label">พันธะ/ความรับผิดชอบ</label>
+              <textarea class="f-textarea" id="f-family-obl" rows="2" placeholder="เช่น ดูแลพ่อแม่, ผ่อนบ้าน, ส่งลูกเรียน..."></textarea>
+            </div>
+            <div>
+              <label class="f-label">หมายเหตุครอบครัว</label>
+              <textarea class="f-textarea" id="f-family-notes" rows="2" placeholder="ข้อสังเกตอื่นๆ เกี่ยวกับครอบครัว..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- OCCUPATION -->
+        <div class="form-section">
+          <div class="fs-head">
+            <span class="label-tag occ">OCCUPATION</span>
+            <h4>อาชีพ & การเงิน</h4>
+          </div>
+          <div class="fs-body g2">
+            <div>
+              <label class="f-label">อาชีพ / ตำแหน่ง</label>
+              <input class="f-input" id="f-occ" placeholder="พนักงานออฟฟิศ">
+            </div>
+            <div>
+              <label class="f-label">บริษัท / หน่วยงาน</label>
+              <input class="f-input" id="f-company" placeholder="บ.เอ็กซ์วาย จำกัด">
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="f-label">ระดับรายได้ (ประมาณ)</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="income_level" data-val="< 15K" onclick="setRadio(this)">&lt;15K</button>
+                <button class="radio-opt" data-field="income_level" data-val="15-30K" onclick="setRadio(this)">15-30K</button>
+                <button class="radio-opt" data-field="income_level" data-val="30-50K" onclick="setRadio(this)">30-50K</button>
+                <button class="radio-opt" data-field="income_level" data-val="50K+" onclick="setRadio(this)">50K+</button>
+                <button class="radio-opt" data-field="income_level" data-val="ไม่แน่นอน" onclick="setRadio(this)">ไม่แน่นอน</button>
+              </div>
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="f-label">ความพึงพอใจงาน / สัญญาณที่เห็น</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="job_satisfaction" data-val="พอใจมาก" onclick="setRadio(this)">😊 พอใจ</button>
+                <button class="radio-opt" data-field="job_satisfaction" data-val="เฉยๆ" onclick="setRadio(this)">😐 เฉยๆ</button>
+                <button class="radio-opt" data-field="job_satisfaction" data-val="ไม่พอใจ" onclick="setRadio(this)">😤 บ่น</button>
+                <button class="radio-opt" data-field="job_satisfaction" data-val="อยากเปลี่ยน" onclick="setRadio(this)">🚀 อยากเปลี่ยน</button>
+              </div>
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="f-label">สัญญาณการเงินที่สังเกตได้</label>
+              <textarea class="f-textarea" id="f-fin" rows="2" placeholder="เช่น โพสต์หางานเพิ่ม, บ่นค่าใช้จ่าย, แชร์ passive income content..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECREATION -->
+        <div class="form-section">
+          <div class="fs-head">
+            <span class="label-tag rec">RECREATION</span>
+            <h4>งานอดิเรก & ไลฟ์สไตล์</h4>
+          </div>
+          <div class="fs-body">
+            <div>
+              <label class="f-label">งานอดิเรก / ความสนใจ (พิมพ์แล้ว Enter)</label>
+              <div class="tag-input-wrap">
+                <div class="tag-display" id="hobbies-display" onclick="focusTagInput()">
+                  <input class="tag-hidden-input" id="hobbies-input" placeholder="เช่น ฟิตเนส, ทำอาหาร, ท่องเที่ยว..." onkeydown="addTag(event,'hobbies')">
+                </div>
+              </div>
+              <input type="hidden" id="f-hobbies" value="[]">
+            </div>
+            <div>
+              <label class="f-label">กิจกรรมที่ทำบ่อย (จากที่ส่องมา)</label>
+              <textarea class="f-textarea" id="f-activities" rows="2" placeholder="เช่น วิ่งตอนเช้า, ไปยิม 3 วัน/สัปดาห์, เที่ยวต่างจังหวัดทุกเดือน..."></textarea>
+            </div>
+            <div>
+              <label class="f-label">สไตล์ social media</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="lifestyle" data-val="Active / Sports" onclick="setRadio(this)">🏃 Active</button>
+                <button class="radio-opt" data-field="lifestyle" data-val="Health Conscious" onclick="setRadio(this)">🥗 Health</button>
+                <button class="radio-opt" data-field="lifestyle" data-val="Family Oriented" onclick="setRadio(this)">👨‍👩‍👧 Family</button>
+                <button class="radio-opt" data-field="lifestyle" data-val="Business Minded" onclick="setRadio(this)">💼 Biz</button>
+                <button class="radio-opt" data-field="lifestyle" data-val="Creative" onclick="setRadio(this)">🎨 Creative</button>
+              </div>
+            </div>
+            <div>
+              <label class="f-label">ลักษณะการโพสต์ / tone ใน FB</label>
+              <textarea class="f-textarea" id="f-sm-style" rows="2" placeholder="เช่น โพสต์รูปอาหาร, แชร์บทความสุขภาพ, บ่นเรื่องงานบ้าง..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- MESSAGE / OTHER -->
+        <div class="form-section full">
+          <div class="fs-head">
+            <span class="label-tag msg">MESSAGE</span>
+            <h4>ความสัมพันธ์ & หมายเหตุอื่นๆ</h4>
+          </div>
+          <div class="fs-body g2">
+            <div>
+              <label class="f-label">ความสัมพันธ์กับเรา</label>
+              <div class="radio-group">
+                <button class="radio-opt" data-field="relationship" data-val="เพื่อนสนิท" onclick="setRadio(this)">เพื่อนสนิท</button>
+                <button class="radio-opt" data-field="relationship" data-val="เพื่อน" onclick="setRadio(this)">เพื่อน</button>
+                <button class="radio-opt" data-field="relationship" data-val="รู้จักกัน" onclick="setRadio(this)">รู้จักกัน</button>
+                <button class="radio-opt" data-field="relationship" data-val="คนรู้จักออนไลน์" onclick="setRadio(this)">Online only</button>
+                <button class="radio-opt" data-field="relationship" data-val="ไม่รู้จัก" onclick="setRadio(this)">ไม่รู้จัก</button>
+              </div>
+            </div>
+            <div>
+              <label class="f-label">เจอกันยังไง / ที่มา</label>
+              <input class="f-input" id="f-met" placeholder="เช่น เพื่อนร่วมชั้น, กลุ่ม FB หางาน...">
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="f-label">บรรยายเพิ่มเติม — สิ่งที่สังเกตเห็นจาก FB, ความรู้สึก, อะไรก็ได้</label>
+              <textarea class="f-textarea" id="f-notes" rows="4" placeholder="เช่น โพสต์เรื่องเหนื่อยจากงานบ่อย, ลูกเพิ่งเกิด, กำลังหาทางออกจากชีวิตประจำวัน, ดูมีพลังงานสูงมาก ชอบ challenge ตัวเอง..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="form-actions">
+          <button class="btn-submit" id="btn-submit" onclick="submitForm()">💾 บันทึก Lead</button>
+          <button class="btn-cancel" onclick="cancelForm()">ยกเลิก</button>
+          <span class="save-status" id="save-status"></span>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">ยืนยัน</h3>
+    <p id="modal-body"></p>
+    <div class="modal-actions">
+      <button class="btn-submit" id="modal-ok">ตกลง</button>
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let cfg = { sbUrl:'', sbKey:'' };
+let leads = [];
+let currentId = null;
+let radioState = {};
+
+// ── INIT ──
+window.onload = () => {
+  cfg.sbUrl = localStorage.getItem('sb_url') || '';
+  cfg.sbKey = localStorage.getItem('sb_key') || '';
+  if (cfg.sbUrl) document.getElementById('sb-url').value = cfg.sbUrl;
+  if (cfg.sbKey) document.getElementById('sb-key').value = cfg.sbKey;
+  if (cfg.sbUrl && cfg.sbKey) {
+    loadLeads();
+    showView('leads', document.getElementById('nav-leads'));
+  }
+};
+
+// ── CONFIG ──
+function saveConfig() {
+  cfg.sbUrl = document.getElementById('sb-url').value.trim().replace(/\/$/, '');
+  cfg.sbKey = document.getElementById('sb-key').value.trim();
+  localStorage.setItem('sb_url', cfg.sbUrl);
+  localStorage.setItem('sb_key', cfg.sbKey);
+  document.getElementById('setup-notice').style.display = 'none';
+  testSupabase();
+}
+
+async function testSupabase() {
+  setConn('connecting', 'กำลังเชื่อมต่อ...');
+  try {
+    const r = await sbFetch('GET', '/rest/v1/aw_prospects?select=id&limit=1');
+    if (r.ok) {
+      setConn('ok', 'เชื่อมต่อแล้ว ✓');
+      loadLeads();
+    } else {
+      const e = await r.json();
+      if (e.message?.includes('does not exist')) {
+        setConn('err', 'ต้อง Run SQL ก่อน');
+        alert('⚠️ ยังไม่ได้สร้าง table — ไปที่ Supabase → SQL Editor → Run SQL ที่แสดงด้านล่าง');
+      } else {
+        setConn('err', 'token ผิด หรือ URL ไม่ถูก');
+      }
+    }
+  } catch(e) {
+    setConn('err', 'เชื่อมต่อไม่ได้');
+  }
+}
+
+function setConn(state, label) {
+  const d = document.getElementById('conn-dot');
+  d.className = 'conn-dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+  document.getElementById('conn-label').textContent = label;
+}
+
+function copySQL() {
+  navigator.clipboard.writeText(document.getElementById('sql-block').textContent);
+  alert('✅ Copy SQL แล้ว — ไปที่ Supabase → SQL Editor → New query → Paste → Run');
+}
+
+// ── SUPABASE ──
+function sbFetch(method, path, body) {
+  return fetch(cfg.sbUrl + path, {
+    method,
+    headers: {
+      'apikey': cfg.sbKey,
+      'Authorization': 'Bearer ' + cfg.sbKey,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : '',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+}
+
+async function loadLeads() {
+  try {
+    const r = await sbFetch('GET', '/rest/v1/aw_prospects?select=*&order=created_at.desc');
+    if (!r.ok) return;
+    leads = await r.json();
+    renderSidebar(leads);
+    setConn('ok', `เชื่อมต่อแล้ว (${leads.length} leads)`);
+  } catch(e) { console.error(e); }
+}
+
+async function saveLead(data) {
+  const id = document.getElementById('edit-id').value;
+  let r;
+  if (id) {
+    data.updated_at = new Date().toISOString();
+    r = await sbFetch('PATCH', `/rest/v1/aw_prospects?id=eq.${id}`, data);
+  } else {
+    r = await sbFetch('POST', '/rest/v1/aw_prospects', data);
+  }
+  return r;
+}
+
+async function updateLeadAnalysis(id, analysis) {
+  const r = await sbFetch('PATCH', `/rest/v1/aw_prospects?id=eq.${id}`, {
+    analyse_score: analysis.score,
+    analyse_category: analysis.category,
+    analyse_angle: analysis.angle,
+    analyse_reason: analysis.reason,
+    analyse_pain: analysis.pain,
+    analyse_product: analysis.product_focus,
+    analyse_approach: analysis.approach,
+    writer_message: analysis.message,
+    writer_tone: analysis.tone,
+    writer_hook: analysis.hook,
+    analysed_at: new Date().toISOString()
+  });
+  return r.ok;
+}
+
+// ── VIEWS ──
+function showView(v, btn) {
+  document.querySelectorAll('.view').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('.tb-btn').forEach(e => e.classList.remove('on'));
+  document.getElementById('view-' + v).classList.add('on');
+  btn.classList.add('on');
+  if (v === 'leads' && !currentId) {
+    document.getElementById('leads-empty').style.display = 'flex';
+    document.getElementById('lead-detail').style.display = 'none';
+  }
+}
+
+// ── SIDEBAR ──
+function renderSidebar(list) {
+  const el = document.getElementById('sb-list');
+  document.getElementById('sb-count').textContent = list.length + ' คน';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state" style="height:200px"><div class="empty-icon">👥</div><div class="empty-sub">ยังไม่มี leads</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(l => {
+    const sc = l.analyse_score;
+    const scClass = sc ? (sc >= 80 ? 'sc-a' : sc >= 65 ? 'sc-b' : 'sc-c') : 'sc-none';
+    const scLabel = sc || '—';
+    return `<div class="lead-item ${currentId === l.id ? 'active' : ''}" onclick="selectLead('${l.id}')">
+      <div class="lead-item-name">${l.name}</div>
+      <div class="lead-item-sub">${l.occupation || l.family_status || ''}</div>
+      <div class="lead-item-score ${scClass}">${scLabel}</div>
+      ${l.analyse_category ? `<div class="lead-item-tags"><span class="mini-tag">${l.analyse_category}</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterSidebar(q) {
+  const filtered = q ? leads.filter(l =>
+    (l.name||'').includes(q) || (l.occupation||'').includes(q) || (l.nickname||'').includes(q)
+  ) : leads;
+  renderSidebar(filtered);
+}
+
+// ── LEAD DETAIL ──
+async function selectLead(id) {
+  currentId = id;
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  showView('leads', document.getElementById('nav-leads'));
+  document.getElementById('leads-empty').style.display = 'none';
+  document.getElementById('lead-detail').style.display = 'block';
+  renderDetail(l);
+  renderSidebar(leads);
+}
+
+function renderDetail(l) {
+  const sc = l.analyse_score;
+  const scClass = sc ? (sc >= 80 ? 'sc-a' : sc >= 65 ? 'sc-b' : 'sc-c') : 'sc-none';
+  const catEmoji = {income:'💰', health:'💪', biz:'🚀', family:'👨‍👩‍👧'}[l.analyse_category] || '🎯';
+  const avatarEmoji = l.gender === 'หญิง' ? '👩' : '👨';
+
+  document.getElementById('lead-detail').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-avatar">${avatarEmoji}</div>
+      <div>
+        <div class="detail-name">${l.name} ${l.nickname ? `<span style="font-size:16px;color:var(--mu)">(${l.nickname})</span>` : ''}</div>
+        <div class="detail-meta">${[l.age ? l.age+'ปี' : '', l.gender, l.occupation, l.company].filter(Boolean).join(' · ')}</div>
+        <div class="detail-badges" style="margin-top:8px">
+          ${l.family_status ? `<span class="dbadge" style="background:rgba(59,158,255,.1);color:var(--c1);border:1px solid rgba(59,158,255,.2)">${l.family_status}</span>` : ''}
+          ${l.income_level ? `<span class="dbadge" style="background:rgba(245,158,11,.1);color:var(--c4);border:1px solid rgba(245,158,11,.2)">💰 ${l.income_level}</span>` : ''}
+          ${l.lifestyle ? `<span class="dbadge" style="background:rgba(16,217,138,.1);color:var(--c3);border:1px solid rgba(16,217,138,.2)">${l.lifestyle}</span>` : ''}
+          ${l.relationship ? `<span class="dbadge" style="background:rgba(139,92,246,.1);color:#c4b5fd;border:1px solid rgba(139,92,246,.2)">${l.relationship}</span>` : ''}
+          ${sc ? `<span class="dbadge score ${scClass}">Score: ${sc}</span>` : ''}
+        </div>
+      </div>
+      <div class="detail-actions">
+        ${l.facebook_url ? `<a href="${l.facebook_url}" target="_blank" style="padding:9px 14px;border:1px solid var(--bd);border-radius:8px;color:var(--c1);font-size:12px;text-decoration:none">🔗 FB</a>` : ''}
+        <button class="btn-action btn-edit" onclick="editLead('${l.id}')">✏️ แก้ไข</button>
+        <button class="btn-action btn-analyse" id="btn-analyse-main" onclick="runAgents('${l.id}')">
+          ${l.analysed_at ? '🔄 Re-analyse' : '🧠 Analyse + Write'}
+        </button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="dcard">
+        <div class="dc-head"><div class="dot" style="background:var(--c1)"></div><h4>FAMILY</h4></div>
+        <div class="dc-body">
+          ${row('สถานะ', l.family_status)}
+          ${row('ลูก', l.num_children != null ? l.num_children + ' คน' : '')}
+          ${row('พันธะ', l.family_obligations)}
+          ${row('หมายเหตุ', l.family_notes)}
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dc-head"><div class="dot" style="background:var(--c4)"></div><h4>OCCUPATION</h4></div>
+        <div class="dc-body">
+          ${row('อาชีพ', l.occupation)}
+          ${row('บริษัท', l.company)}
+          ${row('รายได้', l.income_level)}
+          ${row('ความพึงพอใจ', l.job_satisfaction)}
+          ${row('สัญญาณ', l.financial_notes)}
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dc-head"><div class="dot" style="background:var(--c3)"></div><h4>RECREATION</h4></div>
+        <div class="dc-body">
+          ${row('งานอดิเรก', Array.isArray(l.hobbies) ? l.hobbies.join(', ') : l.hobbies)}
+          ${row('กิจกรรม', l.activities)}
+          ${row('ไลฟ์สไตล์', l.lifestyle)}
+          ${row('Social style', l.social_media_style)}
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dc-head"><div class="dot" style="background:#c4b5fd)"></div><h4>MESSAGE / OTHER</h4></div>
+        <div class="dc-body">
+          ${row('ความสัมพันธ์', l.relationship)}
+          ${row('เจอกันที่', l.how_we_met)}
+          ${l.extra_notes ? `<div style="font-size:12px;color:var(--tx2);line-height:1.6">${l.extra_notes}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="agent-section">
+      <div class="agent-section-title">AGENT RESULTS</div>
+      <div class="notice err" id="agent-err"></div>
+
+      <div class="agent-running" id="agent-running">
+        <div class="pulse-ring">🧠</div>
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:8px">AI Agents กำลังทำงาน...</div>
+        <div class="agent-log-mini" id="agent-log"></div>
+      </div>
+
+      <div class="result-card ${l.analyse_angle ? 'show' : ''}" id="rc-analyse">
+        <div class="rc-head analyse"><h4>🧠 ANALYSE-AGENT</h4>
+          ${l.analysed_at ? `<span style="font-size:9px;color:var(--mu);font-family:var(--m)">${new Date(l.analysed_at).toLocaleDateString('th-TH')}</span>` : ''}
+        </div>
+        <div class="rc-body">
+          <div class="an-score-row">
+            <div class="big-score ${scClass}">
+              <div class="num">${sc || '—'}</div>
+              <div class="lab">SCORE</div>
+            </div>
+            <div>
+              <div class="an-angle">${l.analyse_angle || '—'}</div>
+              <div class="an-reason">${l.analyse_reason || ''}</div>
+            </div>
+          </div>
+          <div class="an-items">
+            <div class="an-item">
+              <div class="an-item-label" style="color:var(--c5)">⚡ PAIN POINT</div>
+              <div class="an-item-val">${l.analyse_pain || '—'}</div>
+            </div>
+            <div class="an-item">
+              <div class="an-item-label" style="color:var(--c3)">🎯 PRODUCT FOCUS</div>
+              <div class="an-item-val">${l.analyse_product || '—'}</div>
+            </div>
+            <div class="an-item" style="grid-column:1/-1">
+              <div class="an-item-label" style="color:var(--c2)">💡 APPROACH</div>
+              <div class="an-item-val">${l.analyse_approach || '—'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card ${l.writer_message ? 'show' : ''}" id="rc-writer">
+        <div class="rc-head writer"><h4>✍️ WRITER-AGENT — Opening Message</h4></div>
+        <div class="rc-body">
+          <div class="msg-actions">
+            <span class="msg-tone">tone: ${l.writer_tone || '—'} · hook: ${(l.writer_hook||'').slice(0,30)}</span>
+            <button class="copy-msg-btn" onclick="copyMsg()">📋 Copy Message</button>
+          </div>
+          <div class="msg-bubble" id="msg-text">${l.writer_message || '—'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function row(k, v) {
+  if (!v) return '';
+  return `<div class="dc-row"><span class="dc-key">${k}</span><span class="dc-val">${v}</span></div>`;
+}
+
+function copyMsg() {
+  const el = document.getElementById('msg-text');
+  if (el) navigator.clipboard.writeText(el.textContent).then(() => {
+    document.querySelector('.copy-msg-btn').textContent = '✅ Copied!';
+    setTimeout(() => document.querySelector('.copy-msg-btn').textContent = '📋 Copy Message', 2000);
+  });
+}
+
+// ── FORM ──
+function newLead() {
+  radioState = {};
+  document.getElementById('edit-id').value = '';
+  document.getElementById('form-title').textContent = '➕ เพิ่ม Lead ใหม่';
+  clearForm();
+  showView('form', document.getElementById('nav-form'));
+}
+
+function editLead(id) {
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  radioState = {};
+  document.getElementById('edit-id').value = id;
+  document.getElementById('form-title').textContent = `✏️ แก้ไข — ${l.name}`;
+  fillForm(l);
+  showView('form', document.getElementById('nav-form'));
+}
+
+function fillForm(l) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+  set('f-name', l.name); set('f-nick', l.nickname); set('f-age', l.age); set('f-fb', l.facebook_url);
+  set('f-family-obl', l.family_obligations); set('f-family-notes', l.family_notes);
+  set('f-occ', l.occupation); set('f-company', l.company); set('f-fin', l.financial_notes);
+  set('f-activities', l.activities); set('f-sm-style', l.social_media_style);
+  set('f-met', l.how_we_met); set('f-notes', l.extra_notes);
+
+  // radio
+  const radios = {
+    gender: l.gender, family_status: l.family_status,
+    num_children: String(l.num_children > 2 ? '3+' : l.num_children ?? ''),
+    income_level: l.income_level, job_satisfaction: l.job_satisfaction,
+    lifestyle: l.lifestyle, relationship: l.relationship
+  };
+  Object.entries(radios).forEach(([f, v]) => {
+    if (!v) return;
+    radioState[f] = v;
+    document.querySelectorAll(`[data-field="${f}"]`).forEach(b => {
+      b.classList.toggle('on', b.dataset.val === v);
+    });
+  });
+
+  // hobbies tags
+  const hobbies = Array.isArray(l.hobbies) ? l.hobbies : [];
+  document.getElementById('f-hobbies').value = JSON.stringify(hobbies);
+  renderTagDisplay('hobbies-display', hobbies);
+}
+
+function clearForm() {
+  ['f-name','f-nick','f-age','f-fb','f-family-obl','f-family-notes',
+   'f-occ','f-company','f-fin','f-activities','f-sm-style','f-met','f-notes']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.querySelectorAll('.radio-opt').forEach(b => b.classList.remove('on'));
+  document.getElementById('f-hobbies').value = '[]';
+  renderTagDisplay('hobbies-display', []);
+  document.getElementById('form-err').classList.remove('show');
+  document.getElementById('form-ok').classList.remove('show');
+  document.getElementById('save-status').textContent = '';
+}
+
+function cancelForm() {
+  showView('leads', document.getElementById('nav-leads'));
+}
+
+function setRadio(btn) {
+  const field = btn.dataset.field;
+  const val = btn.dataset.val;
+  document.querySelectorAll(`[data-field="${field}"]`).forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  radioState[field] = val;
+}
+
+// Tags
+function focusTagInput() { document.getElementById('hobbies-input').focus(); }
+function addTag(e, field) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const input = document.getElementById(field + '-input');
+  const val = input.value.trim().replace(/,$/, '');
+  if (!val) return;
+  const arr = JSON.parse(document.getElementById('f-' + field).value || '[]');
+  arr.push(val);
+  document.getElementById('f-' + field).value = JSON.stringify(arr);
+  renderTagDisplay(field + '-display', arr);
+  input.value = '';
+}
+function removeTag(field, idx) {
+  const arr = JSON.parse(document.getElementById('f-' + field).value || '[]');
+  arr.splice(idx, 1);
+  document.getElementById('f-' + field).value = JSON.stringify(arr);
+  renderTagDisplay(field + '-display', arr);
+}
+function renderTagDisplay(displayId, arr) {
+  const disp = document.getElementById(displayId);
+  const field = displayId.replace('-display', '');
+  const input = document.getElementById(field + '-input');
+  // remove old pills
+  disp.querySelectorAll('.tag-pill').forEach(e => e.remove());
+  arr.forEach((tag, i) => {
+    const p = document.createElement('span');
+    p.className = 'tag-pill';
+    p.innerHTML = `${tag} <span class="rm" onclick="removeTag('${field}',${i})">×</span>`;
+    disp.insertBefore(p, input);
+  });
+}
+
+async function submitForm() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) {
+    showNotice('form-err', '❌ กรุณาใส่ชื่อ'); return;
+  }
+  if (!cfg.sbUrl) {
+    showNotice('form-err', '❌ ยังไม่ได้ตั้งค่า Supabase — ไปที่ Settings ก่อน'); return;
+  }
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('save-status').textContent = 'กำลังบันทึก...';
+
+  const hobbies = JSON.parse(document.getElementById('f-hobbies').value || '[]');
+  const data = {
+    name,
+    nickname: v('f-nick'),
+    age: v('f-age') ? parseInt(v('f-age')) : null,
+    gender: radioState.gender || null,
+    facebook_url: v('f-fb'),
+    family_status: radioState.family_status || null,
+    family_obligations: v('f-family-obl'),
+    num_children: radioState.num_children === '3+' ? 3 : parseInt(radioState.num_children ?? 0),
+    family_notes: v('f-family-notes'),
+    occupation: v('f-occ'),
+    company: v('f-company'),
+    income_level: radioState.income_level || null,
+    job_satisfaction: radioState.job_satisfaction || null,
+    financial_notes: v('f-fin'),
+    hobbies,
+    activities: v('f-activities'),
+    lifestyle: radioState.lifestyle || null,
+    social_media_style: v('f-sm-style'),
+    relationship: radioState.relationship || null,
+    how_we_met: v('f-met'),
+    extra_notes: v('f-notes'),
+  };
+
+  try {
+    const r = await saveLead(data);
+    if (!r.ok) {
+      const e = await r.json();
+      showNotice('form-err', `❌ ${e.message || 'บันทึกไม่สำเร็จ'}`);
+    } else {
+      const saved = await r.json();
+      showNotice('form-ok', '✅ บันทึกสำเร็จ!');
+      document.getElementById('save-status').className = 'save-status ok';
+      document.getElementById('save-status').textContent = '✓ Saved';
+      await loadLeads();
+      setTimeout(() => {
+        const newId = document.getElementById('edit-id').value || (Array.isArray(saved) ? saved[0]?.id : saved?.id);
+        if (newId) { currentId = newId; selectLead(newId); }
+        else showView('leads', document.getElementById('nav-leads'));
+      }, 600);
+    }
+  } catch(e) {
+    showNotice('form-err', `❌ ${e.message}`);
+  }
+  document.getElementById('btn-submit').disabled = false;
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value.trim() || null : null; }
+
+// ── AGENTS ──
+async function runAgents(id) {
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+
+  const btn = document.getElementById('btn-analyse-main');
+  const runBox = document.getElementById('agent-running');
+  const agentLog = document.getElementById('agent-log');
+  const errEl = document.getElementById('agent-err');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ กำลังวิเคราะห์...';
+  runBox.classList.add('show');
+  agentLog.innerHTML = '';
+  document.getElementById('rc-analyse').classList.remove('show');
+  document.getElementById('rc-writer').classList.remove('show');
+  errEl.classList.remove('show');
+
+  const lg = (msg, t='') => {
+    const s = document.createElement('span');
+    s.className = 'll ' + t;
+    s.textContent = '› ' + msg;
+    agentLog.appendChild(s);
+  };
+
+  try {
+    // ── BUILD CONTEXT ──
+    const ctx = buildContext(l);
+
+    // ── ANALYSE AGENT ──
+    lg('Analyse-Agent เริ่มวิเคราะห์...', 'i');
+    const analyseRaw = await claude(
+      'คุณเป็น Amway business analyst ผู้เชี่ยวชาญด้านการ prospect และ network marketing ตอบเป็น JSON เท่านั้น ไม่มี markdown',
+      `วิเคราะห์ prospect นี้สำหรับแนะนำธุรกิจแอมเวย์:\n\n${ctx}\n\nวิเคราะห์อย่างละเอียดและตอบ JSON:\n{\n  "score": 85,\n  "category": "income",\n  "angle": "มุมเข้าหาหลัก (สั้น กระชับ)",\n  "reason": "เหตุผลที่เหมาะสม 2-3 ประโยค",\n  "pain": "pain point สำคัญที่สุด",\n  "product_focus": "สินค้าหรือแผนธุรกิจแอมเวย์ที่เหมาะสมที่สุด",\n  "approach": "วิธีการเข้าหาและ timing ที่เหมาะ"\n}\ncategory ต้องเป็น: income, health, biz, หรือ family`
+    );
+    const analysis = JSON.parse(analyseRaw.replace(/```json|```/g,'').trim());
+    lg(`Score: ${analysis.score} | Angle: ${analysis.angle}`, 'ok');
+
+    // ── WRITER AGENT ──
+    lg('Writer-Agent เขียน opening message...', 'i');
+    const writerRaw = await claude(
+      'คุณเป็น copywriter เชี่ยวชาญ network marketing และ human psychology ภาษาไทย ตอบ JSON เท่านั้น ไม่มี markdown',
+      `เขียน opening message ทักทาย prospect นี้แบบธรรมชาติมาก — ห้ามพูดถึงแอมเวย์โดยตรง ไม่ขาย ไม่กดดัน สร้างความเชื่อใจก่อน:\n\n${ctx}\n\nมุมเข้าหา: ${analysis.angle}\nPain point: ${analysis.pain}\nสไตล์ความสัมพันธ์: ${l.relationship || 'ทั่วไป'}\n\nตอบ JSON:\n{\n  "message": "ข้อความ 2-4 ประโยค เหมาะกับ tone และความสัมพันธ์",\n  "tone": "casual/warm/professional",\n  "hook": "สิ่งที่ใช้เปิด conversation"\n}`
+    );
+    const written = JSON.parse(writerRaw.replace(/```json|```/g,'').trim());
+    lg(`Message เขียนเสร็จ (tone: ${written.tone})`, 'ok');
+
+    // ── SAVE TO SUPABASE ──
+    lg('บันทึกผลลัพธ์ลง Supabase...', 'i');
+    const combined = { ...analysis, ...written };
+    const saved = await updateLeadAnalysis(id, combined);
+    if (saved) lg('✅ บันทึกสำเร็จ', 'ok');
+
+    // ── UPDATE LOCAL + RE-RENDER ──
+    await loadLeads();
+    const updated = leads.find(x => x.id === id);
+    if (updated) {
+      runBox.classList.remove('show');
+      renderDetail(updated);
+      document.getElementById('rc-analyse').classList.add('show');
+      document.getElementById('rc-writer').classList.add('show');
+    }
+
+  } catch(e) {
+    runBox.classList.remove('show');
+    errEl.textContent = `❌ ${e.message}`;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = '🔄 ลองใหม่';
+  }
+}
+
+function buildContext(l) {
+  return [
+    `ชื่อ: ${l.name}${l.nickname ? ` (${l.nickname})` : ''}`,
+    l.age && `อายุ: ${l.age} ปี`,
+    l.gender && `เพศ: ${l.gender}`,
+    '── FAMILY ──',
+    l.family_status && `สถานะ: ${l.family_status}`,
+    l.num_children != null && `ลูก: ${l.num_children} คน`,
+    l.family_obligations && `พันธะ: ${l.family_obligations}`,
+    l.family_notes && `หมายเหตุครอบครัว: ${l.family_notes}`,
+    '── OCCUPATION ──',
+    l.occupation && `อาชีพ: ${l.occupation}`,
+    l.company && `บริษัท: ${l.company}`,
+    l.income_level && `รายได้: ${l.income_level}`,
+    l.job_satisfaction && `ความพึงพอใจงาน: ${l.job_satisfaction}`,
+    l.financial_notes && `สัญญาณการเงิน: ${l.financial_notes}`,
+    '── RECREATION ──',
+    l.hobbies?.length && `งานอดิเรก: ${Array.isArray(l.hobbies) ? l.hobbies.join(', ') : l.hobbies}`,
+    l.activities && `กิจกรรม: ${l.activities}`,
+    l.lifestyle && `ไลฟ์สไตล์: ${l.lifestyle}`,
+    l.social_media_style && `Social style: ${l.social_media_style}`,
+    '── MESSAGE / CONTEXT ──',
+    l.relationship && `ความสัมพันธ์กับเรา: ${l.relationship}`,
+    l.how_we_met && `เจอกันที่: ${l.how_we_met}`,
+    l.extra_notes && `หมายเหตุ: ${l.extra_notes}`,
+  ].filter(Boolean).join('\n');
+}
+
+async function claude(sys, usr) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: sys,
+      messages: [{ role: 'user', content: usr }]
+    })
+  });
+  if (!r.ok) {
+    const e = await r.json();
+    throw new Error(e.error?.message || 'Claude API error');
+  }
+  return (await r.json()).content[0].text;
+}
+
+// ── UTILS ──
+function showNotice(id, msg) {
+  const el = document.getElementById(id);
+  el.innerHTML = msg;
+  el.classList.add('show');
+  el.style.display = 'block';
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+</script>
+</body>
+</html>

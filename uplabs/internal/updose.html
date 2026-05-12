@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrilite Master Dose Comparison & Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- เพิ่ม html2canvas สำหรับการบันทึกรูปภาพ UI ออกมาเป็น PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .metric-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.1), 0 4px 6px -2px rgba(8, 145, 178, 0.05);
+            border-color: #0891b2;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+            background-color: #ffffff;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f1f5f9; /* slate-100 */
+            color: #0891b2; /* cyan-600 */
+            font-weight: 700;
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 2px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        td {
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            transition: opacity 0.3s, background-color 0.2s;
+        }
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+        tr.dimmed td {
+            opacity: 0.3;
+            background-color: transparent !important;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .dose-bar-bg {
+            background-color: #e2e8f0;
+            height: 8px;
+            border-radius: 4px;
+            width: 100px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+        }
+        .dose-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .flow-diagram {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        .flow-node {
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            flex: 1;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .flow-arrow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #0891b2;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 0.5rem;
+        }
+        @media (min-width: 768px) {
+            .flow-arrow {
+                transform: rotate(-90deg);
+                padding: 0;
+            }
+        }
+        /* Custom Checkbox (Light Theme) */
+        .checkbox-wrapper input[type="checkbox"] {
+            appearance: none;
+            background-color: #ffffff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.2em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .checkbox-wrapper input[type="checkbox"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #ffffff;
+            background-color: transform;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .checkbox-wrapper input[type="checkbox"]:checked {
+            background-color: #0891b2;
+            border-color: #0891b2;
+        }
+        .checkbox-wrapper input[type="checkbox"]:checked::before {
+            transform: scale(1);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#0891b2',   /* cyan-600 */
+                            blue: '#2563eb',   /* blue-600 */
+                            dark: '#f8fafc',   /* slate-50 */
+                            card: '#ffffff',   /* white */
+                            yellow: '#f59e0b', /* amber-500 */
+                            red: '#ef4444',    /* red-500 */
+                            gray: '#64748b'    /* slate-500 */
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="antialiased font-sans bg-brand-dark text-slate-800">
+
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl tracking-tight text-brand-cyan">Nutrilite Dose Analytics</span>
+                </div>
+                <div class="hidden md:flex space-x-6 text-sm font-semibold text-slate-500">
+                    <a href="#table-section" class="hover:text-brand-cyan transition">ตารางเปรียบเทียบ</a>
+                    <a href="#custom-dose-section" class="hover:text-brand-cyan transition">คำนวณสารอาหารรวม</a>
+                    <a href="#global-overview-section" class="hover:text-brand-cyan transition">กราฟภาพรวม</a>
+                    <a href="#metabolic-section" class="hover:text-brand-cyan transition">กลไก Metabolic</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <header class="mb-14 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 text-slate-900 tracking-tight">
+                เจาะลึกข้อมูล <span class="text-brand-cyan">Metabolic Flexibility</span>
+            </h1>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                วิเคราะห์โภชนาการผลิตภัณฑ์ Nutrilite ในประเทศไทย โดยอ้างอิงจาก Thai RDI และหลักเวชศาสตร์ชะลอวัย (Functional Medicine) เพื่อหาระดับการบริโภคที่เหมาะสมที่สุด (Optimal Dose) ในการรีเซ็ตระบบเผาผลาญ (UP Labs)
+            </p>
+        </header>
+
+        <section class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-xl border-t-4 border-slate-400 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-slate-600 mb-2">1. Minimum Dose</h3>
+                    <p class="text-sm text-slate-500">ปริมาณขั้นต่ำสุดที่ร่างกายต้องการเพื่อป้องกันโรคขาดสารอาหาร</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border-t-4 border-brand-yellow shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-brand-yellow mb-2">2. Thai FDA Dose</h3>
+                    <p class="text-sm text-slate-500">ปริมาณแนะนำตามมาตรฐาน อย. ไทย เน้นความปลอดภัยสูงสุดสำหรับคนทั่วไป</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border-t-4 border-brand-cyan shadow-md relative overflow-hidden border border-gray-100">
+                    <div class="absolute -right-5 -top-3 bg-brand-cyan text-white font-bold text-[10px] px-6 py-2 rotate-45 shadow-sm">เป้าหมาย</div>
+                    <h3 class="text-lg font-bold text-brand-cyan mb-2">3. Optimal (100%)</h3>
+                    <p class="text-sm text-slate-500">โดสเพื่อสุขภาพสูงสุด ช่วยชะลอวัย สนับสนุนระบบเผาผลาญ</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl border-t-4 border-brand-red shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-brand-red mb-2">4. Toxic Dose</h3>
+                    <p class="text-sm text-slate-500">ระดับอันตรายที่ร่างกายขับออกไม่ทัน หรืออาจเกิดพิษสะสม</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- MASTER COMPARATIVE TABLE SECTION -->
+        <section id="table-section" class="mb-16">
+            <div class="mb-6 border-b border-gray-200 pb-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">ตารางเปรียบเทียบปริมาณ</h2>
+                    <p class="text-slate-600">ติ๊กเลือก <span>&#x2713;</span> สินค้าที่คุณกำลังทาน เพื่อนำไปคำนวณกราฟสารอาหารรวมด้านล่าง</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleAllProducts(true)" class="bg-white hover:bg-gray-50 border border-gray-300 text-slate-700 font-semibold px-4 py-2 rounded text-sm transition-colors shadow-sm">
+                        เลือกทั้งหมด
+                    </button>
+                    <button onclick="toggleAllProducts(false)" class="bg-white hover:bg-gray-50 border border-gray-300 text-slate-500 font-semibold px-4 py-2 rounded text-sm transition-colors shadow-sm">
+                        ล้างการเลือก
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="w-12 text-center">เลือก</th>
+                            <th class="text-left min-w-[150px]">สินค้า (Product)</th>
+                            <th class="min-w-[150px]">ตัวกำหนด Limit<br><span class="text-xs font-normal text-slate-500">(Limiting Nutrient)</span></th>
+                            <th class="min-w-[120px]">Label Dose<br><span class="text-xs font-normal text-slate-500">(ข้างขวด)</span></th>
+                            <th class="min-w-[120px]">Thai FDA<br><span class="text-xs font-normal text-amber-600">(% of Optimal)</span></th>
+                            <th class="min-w-[150px] bg-cyan-50 border-b-brand-cyan">Optimal (100%)<br><span class="text-xs font-normal text-brand-cyan">Target เพื่อผลลัพธ์</span></th>
+                            <th class="min-w-[120px] text-brand-red">Toxic Limit<br><span class="text-xs font-normal text-red-400">(> % of Optimal)</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-700 divide-y divide-gray-200" id="product-table-body">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- CUSTOM DOSE CALCULATOR SECTION -->
+        <section id="custom-dose-section" class="mb-16 bg-white rounded-xl p-8 border border-gray-200 shadow-md relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-brand-cyan opacity-10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+            
+            <div class="mb-8 border-b border-gray-200 pb-4 relative z-10">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">ระบบรวมสารอาหารอัจฉริยะ (Smart Aggregated Tracker)</h2>
+                <p class="text-slate-600">
+                    ระบุจำนวนเม็ด/ช้อนที่คุณทาน ระบบจะนำสารอาหารสำคัญจากทุกสินค้ามารวมกันให้อัตโนมัติ (เช่น ธาตุเหล็กจาก Spinach + Double X)
+                    ช่วยให้ดูง่ายขึ้นว่าคุณได้รับสารอาหาร <strong>เข้าเป้าหมาย (Optimal)</strong> หรือ <strong>เสี่ยงอันตราย (Toxic)</strong> หรือยัง
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                <div class="lg:col-span-4 bg-slate-50 p-5 rounded-xl border border-gray-200">
+                    <h4 class="font-bold text-brand-cyan mb-4 flex justify-between items-center">
+                        <span>ระบุจำนวนที่ทาน</span>
+                        <span class="text-xs bg-white border border-gray-200 text-slate-600 font-semibold px-2 py-1 rounded shadow-sm">หน่วย/วัน</span>
+                    </h4>
+                    <div id="custom-dose-inputs" class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        <!-- Inputs injected via JS -->
+                        <p class="text-sm text-slate-500 text-center italic py-6">กรุณาเลือกสินค้าในตารางด้านบน</p>
+                    </div>
+                </div>
+                
+                <div class="lg:col-span-8">
+                    <div id="chart-export-container" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex justify-between items-start mb-4 border-b border-gray-100 pb-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg">รายงานปริมาณสารอาหารสุทธิ (Net Dose Report)</h4>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    เส้นประ <span class="text-brand-cyan font-bold mx-1">Optimal (เป้าหมาย 100%)</span> จะอยู่ตรงกลางเสมอเพื่อให้อ่านง่าย
+                                </p>
+                            </div>
+                            <button onclick="downloadImage()" class="bg-white hover:bg-gray-50 border border-gray-300 text-slate-700 text-xs font-semibold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+                                <span class="text-brand-cyan font-bold text-lg leading-none">&#10515;</span> 
+                                <span>Save Image</span>
+                            </button>
+                        </div>
+                        
+                        <!-- พื้นที่วาดหลอดพลังงาน HTML -->
+                        <div id="html-bars-container" class="space-y-5 w-full min-h-[300px]">
+                            <div class="flex flex-col items-center justify-center h-full py-12 text-slate-400">
+                                <div class="text-4xl mb-2">&#128202;</div>
+                                <p>กรุณาระบุจำนวนที่ทานด้านซ้ายมือเพื่อสร้างกราฟ</p>
+                            </div>
+                        </div>
+                        
+                        <!-- ลายน้ำตอน Export -->
+                        <div id="export-watermark" class="hidden text-right mt-6 text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+                            Generated by Nutrilite Dose Analytics | Metabolic Flexibility
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GLOBAL OVERVIEW LINE CHART SECTION -->
+        <section id="global-overview-section" class="mb-16 bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
+            <div class="mb-8 border-b border-gray-200 pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">กราฟเส้นภาพรวมสารอาหารทั้งหมด (Global Overview)</h2>
+                <p class="text-slate-600">แสดงแนวโน้มรวมของสารอาหารทุกตัวเทียบกับโซน <strong>Optimal (100%)</strong> และจุด <strong>Toxic Limit</strong> ในรูปแบบกราฟเส้นเพื่อให้เห็นภาพใหญ่ของการจัด Balance</p>
+            </div>
+            
+            <div class="w-full bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="globalOverviewChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- METABOLIC FLEXIBILITY PROCESS SECTION -->
+        <section id="metabolic-section" class="mb-8 p-8 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <h2 class="text-2xl font-bold text-center text-slate-900 mb-6">กลไกการเปลี่ยนผ่าน: สู่ความยืดหยุ่นของระบบเผาผลาญ (Metabolic Flexibility)</h2>
+            <p class="text-center text-slate-600 mb-10 max-w-4xl mx-auto leading-relaxed">
+                เป้าหมายสูงสุดของโปรแกรม <strong class="text-brand-cyan">UP Labs</strong> คือการสร้าง <strong class="text-brand-cyan">Metabolic Flexibility</strong> ซึ่งเป็นความยืดหยุ่นในการเผาผลาญพลังงาน ทำให้ร่างกายสามารถใช้ได้ทั้งไขมันและคาร์บอย่างสมบูรณ์ โดยมี <strong>Reset Phase 3 วันแรก</strong> ในการลดอินซูลิน เปลี่ยนจากโหมดใช้น้ำตาลไปเป็นดึงไขมันมาใช้
+            </p>
+            <div class="flow-diagram">
+                <div class="flow-node border-amber-400 bg-amber-50">
+                    <h4 class="font-bold text-amber-600 text-lg mb-2">ภาวะพึ่งพาน้ำตาล (Glucocentric)</h4>
+                    <ul class="text-xs text-left text-slate-700 list-disc pl-5 space-y-2">
+                        <li>อินซูลินบล็อกกระบวนการสลายไขมัน (Lipolysis)</li>
+                        <li>ทานคาร์บสูง อินซูลินแกว่ง หิวบ่อย</li>
+                        <li>ระดับสารอาหารต่ำกว่า Optimal วงจรการเผาผลาญสะดุด</li>
+                    </ul>
+                </div>
+                
+                <div class="flow-arrow"><span>&rarr;</span></div>
+
+                <div class="flow-node border-brand-cyan bg-cyan-50 relative">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-brand-cyan text-white shadow-sm font-bold text-xs px-4 py-1 rounded-full whitespace-nowrap">UP Labs: Reset Phase</div>
+                    <h4 class="font-bold text-cyan-800 text-lg mb-2 mt-2">ระยะการปรับเปลี่ยน</h4>
+                    <ul class="text-xs text-left text-slate-700 list-none space-y-2 mb-4">
+                        <li><span class="text-brand-cyan font-bold">&#8226;</span> ลดคาร์บ + ทำ IF เพื่อลดการหลั่งอินซูลิน</li>
+                        <li><span class="text-brand-cyan font-bold">&#8226;</span> ควบคุม <strong>Randle Effect</strong> ให้เป็นประโยชน์</li>
+                    </ul>
+                </div>
+
+                <div class="flow-arrow"><span>&rarr;</span></div>
+
+                <div class="flow-node border-brand-blue bg-blue-50">
+                    <h4 class="font-bold text-brand-blue text-lg mb-2">Metabolic Flexibility</h4>
+                    <div class="text-left bg-white border border-blue-100 p-3 rounded shadow-sm">
+                        <span class="text-brand-blue font-bold text-xs block mb-2">สารอาหารระดับ Optimal สนับสนุน:</span>
+                        <ul class="text-xs text-slate-700 list-none space-y-2">
+                            <li><strong class="text-brand-blue">Protein:</strong> รักษามวลกล้ามเนื้อ คุมความหิว</li>
+                            <li><strong class="text-brand-blue">Green-T:</strong> กระตุ้น <strong>PPARs</strong> เผาผลาญไขมัน</li>
+                            <li><strong class="text-brand-blue">Omega-3:</strong> เพิ่มความไวอินซูลิน</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- PLUGIN FOR WHITE BACKGROUND ON EXPORT ---
+        const bgColorPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = options.color || '#ffffff';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+        Chart.register(bgColorPlugin);
+
+        // --- NUTRIENT TARGETS DATA ---
+        const nutrientsTarget = {
+            'vit_c': { name: 'Vitamin C (mg)', optimal: 2000, toxic: 3000 },
+            'omega_3': { name: 'EPA+DHA (mg)', optimal: 2000, toxic: 4000 },
+            'protein': { name: 'Protein (g)', optimal: 80, toxic: 210 },
+            'egcg': { name: 'EGCG (mg)', optimal: 400, toxic: 800 },
+            'calcium': { name: 'Calcium (mg)', optimal: 1000, toxic: 2500 },
+            'vit_e': { name: 'Vitamin E (IU)', optimal: 240, toxic: 1000 },
+            'fiber': { name: 'Dietary Fiber (g)', optimal: 30, toxic: 70 },
+            'b_complex': { name: 'B Vitamins (%)', optimal: 100, toxic: 5000 },
+            'phyto': { name: 'Phytonutrients (%)', optimal: 100, toxic: 250 },
+            'coq10': { name: 'CoQ10 (mg)', optimal: 200, toxic: 1200 },
+            'probiotics': { name: 'Probiotics (CFU)', optimal: 25, toxic: 100 }, 
+            'iron': { name: 'Iron (mg)', optimal: 15, toxic: 45 },
+            'ginkgo_extract': { name: 'Ginkgo Extract (mg)', optimal: 120, toxic: 300 },
+            'carb_blocker': { name: 'Carb Blocker (mg)', optimal: 1500, toxic: 4000 },
+            'postbiotics': { name: 'Postbiotics (Dose)', optimal: 4, toxic: 20 }
+        };
+
+        // --- PRODUCT DATA WITH YIELDS ---
+        const productsData = [
+            { id: 'bio_c', name: 'Bio C Plus', detail: '500mg / tab', limitDesc: 'Vitamin C<br>(Osmotic Diarrhea)', doseLabel: '1 เม็ด', fdaRaw: '0.12 เม็ด', fdaPct: 3, optimalRaw: '4 เม็ด (2000mg)', optimalVal: 4, toxicRaw: '> 6 เม็ด', toxicPct: 150, unit: 'เม็ด', yields: { 'vit_c': 500 } },
+            { id: 'salmon_omega', name: 'Salmon Omega', detail: '300mg Omega-3 / cap', limitDesc: 'EPA+DHA<br>(เลือดออกง่าย)', doseLabel: '1 เม็ด', fdaRaw: '1.5 เม็ด', fdaPct: 25, optimalRaw: '7 เม็ด (~2000mg)', optimalVal: 7, toxicRaw: '> 13 เม็ด', toxicPct: 200, unit: 'เม็ด', yields: { 'omega_3': 300 } },
+            { id: 'triple_omega', name: 'Triple Omega', detail: '1000mg EPA+DHA / cap', limitDesc: 'EPA+DHA<br>(เลือดออกง่าย)', doseLabel: '1 เม็ด', fdaRaw: '0.5 เม็ด', fdaPct: 25, optimalRaw: '2 เม็ด (2000mg)', optimalVal: 2, toxicRaw: '> 4 เม็ด', toxicPct: 200, unit: 'เม็ด', isNew: true, yields: { 'omega_3': 1000 } },
+            { id: 'protein', name: 'All Plant Protein', detail: '8g Protein / scoop', limitDesc: 'Protein Load<br>(ไตทำงานหนัก)', doseLabel: '2 ช้อน', fdaRaw: '6 ช้อน', fdaPct: 60, optimalRaw: '10 ช้อน (นน.60kg)', optimalVal: 10, toxicRaw: '> 26 ช้อน', toxicPct: 260, unit: 'ช้อน', yields: { 'protein': 8 } },
+            { id: 'double_x', name: 'Double X', detail: 'Phyto Blend', limitDesc: 'Iron / Vit A<br>(ตับอักเสบ)', doseLabel: '1 ชุด', fdaRaw: '1 ชุด', fdaPct: 50, optimalRaw: '2 ชุด (เช้า-เย็น)', optimalVal: 2, toxicRaw: '> 5 ชุด', toxicPct: 250, unit: 'ชุด', yields: { 'phyto': 50, 'vit_c': 200, 'calcium': 250, 'iron': 5, 'vit_e': 15, 'b_complex': 50 } }, 
+            { id: 'green_t', name: 'Green-T Plus', detail: '~70mg EGCG / tab', limitDesc: 'EGCG<br>(ตับอักเสบ)', doseLabel: '1-2 เม็ด', fdaRaw: '-', fdaPct: 0, optimalRaw: '6 เม็ด (~400mg)', optimalVal: 6, toxicRaw: '> 12 เม็ด', toxicPct: 200, unit: 'เม็ด', yields: { 'egcg': 70 } },
+            { id: 'b_complex', name: 'B Complex', detail: 'Vitamin B1-B12', limitDesc: 'Vitamin B6<br>(ปลายประสาทอักเสบ)', doseLabel: '1 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 50, optimalRaw: '2 เม็ด', optimalVal: 2, toxicRaw: '> 100 เม็ด', toxicPct: 5000, unit: 'เม็ด', yields: { 'b_complex': 50 } },
+            { id: 'cal_mag_d', name: 'Cal Mag D', detail: '250mg Ca / tab', limitDesc: 'Calcium<br>(นิ่ว/หินปูน)', doseLabel: '1 เม็ด', fdaRaw: '3 เม็ด', fdaPct: 75, optimalRaw: '4 เม็ด (1000mg Ca)', optimalVal: 4, toxicRaw: '> 10 เม็ด', toxicPct: 250, unit: 'เม็ด', yields: { 'calcium': 250 } },
+            { id: 'lecithin_e', name: 'Lecithin E', detail: '30 IU Vit E / tab', limitDesc: 'Vitamin E<br>(เลือดออกในสมอง)', doseLabel: '1 เม็ด', fdaRaw: '0.5 เม็ด', fdaPct: 6, optimalRaw: '8 เม็ด (240 IU)', optimalVal: 8, toxicRaw: '> 33 เม็ด', toxicPct: 400, unit: 'เม็ด', yields: { 'vit_e': 30 } },
+            { id: 'coq10', name: 'CoQ10', detail: '30mg Coenzyme Q10 / cap', limitDesc: 'CoQ10<br>(ปวดหัว/นอนไม่หลับ)', doseLabel: '1 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 15, optimalRaw: '6 เม็ด (~200mg)', optimalVal: 6, toxicRaw: '> 40 เม็ด', toxicPct: 666, unit: 'เม็ด', yields: { 'coq10': 33 } },
+            { id: 'fiber_blend', name: 'Fiber Blend', detail: '1.7g Insoluble / tab', limitDesc: 'Total Fiber<br>(ลำไส้อุดตัน)', doseLabel: '3 เม็ด', fdaRaw: '15 เม็ด', fdaPct: 83, optimalRaw: '17-20 เม็ด', optimalVal: 18.5, toxicRaw: '> 40 เม็ด', toxicPct: 233, unit: 'เม็ด', yields: { 'fiber': 1.7 } },
+            { id: 'fiber_powder', name: 'Fiber Powder', detail: '4g Soluble Fiber / ซอง', limitDesc: 'FOS/Inulin<br>(แก๊สในกระเพาะ)', doseLabel: '1 ซอง', fdaRaw: '1 ซอง', fdaPct: 33, optimalRaw: '2-3 ซอง', optimalVal: 3, toxicRaw: '> 5 ซอง', toxicPct: 166, unit: 'ซอง', yields: { 'fiber': 4 } },
+            { id: 'probiotics', name: 'Probiotics', detail: '6.3 Billion CFU / ซอง', limitDesc: 'CFU Count<br>(แก๊ส/SIBO)', doseLabel: '1 ซอง', fdaRaw: '1 ซอง', fdaPct: 20, optimalRaw: '4-8 ซอง', optimalVal: 6, toxicRaw: '> 16 ซอง', toxicPct: 266, unit: 'ซอง', yields: { 'probiotics': 6.3 } },
+            { id: 'post_b', name: 'Post B', detail: 'Heat-Killed Probiotics', limitDesc: 'Cell Wall<br>(ปลอดภัยสูง)', doseLabel: '2 เม็ด', fdaRaw: '2 เม็ด', fdaPct: 50, optimalRaw: '4 เม็ด', optimalVal: 4, toxicRaw: 'Unlikely', toxicPct: 500, unit: 'เม็ด', yields: { 'postbiotics': 1 } },
+            { id: 'veg_fruit', name: 'Veg & Fruit', detail: 'Phytonutrients / tab', limitDesc: 'Carotenoids<br>(ตัวเหลือง)', doseLabel: '2 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 25, optimalRaw: '4 เม็ด', optimalVal: 4, toxicRaw: '> 10 เม็ด', toxicPct: 250, unit: 'เม็ด', yields: { 'phyto': 25 } },
+            { id: 'spinach', name: 'Spinach Plus', detail: 'Folic Acid & Iron', limitDesc: 'Iron<br>(ธาตุเหล็กสะสมที่ตับ)', doseLabel: '1 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 33, optimalRaw: '2-3 เม็ด', optimalVal: 3, toxicRaw: '> 5 เม็ด', toxicPct: 166, unit: 'เม็ด', yields: { 'iron': 5 } },
+            { id: 'siberian', name: 'Siberian Ginseng', detail: 'Adaptogen & Ginkgo', limitDesc: 'Ginkgo<br>(เลือดออกง่าย/ใจสั่น)', doseLabel: '1 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 25, optimalRaw: '4 เม็ด', optimalVal: 4, toxicRaw: '> 8 เม็ด', toxicPct: 200, unit: 'เม็ด', yields: { 'ginkgo_extract': 30 } },
+            { id: 'ginkgo', name: 'Ginkgo Plus', detail: 'Ginkgo Extract', limitDesc: 'Ginkgo<br>(เลือดออกง่าย)', doseLabel: '1 เม็ด', fdaRaw: '1 เม็ด', fdaPct: 50, optimalRaw: '2 เม็ด', optimalVal: 2, toxicRaw: '> 4 เม็ด', toxicPct: 200, unit: 'เม็ด', yields: { 'ginkgo_extract': 60 } },
+            { id: 'calow', name: 'Calow', detail: 'Phase 2 / Garcinia', limitDesc: 'Blocker<br>(ท้องอืด/ขาดคาร์บ)', doseLabel: '2 เม็ด', fdaRaw: '2 เม็ด', fdaPct: 33, optimalRaw: '4-6 เม็ด', optimalVal: 6, toxicRaw: '> 10 เม็ด', toxicPct: 166, unit: 'เม็ด', yields: { 'carb_blocker': 250 } }
+        ];
+
+        // Core variables
+        let selectedProductIds = new Set(['bio_c', 'salmon_omega', 'protein', 'green_t', 'double_x']); 
+        let userDoses = {}; 
+        let globalOverviewChartInstance = null;
+
+        // --- UTILITIES ---
+        Chart.defaults.color = '#64748b'; 
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+
+        // --- RENDER TABLE ---
+        function renderTable() {
+            const tbody = document.getElementById('product-table-body');
+            let html = '';
+            
+            productsData.forEach(p => {
+                const isSelected = selectedProductIds.has(p.id);
+                const rowClass = isSelected ? '' : 'dimmed';
+                const checked = isSelected ? 'checked' : '';
+                const newTag = p.isNew ? `<div class="text-[10px] bg-green-100 text-green-700 border border-green-200 px-1 py-0.5 rounded font-bold mt-1 inline-block">NEW FORMULA</div>` : '';
+                const bgClass = p.isNew ? 'bg-slate-50' : '';
+
+                html += `
+                    <tr class="product-row ${rowClass} ${bgClass}" data-id="${p.id}">
+                        <td class="text-center">
+                            <div class="checkbox-wrapper flex justify-center">
+                                <input type="checkbox" class="product-checkbox" onchange="handleCheckboxChange('${p.id}', this.checked)" ${checked}>
+                            </div>
+                        </td>
+                        <td class="text-left font-semibold">
+                            <div class="text-brand-cyan">${p.name}</div>
+                            ${newTag}
+                            <div class="text-xs text-slate-500 mt-0.5">${p.detail}</div>
+                        </td>
+                        <td class="text-slate-500 text-sm">${p.limitDesc}</td>
+                        <td>
+                            <span class="badge bg-slate-100 border border-slate-200 text-slate-600">${p.doseLabel}</span>
+                        </td>
+                        <td>
+                            <span class="text-amber-500 font-bold">${p.fdaRaw}</span>
+                            <div class="text-xs text-slate-500">(${p.fdaPct}%)</div>
+                            <div class="dose-bar-bg mt-1"><div class="dose-bar-fill bg-amber-400" style="width: ${Math.min(p.fdaPct, 100)}%"></div></div>
+                        </td>
+                        <td class="bg-cyan-50/50 border-l border-r border-gray-200">
+                            <span class="text-brand-cyan font-bold text-lg">${p.optimalRaw}</span>
+                            <div class="dose-bar-bg mt-1 bg-cyan-100"><div class="dose-bar-fill bg-brand-cyan" style="width: 100%"></div></div>
+                        </td>
+                        <td>
+                            <span class="text-brand-red font-bold">${p.toxicRaw}</span>
+                            <div class="text-xs text-red-400">(${p.toxicPct}%)</div>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // --- INTERACTION LOGIC ---
+        window.handleCheckboxChange = function(id, isChecked) {
+            if (isChecked) {
+                selectedProductIds.add(id);
+            } else {
+                selectedProductIds.delete(id);
+            }
+            updateUI();
+        };
+
+        window.toggleAllProducts = function(select) {
+            if (select) {
+                productsData.forEach(p => selectedProductIds.add(p.id));
+            } else {
+                selectedProductIds.clear();
+            }
+            updateUI();
+        };
+
+        window.handleDoseInput = function(id, value) {
+            if(value === '' || isNaN(value)) {
+                delete userDoses[id];
+            } else {
+                userDoses[id] = parseFloat(value);
+            }
+            renderAggregatedHTMLBars();
+        };
+
+        function updateUI() {
+            document.querySelectorAll('.product-row').forEach(row => {
+                const id = row.dataset.id;
+                const checkbox = row.querySelector('.product-checkbox');
+                if (selectedProductIds.has(id)) {
+                    row.classList.remove('dimmed');
+                    checkbox.checked = true;
+                } else {
+                    row.classList.add('dimmed');
+                    checkbox.checked = false;
+                }
+            });
+
+            renderCustomInputs();
+            renderAggregatedHTMLBars();
+        }
+
+        // --- RENDER CUSTOM INPUTS ---
+        function renderCustomInputs() {
+            const container = document.getElementById('custom-dose-inputs');
+            
+            if (selectedProductIds.size === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 text-center italic py-6">กรุณาเลือกสินค้าในตารางด้านบน</p>';
+                return;
+            }
+
+            let html = '';
+            productsData.forEach(p => {
+                if (selectedProductIds.has(p.id)) {
+                    const currentVal = userDoses[p.id] !== undefined ? userDoses[p.id] : '';
+                    html += `
+                        <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-brand-cyan transition-colors group">
+                            <label class="text-sm font-bold text-slate-700 group-hover:text-brand-cyan transition-colors">${p.name}</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" min="0" step="0.5" placeholder="0" value="${currentVal}"
+                                    oninput="handleDoseInput('${p.id}', this.value)"
+                                    class="w-16 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-800 text-right focus:bg-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan focus:outline-none transition-all">
+                                <span class="text-xs font-semibold text-slate-500 w-8">${p.unit}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        // --- RENDER SMART AGGREGATED BARS & GLOBAL CHART ---
+        function renderAggregatedHTMLBars() {
+            const container = document.getElementById('html-bars-container');
+            const activeProductsWithDose = productsData.filter(p => selectedProductIds.has(p.id) && (userDoses[p.id] || 0) > 0);
+            
+            const nutrientsToShow = new Set();
+            const aggregatedUserDose = {};
+
+            activeProductsWithDose.forEach(p => {
+                const qty = userDoses[p.id];
+                if (p.yields) {
+                    for (const [nutrKey, nutrAmount] of Object.entries(p.yields)) {
+                        nutrientsToShow.add(nutrKey);
+                        aggregatedUserDose[nutrKey] = (aggregatedUserDose[nutrKey] || 0) + (nutrAmount * qty);
+                    }
+                }
+            });
+
+            if (nutrientsToShow.size === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full py-12 text-slate-400">
+                        <div class="text-4xl mb-2">&#128202;</div>
+                        <p>กรุณาระบุจำนวนที่ทานด้านซ้ายมือเพื่อสร้างกราฟ</p>
+                    </div>`;
+                renderGlobalOverviewChart(null, null); // Clear global chart
+                return;
+            }
+
+            let html = '';
+            Array.from(nutrientsToShow).forEach(nutrKey => {
+                const target = nutrientsTarget[nutrKey];
+                if (!target) return;
+
+                const userTotal = aggregatedUserDose[nutrKey] || 0;
+                
+                // Visual Math for Progress Bars
+                const optimalPos = 50; 
+                let toxicPos = (target.toxic / target.optimal) * 50;
+                let isToxicClamped = false;
+                if (toxicPos >= 96) {
+                    toxicPos = 96; 
+                    isToxicClamped = true;
+                }
+                let barPos = (userTotal / target.optimal) * 50;
+                if (barPos > 100) barPos = 100; 
+
+                let statusText = 'ต่ำกว่าเป้าหมาย';
+                let statusColor = 'text-slate-600 bg-slate-100 border border-slate-200';
+                let barColor = 'bg-blue-400';
+
+                if (userTotal >= target.toxic) {
+                    statusText = 'อันตราย (Toxic)';
+                    statusColor = 'text-white bg-red-500 shadow-md shadow-red-500/30';
+                    barColor = 'bg-red-500';
+                } else if (userTotal >= target.optimal) {
+                    statusText = 'ดีเยี่ยม (Optimal)';
+                    statusColor = 'text-white bg-emerald-500 shadow-md shadow-emerald-500/30';
+                    barColor = 'bg-emerald-400';
+                }
+
+                html += `
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-visible mt-2">
+                    <div class="flex justify-between items-start mb-1">
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-sm md:text-base">${target.name}</h5>
+                            <div class="text-xs text-slate-500 mt-1">
+                                ได้รับ: <span class="font-bold ${userTotal >= target.toxic ? 'text-red-600' : 'text-slate-800'} text-sm">${userTotal.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 1})}</span>
+                                <span class="mx-1">/</span> เป้าหมาย: ${target.optimal.toLocaleString()}
+                            </div>
+                        </div>
+                        <span class="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full ${statusColor}">${statusText}</span>
+                    </div>
+
+                    <!-- Visual Bar Area -->
+                    <div class="relative w-full h-12 mt-6">
+                        <div class="absolute top-4 left-0 w-full h-3 bg-slate-100 border border-slate-200 rounded-full"></div>
+                        <div class="absolute top-4 left-0 h-3 rounded-full ${barColor} transition-all duration-700 ease-out shadow-sm" style="width: ${barPos}%;"></div>
+
+                        <!-- Markers -->
+                        <div class="absolute top-3 h-5 border-l-2 border-slate-300 left-0 z-10"></div>
+                        <div class="absolute top-8 text-[9px] font-bold text-slate-400 transform -translate-x-1/2 left-0">0</div>
+
+                        <div class="absolute top-2 h-7 border-l-2 border-brand-cyan border-dashed z-10" style="left: 50%;"></div>
+                        <div class="absolute top-9 text-[10px] font-bold text-brand-cyan transform -translate-x-1/2 whitespace-nowrap bg-white px-1" style="left: 50%;">Optimal (100%)</div>
+
+                        <div class="absolute top-2 h-7 border-l-2 border-red-500 z-10" style="left: ${toxicPos}%;"></div>
+                        <div class="absolute -top-3 text-[10px] font-bold text-red-500 transform -translate-x-1/2 whitespace-nowrap bg-white px-1 rounded" style="left: ${toxicPos}%;">
+                            ${isToxicClamped ? `Toxic (>${target.toxic})` : `Toxic (${target.toxic})`}
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Trigger the new Global Overview Chart rendering
+            renderGlobalOverviewChart(nutrientsToShow, aggregatedUserDose);
+        }
+
+        // --- NEW: GLOBAL OVERVIEW LINE CHART ---
+        function renderGlobalOverviewChart(nutrientsToShow, aggregatedUserDose) {
+            const ctx = document.getElementById('globalOverviewChart').getContext('2d');
+            
+            if (globalOverviewChartInstance) {
+                globalOverviewChartInstance.destroy();
+            }
+
+            if (!nutrientsToShow || nutrientsToShow.size === 0) {
+                 globalOverviewChartInstance = new Chart(ctx, { 
+                     type: 'line', 
+                     data: { labels: ['กรุณาระบุจำนวนที่ทานเพื่อวิเคราะห์'], datasets: [] },
+                     options: { responsive: true, maintainAspectRatio: false, scales: {y: {display:false}, x: {display:false}} }
+                 });
+                 return;
+            }
+
+            const labels = [];
+            const userData = [];
+            const optimalData = [];
+            const toxicData = [];
+            const actualToxicVals = []; // For tooltips
+
+            Array.from(nutrientsToShow).forEach(nutrKey => {
+                const target = nutrientsTarget[nutrKey];
+                if (!target) return;
+
+                // Extract a shorter name for X-axis (e.g., "Vitamin C (mg)" -> "Vitamin C")
+                let shortName = target.name.split(' (')[0];
+                labels.push(shortName);
+                
+                const userTotal = aggregatedUserDose[nutrKey] || 0;
+                const userPct = (userTotal / target.optimal) * 100;
+                const realToxicPct = (target.toxic / target.optimal) * 100;
+
+                // Cap Toxic plotting at 350% so chart doesn't squish too much (e.g. B-vitamins)
+                const plottedToxic = Math.min(realToxicPct, 350);
+
+                userData.push(userPct);
+                optimalData.push(100);
+                toxicData.push(plottedToxic);
+                actualToxicVals.push(realToxicPct);
+            });
+
+            globalOverviewChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'ปริมาณที่คุณได้รับ (%)',
+                            data: userData,
+                            borderColor: '#0891b2', // brand-cyan
+                            backgroundColor: 'rgba(8, 145, 178, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#0891b2',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            fill: true,
+                            tension: 0.3,
+                            order: 1
+                        },
+                        {
+                            label: 'Toxic Limit (จุดอันตราย)',
+                            data: toxicData,
+                            borderColor: '#ef4444', // red-500
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#ef4444',
+                            pointStyle: 'triangle',
+                            pointRadius: 5,
+                            fill: false,
+                            order: 2
+                        },
+                        {
+                            label: 'Optimal (เป้าหมาย 100%)',
+                            data: optimalData,
+                            borderColor: '#10b981', // emerald-500
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 0, // hide points on the straight line
+                            fill: false,
+                            order: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#475569', font: {weight: 'bold', family: "'Segoe UI', sans-serif"} } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    
+                                    // Handle tooltip for capped toxic values
+                                    if (context.datasetIndex === 1) { // Toxic Limit dataset
+                                        const actualToxic = actualToxicVals[context.dataIndex];
+                                        if (actualToxic > 350) {
+                                            return `Toxic Limit: ${actualToxic.toFixed(0)}% (ค่าจริงอยู่นอกกราฟ)`;
+                                        }
+                                    }
+                                    
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(1) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#475569', font: { size: 12, weight: 'bold' } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            title: { display: true, text: '% ของปริมาณ Optimal', color: '#64748b' },
+                            ticks: { color: '#64748b', callback: val => val + '%' },
+                            grid: { color: '#e2e8f0', borderDash: [2, 2] },
+                            min: 0,
+                            suggestedMax: 200 // Default ceiling, will stretch if User goes > 200
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- EXPORT TO IMAGE (html2canvas) ---
+        window.downloadImage = function() {
+            const container = document.getElementById('chart-export-container');
+            const watermark = document.getElementById('export-watermark');
+            
+            watermark.classList.remove('hidden');
+            container.style.borderRadius = '0';
+            container.style.boxShadow = 'none';
+            container.style.border = 'none';
+
+            html2canvas(container, {
+                backgroundColor: '#ffffff',
+                scale: 2, 
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                watermark.classList.add('hidden');
+                container.style.borderRadius = '';
+                container.style.boxShadow = '';
+                container.style.border = '';
+
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'Nutrilite_Smart_Dose_Analysis.png';
+                link.click();
+            }).catch(err => {
+                console.error('Error exporting image:', err);
+                alert('เกิดข้อผิดพลาดในการบันทึกรูปภาพ กรุณาลองใหม่อีกครั้ง');
+                watermark.classList.add('hidden');
+            });
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            renderTable();
+            updateUI(); 
+        };
+
+    </script>
+</body>
+</html>

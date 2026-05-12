@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metabolic Health Check - UP Labs</title>
+    
+    <!-- 1. React & ReactDOM -->
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- 2. Babel -->
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 3. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 4. Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar for table */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- 1. Embedded Icons (100% Reliable) ---
+        // ฝังโค้ดไอคอนไว้ในนี้เลย เพื่อความชัวร์ ไม่ต้องพึ่ง CDN
+        const ICONS_PATH = {
+            // UI Icons
+            Activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+            User: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+            Ruler: '<path d="M6 18h12"/><path d="M6 6h12"/><path d="M6 12h12"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"/>',
+            Scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+            ArrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+            ChevronRight: '<path d="m9 18 6-6-6-6"/>',
+            ClipboardList: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+            Utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+            AlertCircle: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+            CheckCircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+            Battery: '<rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/>',
+            Phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+            MessageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+            Info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+            Lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+            Unlock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+            Gift: '<polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+            RefreshCw: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+            XCircle: '<circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/>',
+            Dumbbell: '<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>',
+            Zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+            Home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+            LogOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+            
+            // Food Icons
+            CupSoda: '<path d="m6 8 1.75 12.28a2 2 0 0 0 2 1.72h4.54a2 2 0 0 0 2-1.72L18 8"/><path d="M5 8h14"/><path d="M7 15a6.47 6.47 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/><path d="m12 8 1.5-3h2.5"/><path d="M8 8 9.5 5H12"/>',
+            Banana: '<path d="M4 13c1.1 0 2.1-.4 3-1.2 2.6-2.2 5.2-4.4 7.8-6.6a5 5 0 0 1 7 7c-1.7 2.2-4.3 4.7-7.8 6.4-1.2.6-2.3 1-3.4 1.2-1.9.4-3.6-.4-4.6-1.8z"/>',
+            Cookie: '<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/>',
+            CircleDot: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>',
+            Croissant: '<path d="m2.3 14.5 9-9a2.5 2.5 0 0 1 2.9-.4 2.5 2.5 0 0 1 .4 2.9l-9 9a2.5 2.5 0 0 1-2.9.4 2.5 2.5 0 0 1-.4-2.9z"/><path d="M12 7a2 2 0 0 1 0 4"/><path d="M8 11a2 2 0 0 1 0 4"/><path d="M4 15a2 2 0 0 1 0 4"/><path d="M12 7c2 2 3.8 3.5 5.3 4.5"/><path d="M22 22a2 2 0 0 0-2-2c-2.3 0-4.3-1.2-6-3"/>',
+            IceCream: '<path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/>',
+            Coffee: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/>',
+            Wheat: '<path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L2 22l4.53-4.53a3.5 3.5 0 0 1 4.94 0L13 19l-1.53 1.53"/><path d="M16 8 8 16"/><path d="M12 2l4 4"/><path d="M16 6l4 4"/><path d="M19 9l3 3"/>',
+            Grab: '<path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
+            Nut: '<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M12 12v.01"/>',
+            Apple: '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>',
+            Grape: '<circle cx="12" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><circle cx="12" cy="19" r="3"/>',
+            Egg: '<path d="M12 22c4.97 0 9-4.03 9-9 0-4.97-9-13-9-13S3 8.03 3 13c0 4.97 4.03 9 9 9Z"/>',
+            Drumstick: '<path d="M17.3 3.6a2.6 2.6 0 1 1 3.5 3.5l-2.1 2.1a2 2 0 0 0 0 2.8l1.4 1.4a2 2 0 0 1 0 2.8l-1.4 1.4a2 2 0 0 1-2.8 0l-1.4-1.4a2 2 0 0 0-2.8 0l-7.1 7.1a2.6 2.6 0 1 1-3.5-3.5L17.3 3.6Z"/>',
+            Fish: '<path d="M6.5 12c.94-2.08 2.3-4 4.5-5 2.2-1 4.85-.75 7 .5a9 9 0 0 1 4 4 9 9 0 0 1-4 4c-2.15 1.25-4.8.5-7-.5-2.2-1-3.56-2.92-4.5-5Z"/><path d="M6.5 12A6.5 6.5 0 0 0 2 18"/><path d="M6.5 12A6.5 6.5 0 0 1 2 6"/>',
+            Box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/>',
+            Milk: '<path d="M8 2h8"/><path d="M9 2v2.78c0 .84-.34 1.63-.92 2.22l-4.16 4.16c-.58.59-.92 1.38-.92 2.22V19a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-5.62c0-.84-.34-1.63-.92-2.22L15.92 7c-.58-.59-.92-1.38-.92-2.22V2"/>',
+            FishSymbol: '<path d="M2 16s9-15 20-4C11 23 2 8 2 8"/>',
+            Bean: '<path d="M10.165 6.598C9.954 7.478 9.64 8.36 9 9c-.64.64-1.521.954-2.402 1.165A6 6 0 0 0 8 22c7.732 0 14-6.268 14-14a6 6 0 0 0-11.835-1.402Z"/><path d="M5.341 10.62a4 4 0 1 0 5.279-5.28"/>',
+            Shell: '<path d="M14 11a2 2 0 1 1-4 0 4 4 0 0 1 8 0 6 6 0 0 1-12 0 8 8 0 0 1 16 0 10 10 0 1 1-20 0 11.93 11.93 0 0 1 2.42-7.22 2 2 0 1 1 3.16 2.44"/>',
+            GlassWater: '<path d="M15.2 22H8.8a2 2 0 0 1-2-1.79L5 3h14l-1.81 17.21A2 2 0 0 1 15.2 22Z"/><path d="M6 8h12"/><path d="M6 13h12"/>'
+        };
+
+        const Icon = ({ name, size = 24, className = "", color = "currentColor" }) => {
+            const content = ICONS_PATH[name] || `<circle cx="12" cy="12" r="10" />`; // Fallback
+            return (
+                <svg 
+                    width={size} 
+                    height={size} 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke={color} 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                    dangerouslySetInnerHTML={{ __html: content }}
+                />
+            );
+        };
+
+        // --- Configuration ---
+        // ใส่ URL และ Key ของคุณที่นี่ (สำคัญ!)
+        const SUPABASE_URL = "https://qzqvwbucjxwgtmbdkrlu.supabase.co"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6cXZ3YnVjanh3Z3RtYmRrcmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNzgxODksImV4cCI6MjA4MDk1NDE4OX0.RYvc5kMueNhsOu---WOKcXYnOZLVnjiWklp1IiHmgS8";
+
+        let dbClient = null;
+        try {
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.error("Supabase Init Failed:", e);
+        }
+
+        // --- Database Data ---
+        const SNACK_DATABASE = [
+            { name: 'ชานมไข่มุก', kcal: 350, c: 60, f: 10, p: 1, icon: 'CupSoda' },
+            { name: 'กล้วยแขก (3 ชิ้น)', kcal: 280, c: 45, f: 12, p: 1, icon: 'Banana' },
+            { name: 'คุกกี้เนย (2 ชิ้น)', kcal: 180, c: 20, f: 10, p: 2, icon: 'Cookie' },
+            { name: 'ลูกชิ้นทอด (5 ลูก)', kcal: 250, c: 30, f: 12, p: 8, icon: 'CircleDot' },
+            { name: 'ขนมปังไส้ครีม', kcal: 320, c: 45, f: 14, p: 6, icon: 'Croissant' },
+            { name: 'ไอศกรีมกะทิ', kcal: 220, c: 25, f: 12, p: 2, icon: 'IceCream' }, 
+            { name: 'กาแฟเย็นหวานมัน', kcal: 280, c: 35, f: 12, p: 3, icon: 'Coffee' },
+            { name: 'ข้าวเหนียวมะม่วง', kcal: 350, c: 65, f: 8, p: 4, icon: 'Utensils' },
+            { name: 'ปาท่องโก๋ (1 คู่)', kcal: 150, c: 18, f: 8, p: 2, icon: 'Wheat' },
+            { name: 'มันฝรั่งทอด', kcal: 160, c: 15, f: 10, p: 2, icon: 'Grab' },
+        ];
+
+        const HEALTHY_SNACK_DATABASE = [
+            { name: 'อัลมอนด์ (1 กำมือ)', kcal: 160, c: 6, f: 14, p: 6, icon: 'Nut' },
+            { name: 'ฝรั่ง (1 ลูก)', kcal: 60, c: 15, f: 0, p: 2, icon: 'Apple' },
+            { name: 'ดาร์กช็อกโกแลต 85%', kcal: 120, c: 8, f: 10, p: 2, icon: 'Cookie' },
+            { name: 'เบอร์รี่รวม', kcal: 50, c: 12, f: 0, p: 1, icon: 'Grape' },
+            { name: 'ไข่ต้มสมุนไพร', kcal: 70, c: 0, f: 5, p: 6, icon: 'Egg' },
+        ];
+
+        const PROTEIN_DATABASE = [
+            { name: 'ไข่ต้ม (2 ฟอง)', protein: 14, kcal: 140, icon: 'Egg' },
+            { name: 'อกไก่ลวก (100g)', protein: 23, kcal: 120, icon: 'Drumstick' },
+            { name: 'ปลาแซลมอน (100g)', protein: 20, kcal: 200, icon: 'Fish' },
+            { name: 'เต้าหู้ขาว (1 ก้อน)', protein: 10, kcal: 90, icon: 'Box' },
+            { name: 'กรีกโยเกิร์ต (1 ถ้วย)', protein: 10, kcal: 60, icon: 'Milk' },
+            { name: 'ทูน่ากระป๋อง (ครึ่ง)', protein: 16, kcal: 70, icon: 'FishSymbol' },
+            { name: 'ถั่วแระญี่ปุ่น', protein: 11, kcal: 120, icon: 'Bean' },
+            { name: 'กุ้งลวก (10 ตัว)', protein: 20, kcal: 100, icon: 'Shell' },
+            { name: 'นมถั่วเหลือง', protein: 8, kcal: 80, icon: 'GlassWater' },
+            { name: 'โปรตีนเชค (1.5 สกู๊ป)', protein: 30, kcal: 130, icon: 'CupSoda', highlight: true },
+        ];
+
+        // --- COMPONENTS ---
+
+        const WelcomeStep = ({ setStep }) => (
+            <div className="text-center space-y-6 py-8">
+                <div className="flex justify-center mb-6">
+                    <div className="bg-teal-100 p-4 rounded-full relative">
+                        <Icon name="Activity" size={48} className="text-teal-600" />
+                        <button 
+                            onClick={() => setStep(99)}
+                            className="absolute -top-2 -right-2 text-teal-200 hover:text-teal-500 transition"
+                            title="Admin Login"
+                        >
+                            <Icon name="Lock" size={16} />
+                        </button>
+                    </div>
+                </div>
+                <h1 className="text-3xl font-bold text-gray-800">เช็กสุขภาพระบบเผาผลาญของคุณ</h1>
+                <p className="text-gray-600 text-lg">
+                    รู้หรือไม่? น้ำหนักตัวเป็นเพียงตัวเลข แต่ "ระบบเผาผลาญ" คือกุญแจสำคัญ <br/>
+                    ทำแบบประเมิน 1 นาที เพื่อรับคำแนะนำเฉพาะบุคคล
+                </p>
+                <div className="flex flex-col gap-3 mt-8">
+                    <button 
+                        onClick={() => setStep(1)}
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition hover:-translate-y-1 flex items-center justify-center text-lg"
+                    >
+                        เริ่มทำแบบประเมิน <span className="ml-2"><Icon name="ArrowRight" size={20} /></span>
+                    </button>
+                    <p className="text-xs text-gray-400 mt-2">ไม่มีค่าใช้จ่าย • รู้ผลทันที</p>
+                </div>
+            </div>
+        );
+
+        const BasicInfoStep = ({ formData, setFormData, handleInputChange, setStep }) => (
+            <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="mr-2 text-teal-600"><Icon name="User" /></span> ข้อมูลร่างกาย
+                </h2>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                    <button 
+                        onClick={() => setFormData(prev => ({...prev, gender: 'male'}))}
+                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center transition ${formData.gender === 'male' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500'}`}
+                    >
+                        <span className="text-2xl mb-1">👨</span> ชาย
+                    </button>
+                    <button 
+                        onClick={() => setFormData(prev => ({...prev, gender: 'female'}))}
+                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center transition ${formData.gender === 'female' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500'}`}
+                    >
+                        <span className="text-2xl mb-1">👩</span> หญิง
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">อายุ (ปี)</label>
+                            <input 
+                                type="number" 
+                                name="age"
+                                value={formData.age}
+                                onChange={handleInputChange}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                placeholder="เช่น 35"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">รอบเอว (นิ้ว)</label>
+                            <div className="relative">
+                                <input 
+                                    type="number" 
+                                    name="waist"
+                                    value={formData.waist}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none pl-10"
+                                    placeholder="เช่น 32"
+                                />
+                                <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="Ruler" size={20} /></div>
+                            </div>
+                            <p className="text-xs text-teal-600 mt-1">*สำคัญ: ใช้วัดไขมันช่องท้อง</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ส่วนสูง (ซม.)</label>
+                            <div className="relative">
+                                <input 
+                                    type="number" 
+                                    name="height"
+                                    value={formData.height}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none pl-10"
+                                    placeholder="165"
+                                />
+                                <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="Ruler" size={20} /></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">น้ำหนัก (กก.)</label>
+                            <div className="relative">
+                                <input 
+                                    type="number" 
+                                    name="weight"
+                                    value={formData.weight}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none pl-10"
+                                    placeholder="60"
+                                />
+                                <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="Scale" size={20} /></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button 
+                    disabled={!formData.age || !formData.height || !formData.weight || !formData.waist}
+                    onClick={() => setStep(2)}
+                    className="w-full bg-teal-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl mt-6 flex justify-center items-center"
+                >
+                    ถัดไป <span className="ml-1"><Icon name="ArrowRight" size={20} /></span>
+                </button>
+            </div>
+        );
+
+        const ActivityStep = ({ formData, setFormData, setStep }) => (
+            <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="mr-2 text-teal-600"><Icon name="Activity" /></span> ระดับกิจกรรม
+                </h2>
+                <p className="text-gray-600 text-sm">การเคลื่อนไหวมีผลต่อการใช้อินซูลินในร่างกาย</p>
+                
+                <div className="space-y-3">
+                    {[
+                        { id: 'sedentary', label: 'นั่งทำงานเป็นหลัก', desc: 'ออกกำลังกายน้อยมาก หรือไม่ได้ออกเลย' },
+                        { id: 'light', label: 'ขยับตัวบ้าง', desc: 'ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์' },
+                        { id: 'moderate', label: 'ปานกลาง', desc: 'ออกกำลังกาย 3-5 วัน/สัปดาห์' },
+                        { id: 'active', label: 'แอคทีฟมาก', desc: 'ออกกำลังกายหนัก หรือทำงานใช้แรงทุกวัน' }
+                    ].map((option) => (
+                        <button
+                            key={option.id}
+                            onClick={() => setFormData(prev => ({...prev, activity: option.id}))}
+                            className={`w-full text-left p-4 rounded-xl border-2 transition hover:border-teal-300 ${formData.activity === option.id ? 'border-teal-500 bg-teal-50' : 'border-gray-200'}`}
+                        >
+                            <div className={`font-bold ${formData.activity === option.id ? 'text-teal-800' : 'text-gray-700'}`}>{option.label}</div>
+                            <div className="text-sm text-gray-500">{option.desc}</div>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                    <button onClick={() => setStep(1)} className="px-6 py-3 border border-gray-300 rounded-xl text-gray-600">ย้อนกลับ</button>
+                    <button onClick={() => setStep(3)} className="flex-1 bg-teal-600 text-white font-bold py-3 rounded-xl flex justify-center items-center">
+                        ถัดไป <span className="ml-1"><Icon name="ArrowRight" size={20} /></span>
+                    </button>
+                </div>
+            </div>
+        );
+
+        const SymptomsStep = ({ formData, toggleSymptom, setStep, calculateResult }) => (
+            <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="mr-2 text-teal-600"><Icon name="ClipboardList" /></span> อาการที่พบ (Metabolic Signs)
+                </h2>
+                <p className="text-gray-600 text-sm">เลือกอาการที่คุณเป็นบ่อยๆ (เลือกได้มากกว่า 1 ข้อ)</p>
+                
+                <div className="grid grid-cols-1 gap-3">
+                    {[
+                        { id: 'craving', label: 'หิวบ่อย / ติดหวาน', iconName: 'Utensils' },
+                        { id: 'hangry', label: 'โมโหหิว (Hangry) ง่าย', iconName: 'AlertCircle' },
+                        { id: 'fatigue', label: 'ง่วงนอนหลังมื้ออาหาร', iconName: 'Battery' },
+                        { id: 'yo-yo', label: 'น้ำหนักขึ้นง่าย ลงยาก', iconName: 'Scale' },
+                        { id: 'stress', label: 'เครียดง่าย / นอนไม่หลับ', iconName: 'Activity' },
+                        { id: 'none', label: 'ไม่มีอาการข้างต้น', iconName: 'CheckCircle' }
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => toggleSymptom(item.id)}
+                            className={`flex items-center p-4 rounded-xl border-2 transition ${formData.symptoms.includes(item.id) ? 'border-teal-500 bg-teal-50 text-teal-800' : 'border-gray-200 text-gray-600'}`}
+                        >
+                            <div className={`mr-3 p-2 rounded-full ${formData.symptoms.includes(item.id) ? 'bg-teal-200' : 'bg-gray-100'}`}>
+                                <Icon name={item.iconName} size={16} />
+                            </div>
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                    <button onClick={() => setStep(2)} className="px-6 py-3 border border-gray-300 rounded-xl text-gray-600">ย้อนกลับ</button>
+                    <button onClick={calculateResult} className="flex-1 bg-teal-600 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center">
+                        ประมวลผล <span className="ml-2 animate-pulse"><Icon name="Activity" size={20} /></span>
+                    </button>
+                </div>
+            </div>
+        );
+
+        const ReportDashboard = ({ setStep }) => {
+            const [leads, setLeads] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const fetchLeads = async () => {
+                    if (!dbClient) return;
+                    // ดึงข้อมูลทั้งหมดและเรียงตามวันที่ล่าสุด
+                    const { data, error } = await dbClient
+                        .from('leads')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (data) setLeads(data);
+                    setLoading(false);
+                };
+                fetchLeads();
+            }, []);
+
+            return (
+                <div className="bg-white min-h-screen">
+                    <div className="bg-slate-900 text-white p-4 sticky top-0 z-10 flex justify-between items-center shadow-md">
+                        <h1 className="text-xl font-bold flex items-center">
+                            <span className="text-yellow-400 mr-2"><Icon name="Lock" size={20} /></span>
+                            Admin Dashboard
+                        </h1>
+                        <button onClick={() => setStep(0)} className="text-xs bg-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-600 flex items-center">
+                            <Icon name="LogOut" size={14} className="mr-1"/> ออก
+                        </button>
+                    </div>
+
+                    <div className="p-4 max-w-4xl mx-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">รายชื่อผู้สนใจ (Leads)</h2>
+                                <p className="text-gray-500 text-sm">ทั้งหมด {leads.length} คน</p>
+                            </div>
+                            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                                Live Data
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="text-center py-20 text-gray-400">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500 mx-auto mb-2"></div>
+                                กำลังโหลดข้อมูล...
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {leads.map((lead) => (
+                                    <div key={lead.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h3 className="font-bold text-lg text-slate-800">{lead.name}</h3>
+                                                <div className="flex gap-3 text-sm text-gray-500 mt-1">
+                                                    <span className="flex items-center"><Icon name="Phone" size={12} className="mr-1"/> {lead.phone}</span>
+                                                    <span className="flex items-center text-green-600"><Icon name="MessageSquare" size={12} className="mr-1"/> {lead.line_id || '-'}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                                                {new Date(lead.created_at).toLocaleDateString('th-TH')}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg text-sm mb-3">
+                                            <div className="flex justify-between"><span>BMI:</span> <span className="font-bold">{lead.bmi ? parseFloat(lead.bmi).toFixed(1) : '-'}</span></div>
+                                            <div className="flex justify-between"><span>WHtR:</span> <span className={`font-bold ${lead.whtr > 0.5 ? 'text-red-500' : 'text-green-500'}`}>{lead.whtr ? parseFloat(lead.whtr).toFixed(2) : '-'}</span></div>
+                                            <div className="flex justify-between"><span>อายุ:</span> <span>{lead.age || '-'}</span></div>
+                                            <div className="flex justify-between"><span>นน./สูง:</span> <span>{lead.weight}/{lead.height}</span></div>
+                                        </div>
+
+                                        {lead.symptoms && lead.symptoms.length > 0 && (
+                                            <div className="text-xs">
+                                                <span className="text-gray-400 mr-1">อาการ:</span>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {Array.isArray(lead.symptoms) ? lead.symptoms.map(s => (
+                                                        <span key={s} className="bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100">
+                                                            {s}
+                                                        </span>
+                                                    )) : <span className="text-gray-400">-</span>}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ResultStep = ({ result, formData, setStep }) => {
+            const [showFact, setShowFact] = useState(false);
+            const [showSnackCheck, setShowSnackCheck] = useState(false);
+            const [currentSnacks, setCurrentSnacks] = useState([]);
+            const [showProteinCheck, setShowProteinCheck] = useState(false);
+            const [currentProteins, setCurrentProteins] = useState([]);
+            const [proteinGoal, setProteinGoal] = useState(0);
+
+            const isHealthy = result.bmi >= 18.5 && result.bmi < 23 && result.whtrStatus === 'normal';
+
+            // Calculate Gauge Position
+            const getGaugePosition = (bmi) => {
+                if (bmi < 18.5) return (bmi / 18.5) * 18.5;
+                if (bmi < 23) return 18.5 + ((bmi - 18.5) / (23 - 18.5)) * 13.5;
+                if (bmi < 25) return 32 + ((bmi - 23) / (25 - 23)) * 11;
+                if (bmi < 30) return 43 + ((bmi - 25) / (30 - 25)) * 20;
+                const cappedBmi = Math.min(bmi, 40);
+                return 63 + ((cappedBmi - 30) / (40 - 30)) * 37;
+            };
+
+            const gaugePosition = getGaugePosition(parseFloat(result.bmi));
+
+            const getRandomItems = (array, count) => {
+                const shuffled = [...array].sort(() => 0.5 - Math.random());
+                return shuffled.slice(0, count);
+            };
+
+            const handleSnackCheck = () => {
+                if (!showSnackCheck) {
+                    const db = isHealthy ? HEALTHY_SNACK_DATABASE : SNACK_DATABASE;
+                    setCurrentSnacks(getRandomItems(db, 3));
+                }
+                setShowSnackCheck(!showSnackCheck);
+            };
+
+            const shuffleSnacks = () => {
+                const db = isHealthy ? HEALTHY_SNACK_DATABASE : SNACK_DATABASE;
+                setCurrentSnacks(getRandomItems(db, 3));
+            };
+
+            const handleProteinCheck = () => {
+                if (!showProteinCheck) {
+                    const shake = PROTEIN_DATABASE.find(p => p.highlight);
+                    const others = PROTEIN_DATABASE.filter(p => !p.highlight);
+                    const randomOthers = getRandomItems(others, 2);
+                    const mix = [...randomOthers, shake].sort(() => 0.5 - Math.random());
+                    
+                    const multiplier = isHealthy ? 1.8 : 1.5;
+                    setProteinGoal(Math.round(parseFloat(formData.weight) * multiplier)); 
+                    setCurrentProteins(mix);
+                }
+                setShowProteinCheck(!showProteinCheck);
+            };
+
+            const shuffleProtein = () => {
+                const shake = PROTEIN_DATABASE.find(p => p.highlight);
+                const others = PROTEIN_DATABASE.filter(p => !p.highlight);
+                const randomOthers = getRandomItems(others, 2);
+                const mix = [...randomOthers, shake].sort(() => 0.5 - Math.random());
+                setCurrentProteins(mix);
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    {/* --- Section 1: Health Score --- */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 text-center">
+                            <h3 className="text-gray-500 text-sm uppercase tracking-wider font-semibold">ผลการประเมินร่างกาย</h3>
+                            
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="bg-white p-3 rounded-xl border border-gray-200">
+                                    <span className="text-xs text-gray-400 block mb-1">BMI Value</span>
+                                    <span className={`text-2xl font-bold ${result.category.color}`}>{result.bmi}</span>
+                                    <div className="text-xs text-gray-500">{result.category.label}</div>
+                                </div>
+                                
+                                <div className="bg-white p-3 rounded-xl border border-gray-200 relative">
+                                    <div className="absolute top-2 right-2 cursor-pointer" onClick={() => setShowFact(!showFact)}>
+                                        <Icon name="Info" size={16} className="text-gray-400 hover:text-teal-500" />
+                                    </div>
+                                    <span className="text-xs text-gray-400 block mb-1">อัตราส่วนเอว/สูง</span>
+                                    <span className={`text-2xl font-bold ${result.whtrStatus === 'risk' ? 'text-red-500' : 'text-green-500'}`}>
+                                        {result.whtr}
+                                    </span>
+                                    <div className="text-xs text-gray-500">
+                                        {result.whtrStatus === 'risk' ? 'ไขมันช่องท้องสูง' : 'สมส่วน'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {showFact && (
+                                <div className="mt-3 bg-blue-50 text-blue-800 text-xs text-left p-3 rounded-lg border border-blue-100">
+                                    <strong>Did you know?</strong> งานวิจัยระบุว่า "รอบเอวหารด้วยส่วนสูง" (WHtR) บอกความเสี่ยงโรคหัวใจได้แม่นยำกว่า BMI โดยค่าไม่ควรเกิน 0.5
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Visual Gauge */}
+                        <div className="px-6 py-4">
+                            <div className="relative pt-6 pb-2">
+                                <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex">
+                                    <div className="w-[18.5%] bg-blue-300"></div> 
+                                    <div className="w-[13.5%] bg-green-400"></div> 
+                                    <div className="w-[11%] bg-yellow-400"></div> 
+                                    <div className="w-[20%] bg-orange-400"></div> 
+                                    <div className="w-[37%] bg-red-400"></div>   
+                                </div>
+                                <div 
+                                    className="absolute top-0 transform -translate-x-1/2 transition-all duration-1000"
+                                    style={{ left: `${gaugePosition}%` }}
+                                >
+                                    <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-gray-800 mx-auto mb-1"></div>
+                                    <div className="bg-gray-800 text-white text-xs py-0.5 px-2 rounded-md font-bold text-center w-max mx-auto -mt-1">คุณ</div>
+                                </div>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-mono">
+                                <span className="w-[18.5%] text-right pr-1">18.5</span>
+                                <span className="w-[13.5%] text-right pr-1">23</span>
+                                <span className="w-[11%] text-right pr-1">25</span>
+                                <span className="w-[20%] text-right pr-1">30</span>
+                                <span className="w-[37%]"></span>
+                            </div>
+                            
+                            {result.whtrStatus === 'risk' ? (
+                                <div className="mt-4 bg-red-50 border border-red-100 rounded-lg p-3 flex items-start">
+                                    <div className="mr-2 mt-0.5 text-red-500"><Icon name="AlertCircle" size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-red-700">ระวังภาวะ "Skinny Fat" (อ้วนลงพุง)</p>
+                                        <p className="text-xs text-red-600 mt-1">ไขมันช่องท้องสูงกว่าเกณฑ์ ขัดขวางระบบเผาผลาญ</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-4 bg-green-50 border border-green-100 rounded-lg p-3 flex items-start">
+                                    <div className="mr-2 mt-0.5 text-green-500"><Icon name="CheckCircle" size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-green-700">ยอดเยี่ยม! รูปร่างสมส่วน</p>
+                                        <p className="text-xs text-green-600 mt-1">คุณมีพื้นฐานที่ดี เหมาะแก่การพัฒนาสู่ระดับ Metabolic Flexibility</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* --- Ideal Weight Range --- */}
+                        <div className="px-6 pb-6 pt-0">
+                            <div className="bg-teal-50 rounded-xl p-4 border border-teal-100 text-center">
+                                <p className="text-sm text-gray-500 mb-1">น้ำหนักที่เหมาะสมสำหรับคุณ (BMI 18.5 - 22.9)</p>
+                                <div className="text-2xl font-bold text-teal-700 flex items-center justify-center gap-2">
+                                    <Icon name="Scale" size={24} />
+                                    {result.minIdealWeight} - {result.maxIdealWeight} <span className="text-base font-normal text-gray-600">กก.</span>
+                                </div>
+                                <p className="text-xs text-teal-600 mt-2">
+                                    {parseFloat(formData.weight) > parseFloat(result.maxIdealWeight) 
+                                        ? `เป้าหมาย: ลดอีก ${(parseFloat(formData.weight) - parseFloat(result.maxIdealWeight)).toFixed(1)} กก. เพื่อเข้าเกณฑ์ปกติ`
+                                        : parseFloat(formData.weight) < parseFloat(result.minIdealWeight)
+                                            ? `เป้าหมาย: เพิ่มอีก ${(parseFloat(result.minIdealWeight) - parseFloat(formData.weight)).toFixed(1)} กก. เพื่อความแข็งแรง`
+                                            : "คุณอยู่ในเกณฑ์น้ำหนักที่ดีเยี่ยมแล้ว รักษาระดับนี้ไว้!"
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- Section 2: 5 Steps Solution --- */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className={`font-bold ${isHealthy ? 'text-teal-700' : 'text-gray-800'} flex items-center text-lg`}>
+                                <span className="mr-2"><Icon name={isHealthy ? "Zap" : "CheckCircle"} size={20} /></span>
+                                {isHealthy ? '5 ขั้นตอนอัปเกรดร่างทอง' : '5 ขั้นตอนรีเซ็ตระบบเผาผลาญ'}
+                            </h4>
+                        </div>
+                        <p className="text-sm text-gray-500 -mt-3 mb-4 pl-8">
+                            {isHealthy ? 'เทคนิคเพิ่มประสิทธิภาพการใช้พลังงาน' : 'ทำตามได้ทันที ไม่ต้องอดอาหาร'}
+                        </p>
+
+                        {/* Step 1: Diet (Orange/Amber Theme for Food) */}
+                        <div className={`bg-orange-50/50 border border-orange-200 rounded-xl shadow-sm overflow-hidden`}>
+                            <div className="p-4">
+                                <h5 className="font-bold text-orange-800 flex justify-between items-center mb-2">
+                                    <span className="flex items-center gap-2">
+                                        <span className="bg-orange-100 p-1.5 rounded-lg"><Icon name="Utensils" size={16} className="text-orange-600"/></span>
+                                        {isHealthy ? '1. เลือกอาหารชะลอวัย' : '1. หยุด "จุบจิบ" ทันที'}
+                                    </span>
+                                    <span className="text-[10px] font-bold bg-white text-orange-600 px-2 py-1 rounded-full border border-orange-100 shadow-sm">ทำได้เลย</span>
+                                </h5>
+                                <p className="text-sm text-gray-600 mb-3 pl-9">
+                                    {isHealthy 
+                                    ? 'เปลี่ยนของว่างเป็น Superfood เพื่อต้านอนุมูลอิสระ' 
+                                    : 'การกินบ่อยกระตุ้นอินซูลินตลอดเวลา ร่างกายไม่ดึงไขมันมาใช้'}
+                                </p>
+                                
+                                <div className="pl-9">
+                                    <button 
+                                        onClick={handleSnackCheck}
+                                        className={`text-sm bg-white border border-orange-200 text-orange-600 px-4 py-2 rounded-lg w-full flex items-center justify-center hover:bg-orange-50 transition shadow-sm`}
+                                    >
+                                        <span className="mr-2"><Icon name={isHealthy ? "CheckCircle" : "XCircle"} size={16} /></span>
+                                        {showSnackCheck ? 'ซ่อนรายการ' : (isHealthy ? 'ดูไอเดียของว่างสุขภาพ' : 'ดูเมนูจุบจิบที่ต้องระวัง')}
+                                    </button>
+                                    
+                                    {showSnackCheck && (
+                                        <div className="mt-3 bg-white p-3 rounded-xl border border-orange-100 animate-fade-in">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-orange-400">
+                                                    {isHealthy ? 'ของว่างแนะนำ' : 'ตัวอย่างเมนูพลังงานแฝง'}
+                                                </span>
+                                                <button onClick={shuffleSnacks} className="text-gray-400 hover:text-orange-500">
+                                                    <Icon name="RefreshCw" size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {currentSnacks.map((snack, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center p-2 rounded-lg hover:bg-orange-50 transition border border-transparent hover:border-orange-100">
+                                                        <div className="flex items-center">
+                                                            <span className="mr-3 text-orange-400 bg-orange-50 p-1.5 rounded-full"><Icon name={snack.icon} size={16} /></span>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-gray-800">{snack.name}</p>
+                                                                <p className="text-[10px] text-gray-400">
+                                                                    C:{snack.c} F:{snack.f} P:{snack.p}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-sm font-bold text-orange-500">{snack.kcal} <span className="text-[10px] font-normal text-gray-400">kcal</span></span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Step 2: Protein (Blue Theme) */}
+                        <div className={`bg-blue-50/50 border border-blue-200 rounded-xl shadow-sm overflow-hidden`}>
+                            <div className="p-4">
+                                <h5 className="font-bold text-blue-800 flex justify-between items-center mb-2">
+                                    <span className="flex items-center gap-2">
+                                        <span className="bg-blue-100 p-1.5 rounded-lg"><Icon name="Dumbbell" size={16} className="text-blue-600"/></span>
+                                        {isHealthy ? '2. โปรตีนสร้างกล้ามเนื้อ' : '2. เพิ่มโปรตีนมื้อแรก'}
+                                    </span>
+                                    <span className="text-[10px] font-bold bg-white text-blue-600 px-2 py-1 rounded-full border border-blue-100 shadow-sm">ทำได้เลย</span>
+                                </h5>
+                                <p className="text-sm text-gray-600 mb-3 pl-9">
+                                    {isHealthy 
+                                    ? 'เพิ่มมวลกล้ามเนื้อเพื่อเพิ่มอัตราการเผาผลาญพื้นฐาน (BMR)' 
+                                    : 'โปรตีนช่วยเร่งการเผาผลาญและคุมหิวได้ดีที่สุด'}
+                                </p>
+
+                                <div className="pl-9">
+                                    <button 
+                                        onClick={handleProteinCheck}
+                                        className="text-sm bg-white border border-blue-200 text-blue-600 px-4 py-2 rounded-lg w-full flex items-center justify-center hover:bg-blue-50 transition shadow-sm"
+                                    >
+                                        <span className="mr-2"><Icon name="Scale" size={16} /></span>
+                                        {showProteinCheck ? 'ซ่อนคำนวณ' : 'คำนวณโปรตีนที่ควรได้รับ'}
+                                    </button>
+
+                                    {showProteinCheck && (
+                                        <div className="mt-3 bg-white p-3 rounded-xl border border-blue-100 animate-fade-in">
+                                            <div className="flex items-center justify-between mb-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                                <span className="text-xs text-blue-600 font-semibold">เป้าหมายของคุณ</span>
+                                                <div className="text-right">
+                                                    <span className="text-xl font-bold text-blue-700">{proteinGoal}g</span>
+                                                    <span className="text-[10px] text-blue-400 block -mt-1">โปรตีน/วัน</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-blue-400">แหล่งโปรตีนแนะนำ</span>
+                                                <button onClick={shuffleProtein} className="text-gray-400 hover:text-blue-500">
+                                                    <Icon name="RefreshCw" size={14} />
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                {currentProteins.map((item, idx) => (
+                                                    <div key={idx} className={`flex justify-between items-center p-2 rounded-lg border transition ${item.highlight ? 'bg-teal-50 border-teal-200' : 'border-transparent hover:bg-blue-50 hover:border-blue-100'}`}>
+                                                        <div className="flex items-center">
+                                                            <span className={`mr-3 p-1.5 rounded-full ${item.highlight ? 'bg-teal-100 text-teal-600' : 'bg-blue-50 text-blue-400'}`}><Icon name={item.icon} size={16} /></span>
+                                                            <div>
+                                                                <p className={`text-sm font-bold ${item.highlight ? 'text-teal-800' : 'text-gray-800'}`}>{item.name}</p>
+                                                                <p className="text-[10px] text-gray-400">{item.kcal} kcal</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className={`text-sm font-bold ${item.highlight ? 'text-teal-600' : 'text-blue-600'}`}>{item.protein}g</span>
+                                                            <span className="text-[10px] font-normal text-gray-400 block -mt-1">โปรตีน</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Locked Steps Overlay */}
+                        <div className="relative pt-2">
+                            <div className="opacity-40 blur-[2px] pointer-events-none space-y-3 select-none grayscale">
+                                <div className="bg-gray-100 p-4 rounded-xl border border-gray-300">
+                                    <h5 className="font-bold text-gray-700 flex gap-2"><span className="bg-gray-200 p-1 rounded">3.</span> {isHealthy ? 'เทคนิค Autophagy' : 'เทคนิค IF'}</h5>
+                                    <p className="text-sm text-gray-500 mt-1">xxxxxxxxxxxxxxxxx</p>
+                                </div>
+                                <div className="bg-gray-100 p-4 rounded-xl border border-gray-300">
+                                    <h5 className="font-bold text-gray-700 flex gap-2"><span className="bg-gray-200 p-1 rounded">4.</span> Zone 2 Training</h5>
+                                    <p className="text-sm text-gray-500 mt-1">xxxxxxxxxxxxxxxxx</p>
+                                </div>
+                                <div className="bg-gray-100 p-4 rounded-xl border border-gray-300">
+                                    <h5 className="font-bold text-gray-700 flex gap-2"><span className="bg-gray-200 p-1 rounded">5.</span> Deep Sleep</h5>
+                                    <p className="text-sm text-gray-500 mt-1">xxxxxxxxxxxxxxxxx</p>
+                                </div>
+                            </div>
+
+                            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 -mt-6">
+                                <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100 text-center max-w-xs mx-auto transform scale-100 hover:scale-105 transition-all duration-300">
+                                    <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-full inline-block mb-3 shadow-inner">
+                                        <Icon name="Lock" size={32} className="text-orange-500" />
+                                    </div>
+                                    <h4 className="font-bold text-gray-800 text-lg mb-1">ปลดล็อก 3 ขั้นตอนที่เหลือ</h4>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        + <span className="text-teal-600 font-bold"><Icon name="Gift" size={14} className="inline mr-1"/> Bonus: สูตรลับ UP Labs</span><br/>
+                                        เฉพาะบุคคล (Personalized)
+                                    </p>
+                                    <button 
+                                        onClick={() => setStep(5)}
+                                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform transition flex items-center justify-center gap-2"
+                                    >
+                                        <Icon name="Unlock" size={18} /> กดเพื่อรับข้อมูลฟรี
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LeadFormStep = ({ leadInfo, setLeadInfo, handleLeadSubmit, setStep }) => (
+            <div className="space-y-6">
+                <div className="text-center mb-6">
+                    <div className="bg-teal-100 p-4 rounded-full inline-block mb-4">
+                        <Icon name="Unlock" size={40} className="text-teal-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800">ใกล้เสร็จแล้ว!</h2>
+                    <p className="text-gray-600">
+                        กรอกข้อมูลเพื่อรับ <strong>"3 ขั้นตอนสุดท้าย + โบนัสสูตรลับ"</strong> <br/>
+                        ส่งตรงถึงมือคุณฟรี ทางไลน์/SMS
+                    </p>
+                </div>
+
+                <form onSubmit={handleLeadSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ - นามสกุล</label>
+                        <div className="relative">
+                            <input 
+                                required
+                                type="text" 
+                                className="w-full p-3 border border-gray-300 rounded-lg pl-10 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                placeholder="สมชาย รักสุขภาพ"
+                                value={leadInfo.name}
+                                onChange={(e) => setLeadInfo(prev => ({...prev, name: e.target.value}))}
+                            />
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="User" size={20} /></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ (เพื่อรับ SMS)</label>
+                        <div className="relative">
+                            <input 
+                                required
+                                type="tel" 
+                                className="w-full p-3 border border-gray-300 rounded-lg pl-10 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                placeholder="081-234-5678"
+                                value={leadInfo.phone}
+                                onChange={(e) => setLeadInfo(prev => ({...prev, phone: e.target.value}))}
+                            />
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="Phone" size={20} /></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Line ID (เพื่อรับสูตรลับฉบับเต็ม)</label>
+                        <div className="relative">
+                            <input 
+                                type="text" 
+                                className="w-full p-3 border border-gray-300 rounded-lg pl-10 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                placeholder="@lineid"
+                                value={leadInfo.lineId}
+                                onChange={(e) => setLeadInfo(prev => ({...prev, lineId: e.target.value}))}
+                            />
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Icon name="MessageSquare" size={20} /></div>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg mt-6 transition-colors"
+                    >
+                        ยืนยันรับสูตรลับฟรี
+                    </button>
+                </form>
+                
+                <button onClick={() => setStep(4)} className="w-full text-center text-gray-500 text-sm mt-4">
+                    ย้อนกลับไปดูผล BMI
+                </button>
+            </div>
+        );
+
+        const ThankYouStep = ({ leadInfo }) => (
+            <div className="text-center py-10 space-y-6">
+                <div className="bg-green-100 p-6 rounded-full inline-block mb-4">
+                    <Icon name="CheckCircle" size={80} className="text-green-600" />
+                </div>
+                <h2 className="text-3xl font-bold text-gray-800">ส่งข้อมูลสำเร็จ!</h2>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-sm mx-auto">
+                    <p className="text-gray-600 mb-2">เราได้ส่ง <strong>"5 ขั้นตอน + โบนัสสูตรลับ"</strong> ไปที่:</p>
+                    <div className="space-y-1 mt-4">
+                        <p className="font-bold text-lg text-teal-700">{leadInfo.name}</p>
+                        <p className="text-gray-800 flex items-center justify-center gap-2">
+                            <Icon name="MessageSquare" size={16} /> {leadInfo.lineId || '-'}
+                        </p>
+                        <p className="text-gray-800 flex items-center justify-center gap-2">
+                            <Icon name="Phone" size={16} /> {leadInfo.phone}
+                        </p>
+                    </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-8 px-4">
+                    "ความรู้ที่ถูกต้อง คือจุดเริ่มต้นของการมีสุขภาพที่ดีตลอดชีวิต"
+                </p>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="text-teal-600 font-semibold underline mt-4"
+                >
+                    กลับหน้าหลัก
+                </button>
+            </div>
+        );
+
+        // --- Main Component ---
+        function MetabolicHealthCheck() {
+            const [step, setStep] = useState(0);
+            const [loading, setLoading] = useState(false);
+            const [formData, setFormData] = useState({
+                gender: 'female',
+                age: '',
+                height: '',
+                weight: '',
+                waist: '',
+                activity: 'sedentary',
+                symptoms: []
+            });
+            const [result, setResult] = useState(null);
+            const [leadInfo, setLeadInfo] = useState({
+                name: '',
+                phone: '',
+                lineId: ''
+            });
+            const [submitted, setSubmitted] = useState(false);
+
+            const getBMICategory = (bmi) => {
+                if (bmi < 18.5) return { label: 'น้ำหนักน้อยเกินไป', color: 'text-blue-500', bg: 'bg-blue-500', advice: 'ควรเพิ่มน้ำหนักเพื่อความแข็งแรงของกล้ามเนื้อ' };
+                if (bmi < 23) return { label: 'น้ำหนักปกติ (สมส่วน)', color: 'text-green-500', bg: 'bg-green-500', advice: 'รักษาระดับนี้ไว้ เพื่อระบบเผาผลาญที่ดี' };
+                if (bmi < 25) return { label: 'น้ำหนักเกิน (ท้วม)', color: 'text-yellow-500', bg: 'bg-yellow-500', advice: 'เริ่มมีความเสี่ยง ควรปรับอาหารเพื่อลดไขมันสะสม' };
+                if (bmi < 30) return { label: 'อ้วนระดับ 1', color: 'text-orange-500', bg: 'bg-orange-500', advice: 'ควรเริ่มโปรแกรมรีเซ็ตระบบเผาผลาญอย่างจริงจัง' };
+                return { label: 'อ้วนระดับ 2 (อันตราย)', color: 'text-red-500', bg: 'bg-red-500', advice: 'มีความเสี่ยงต่อโรคเรื้อรังสูง ควรปรึกษาผู้เชี่ยวชาญทันที' };
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            const toggleSymptom = (symptom) => {
+                setFormData(prev => {
+                    const exists = prev.symptoms.includes(symptom);
+                    return {
+                        ...prev,
+                        symptoms: exists 
+                        ? prev.symptoms.filter(s => s !== symptom)
+                        : [...prev.symptoms, symptom]
+                    };
+                });
+            };
+
+            const calculateResult = () => {
+                setLoading(true);
+                setTimeout(() => {
+                    const heightM = parseFloat(formData.height) / 100;
+                    const weightKg = parseFloat(formData.weight);
+                    const waistInches = parseFloat(formData.waist);
+                    const waistCm = waistInches * 2.54;
+                    const heightCm = parseFloat(formData.height);
+                    
+                    const bmi = weightKg / (heightM * heightM);
+                    
+                    // BMI Asian Standard for Normal: 18.5 - 22.9
+                    const minIdealWeight = 18.5 * (heightM * heightM);
+                    const maxIdealWeight = 22.9 * (heightM * heightM);
+
+                    const idealWeight = 22 * (heightM * heightM); // Target 22
+                    const diff = weightKg - idealWeight;
+                    
+                    const whtr = waistCm / heightCm;
+                    const whtrStatus = whtr > 0.5 ? 'risk' : 'normal';
+
+                    setResult({
+                        bmi: bmi.toFixed(1),
+                        idealWeight: idealWeight.toFixed(1),
+                        minIdealWeight: minIdealWeight.toFixed(1),
+                        maxIdealWeight: maxIdealWeight.toFixed(1),
+                        diff: diff.toFixed(1),
+                        category: getBMICategory(bmi),
+                        whtr: whtr.toFixed(2),
+                        whtrStatus: whtrStatus
+                    });
+                    setLoading(false);
+                    setStep(4);
+                }, 1500);
+            };
+
+            // --- Supabase Logic ---
+            const saveToSupabase = async (contactData) => {
+                try {
+                    if (dbClient) {
+                        const { data: dbData, error } = await dbClient
+                            .from('leads')
+                            .insert([
+                                {
+                                    name: contactData.name,
+                                    phone: contactData.phone,
+                                    line_id: contactData.lineId,
+                                    bmi: result?.bmi, 
+                                    whtr: result?.whtr,
+                                    // Additional Assessment Data
+                                    gender: formData.gender,
+                                    age: formData.age,
+                                    height: formData.height,
+                                    weight: formData.weight,
+                                    waist: formData.waist,
+                                    activity: formData.activity,
+                                    symptoms: formData.symptoms,
+                                    created_at: new Date()
+                                },
+                            ]);
+                        
+                        if (error) {
+                            console.error('Supabase Error:', error);
+                        } else {
+                            console.log("บันทึกข้อมูลสำเร็จ");
+                        }
+                    } else {
+                        console.warn("Supabase client not available/initialized.");
+                    }
+                } catch (err) {
+                    console.error("Save error:", err);
+                }
+            };
+
+            const handleLeadSubmit = (e) => {
+                e.preventDefault();
+                // BACKDOOR: Check for secret name
+                if(leadInfo.name.trim().toLowerCase() === 'iamdiamond') {
+                    setStep(99); // Go to Report Dashboard
+                    return;
+                }
+
+                saveToSupabase(leadInfo);
+                setSubmitted(true);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+                    <div className={`w-full bg-white rounded-3xl shadow-xl overflow-hidden relative ${step === 99 ? 'max-w-4xl' : 'max-w-md'}`}>
+                        {step > 0 && step < 6 && !submitted && (
+                            <div className="h-2 bg-gray-100">
+                                <div 
+                                    className="h-full bg-teal-500 transition-all duration-500 ease-out"
+                                    style={{ width: `${(step / 5) * 100}%` }}
+                                ></div>
+                            </div>
+                        )}
+
+                        <div className={`${step === 99 ? 'p-0' : 'p-6 md:p-8'}`}>
+                            {loading ? (
+                                <div className="text-center py-20">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-teal-500 mx-auto mb-4"></div>
+                                    <h3 className="text-xl font-bold text-gray-700">กำลังวิเคราะห์ข้อมูล...</h3>
+                                    <p className="text-gray-500">ประมวลผลค่า BMI และไขมันช่องท้อง (Visceral Fat)</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {step === 0 && <WelcomeStep setStep={setStep} />}
+                                    {step === 1 && <BasicInfoStep formData={formData} setFormData={setFormData} handleInputChange={handleInputChange} setStep={setStep} />}
+                                    {step === 2 && <ActivityStep formData={formData} setFormData={setFormData} setStep={setStep} />}
+                                    {step === 3 && <SymptomsStep formData={formData} toggleSymptom={toggleSymptom} setStep={setStep} calculateResult={calculateResult} />}
+                                    {step === 4 && result && <ResultStep result={result} formData={formData} setStep={setStep} />}
+                                    {step === 5 && !submitted && <LeadFormStep leadInfo={leadInfo} setLeadInfo={setLeadInfo} handleLeadSubmit={handleLeadSubmit} setStep={setStep} />}
+                                    {submitted && <ThankYouStep leadInfo={leadInfo} />}
+                                    
+                                    {/* Report Dashboard (Secret Step) */}
+                                    {step === 99 && <ReportDashboard setStep={setStep} />}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MetabolicHealthCheck />);
+    </script>
+</body>
+</html>
