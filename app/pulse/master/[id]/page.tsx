@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMasterSnapshot } from "@/lib/pulse/master-data";
 import { Logo } from "@/components/ui/Logo";
+import { CgmLinkManager } from "./CgmLinkManager";
 
 export const dynamic = "force-dynamic";
 
@@ -19,34 +20,40 @@ export default async function MasterPage({ params }: { params: { id: string } })
   const isAdmin = session.profile.role === "admin";
   if (!isAdmin && customer.coach_id !== session.user.id) redirect("/pulse");
 
-  const sevenDaysAgoIso = new Date(Date.now() - 7  * 86_400_000).toISOString();
-  const fourteenDaysAgo = Date.now()    - 14 * 86_400_000;
+  const cgmProfiles: string[] = (customer.cgm_profile_names as string[] | null) ?? [];
 
   const [
     { data: bcaHistory },
     { data: cgmReadings },
     { data: pulseReadings },
     { data: intake },
+    { data: allCgmProfiles },
   ] = await Promise.all([
     admin.from("measurements")
       .select("recorded_at, weight, fat_pct, visceral, muscle_pct, body_age, bmr")
       .eq("customer_id", params.id)
-      .order("recorded_at", { ascending: false }).limit(20),
-    admin.from("cgm_readings")
-      .select("reading_timestamp, glucose")
-      .eq("profile_name", customer.name)
-      .gte("reading_timestamp", fourteenDaysAgo)
-      .order("reading_timestamp", { ascending: false }).limit(5000),
+      .order("recorded_at", { ascending: false }).limit(50),
+    cgmProfiles.length > 0
+      ? admin.from("cgm_readings")
+          .select("reading_timestamp, glucose")
+          .in("profile_name", cgmProfiles)
+          .order("reading_timestamp", { ascending: false }).limit(10000)
+      : Promise.resolve({ data: [] as any[] }),
     admin.from("pulse_readings")
       .select("metric_type, value, recorded_at")
       .eq("customer_id", params.id)
-      .gte("recorded_at", sevenDaysAgoIso)
-      .limit(1000),
+      .order("recorded_at", { ascending: false }).limit(2000),
     admin.from("pulse_intakes")
       .select("*")
       .eq("customer_id", params.id)
       .not("submitted_at", "is", null)
       .order("submitted_at", { ascending: false }).limit(1).maybeSingle(),
+    // Fetch all distinct CGM profile names for the link manager
+    admin.rpc("cgm_list_profiles").then(
+      (r: any) => r.error
+        ? admin.from("cgm_readings").select("profile_name").limit(5000)
+        : { data: (r.data ?? []).map((x: any) => ({ profile_name: x.profile_name })) },
+    ),
   ]);
 
   const master = buildMasterSnapshot({
@@ -125,14 +132,21 @@ export default async function MasterPage({ params }: { params: { id: string } })
         </Section>
 
         {/* ── CGM ── */}
-        <Section title="CGM · 14 วันล่าสุด" subtitle="Continuous Glucose Monitor">
-          <Grid>
-            <Cell point={master.glucose_avg} label="Avg Glucose" />
-            <Cell point={master.glucose_tir} label="Time in Range" />
-            <Cell point={master.glucose_max} label="Max" />
-            <Cell point={master.glucose_min} label="Min" />
-            <Cell point={master.glucose_gmi} label="GMI (HbA1c est)" />
-          </Grid>
+        <Section title="CGM" subtitle="Continuous Glucose Monitor">
+          <CgmLinkManager
+            customerId={params.id}
+            linked={cgmProfiles}
+            allProfiles={Array.from(new Set((allCgmProfiles ?? []).map((p: any) => p.profile_name).filter(Boolean) as string[])).sort()}
+          />
+          <div className="mt-5">
+            <Grid>
+              <Cell point={master.glucose_avg} label="Avg Glucose" />
+              <Cell point={master.glucose_tir} label="Time in Range" />
+              <Cell point={master.glucose_max} label="Max" />
+              <Cell point={master.glucose_min} label="Min" />
+              <Cell point={master.glucose_gmi} label="GMI (HbA1c est)" />
+            </Grid>
+          </div>
         </Section>
 
         {/* ── Intake ── */}
@@ -176,16 +190,13 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 function Cell({ label, point }: { label: string; point: { value: any; unit?: string; as_of: string | null; days_stale: number | null; source: string } | null }) {
-  const stale = point?.days_stale != null && point.days_stale > 30;
   return (
     <div className={`rounded-2xl border bg-white px-4 py-3 ${point ? "border-ink-10" : "border-dashed border-ink-10 opacity-60"}`}>
       <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-40">{label}</div>
       <div className="mt-1.5 flex items-baseline gap-1">
         {point ? (
           <>
-            <div className={`font-head text-[22px] font-extrabold leading-none ${stale ? "text-ink-40" : "text-ink"}`}>
-              {point.value}
-            </div>
+            <div className="font-head text-[22px] font-extrabold leading-none text-ink">{point.value}</div>
             {point.unit && <div className="text-[11px] text-ink-40">{point.unit}</div>}
           </>
         ) : (
@@ -193,8 +204,8 @@ function Cell({ label, point }: { label: string; point: { value: any; unit?: str
         )}
       </div>
       {point?.as_of && (
-        <div className={`mt-1 font-mono text-[10px] ${stale ? "text-amber-600 font-semibold" : "text-ink-40"}`}>
-          {stale && "⚠ "}{new Date(point.as_of).toLocaleDateString("th-TH")} · {point.source}
+        <div className="mt-1 font-mono text-[10px] text-ink-40">
+          {new Date(point.as_of).toLocaleDateString("th-TH")} · {point.source}
         </div>
       )}
     </div>

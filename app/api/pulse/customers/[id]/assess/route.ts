@@ -13,7 +13,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
     const supa = createClient();
     const { data: customer } = await supa
-      .from("customers").select("id, name, gender, birth_year, height, coach_id")
+      .from("customers").select("id, name, gender, birth_year, height, coach_id, cgm_profile_names")
       .eq("id", params.id).single();
     if (!customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
 
@@ -37,8 +37,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     }
 
     // ── Multi-source data fetch (parallel) ──
-    const sevenDaysAgoIso  = new Date(Date.now() - 7  * 86_400_000).toISOString();
-    const fourteenDaysAgo  = Date.now()    - 14 * 86_400_000;
+    // No staleness limits — use whatever data exists
+    const cgmProfiles: string[] = (customer.cgm_profile_names as string[] | null) ?? [];
 
     const [
       { data: bcaHistory },
@@ -48,18 +48,17 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       admin.from("measurements")
         .select("recorded_at, weight, fat_pct, visceral, muscle_pct, body_age, bmr")
         .eq("customer_id", params.id)
-        .order("recorded_at", { ascending: false }).limit(20),
-      // CGM uses profile_name string — try by customer.name match (legacy schema)
-      admin.from("cgm_readings")
-        .select("reading_timestamp, glucose")
-        .eq("profile_name", customer.name)
-        .gte("reading_timestamp", fourteenDaysAgo)
-        .order("reading_timestamp", { ascending: false }).limit(5000),
+        .order("recorded_at", { ascending: false }).limit(50),
+      cgmProfiles.length > 0
+        ? admin.from("cgm_readings")
+            .select("reading_timestamp, glucose")
+            .in("profile_name", cgmProfiles)
+            .order("reading_timestamp", { ascending: false }).limit(10000)
+        : Promise.resolve({ data: [] as any[], error: null }),
       admin.from("pulse_readings")
         .select("metric_type, value, recorded_at")
         .eq("customer_id", params.id)
-        .gte("recorded_at", sevenDaysAgoIso)
-        .order("recorded_at", { ascending: true }).limit(1000),
+        .order("recorded_at", { ascending: false }).limit(2000),
     ]);
 
     // Run pipeline
