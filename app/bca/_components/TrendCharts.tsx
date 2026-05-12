@@ -29,9 +29,10 @@ interface Visibility {
   muscle:   boolean;
   visceral: boolean;
   bodyAge:  boolean;
+  bmi:      boolean;
 }
 
-const DEFAULT_VIS: Visibility = { weight: true, fat: true, muscle: true, visceral: true, bodyAge: true };
+const DEFAULT_VIS: Visibility = { weight: true, fat: true, muscle: true, visceral: true, bodyAge: true, bmi: true };
 
 const COLORS = {
   weight:   "#2563EB",  // blue
@@ -40,6 +41,7 @@ const COLORS = {
   muscle:   "#16A34A",  // green
   visceral: "#DC2626",  // red
   bodyAge:  "#9333EA",  // purple
+  bmi:      "#0EA5E9",  // sky blue
   trend:    "#9CA3AF",  // gray
 };
 
@@ -118,6 +120,7 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
       visceral:   m.visceral,
       body_age:   m.body_age,
       chrono_age: m.chrono_age,
+      bmi:        m.bmi,
     }));
 
     // Compute trend lines
@@ -126,6 +129,7 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
     const muTrend = linearRegression(rows.map((r) => r.muscle_pct));
     const viTrend = linearRegression(rows.map((r) => r.visceral));
     const baTrend = linearRegression(rows.map((r) => r.body_age));
+    const bmTrend = linearRegression(rows.map((r) => r.bmi));
 
     return rows.map((r, i) => ({
       ...r,
@@ -134,6 +138,7 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
       muscle_trend:   muTrend[i],
       visceral_trend: viTrend[i],
       body_age_trend: baTrend[i],
+      bmi_trend:      bmTrend[i],
     }));
   }, [measurements, period]);
 
@@ -165,6 +170,7 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
         <VisCheck label="กล้ามเนื้อ"  color={COLORS.muscle}   checked={vis.muscle}   onChange={() => toggle("muscle")} />
         <VisCheck label="Visceral"    color={COLORS.visceral} checked={vis.visceral} onChange={() => toggle("visceral")} />
         <VisCheck label="Body Age"    color={COLORS.bodyAge}  checked={vis.bodyAge}  onChange={() => toggle("bodyAge")} />
+        <VisCheck label="BMI"          color={COLORS.bmi}      checked={vis.bmi}      onChange={() => toggle("bmi")} />
       </div>
 
       {data.length === 0 ? (
@@ -172,12 +178,15 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
           ไม่มีข้อมูลในช่วงเวลานี้
         </div>
       ) : (
-        <div className="space-y-5">
+        // Mobile: 1 col stack · Desktop: 2 cols paired
+        // Pairing: weight↔fat · muscle↔visceral · bodyAge↔bmi
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {vis.weight   && <ChartPanel title="น้ำหนัก (kg)"><WeightChart data={data} /></ChartPanel>}
           {vis.fat      && <ChartPanel title="ไขมัน — Fat Mass & % Fat"><FatChart data={data} /></ChartPanel>}
           {vis.muscle   && <ChartPanel title="กล้ามเนื้อ (%)"><MuscleChart data={data} /></ChartPanel>}
           {vis.visceral && <ChartPanel title="Visceral Fat (level)"><VisceralChart data={data} /></ChartPanel>}
           {vis.bodyAge  && <ChartPanel title="Body Age (ปี)"><BodyAgeChart data={data} /></ChartPanel>}
+          {vis.bmi      && <ChartPanel title="BMI"><BMIChart data={data} /></ChartPanel>}
         </div>
       )}
     </div>
@@ -293,6 +302,26 @@ function VisceralChart({ data }: { data: any[] }) {
         <Line type="linear" dataKey="visceral" name="Visceral" stroke={COLORS.visceral} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.visceral, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="visceral" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.visceral} />
+        </Line>
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+function BMIChart({ data }: { data: any[] }) {
+  const domain = tightDomain(data.map((d) => d.bmi), { floor: 0 });
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={data} margin={{ top: 24, right: 16, left: -10, bottom: 0 }}>
+        <CartesianGrid stroke="#F2F0F3" strokeDasharray="3 3" />
+        <XAxis dataKey="date" stroke="#8A838E" fontSize={11} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
+        <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} domain={domain} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Line type="linear" dataKey="bmi_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="bmi" name="BMI" stroke={COLORS.bmi} strokeWidth={2.5}
+          dot={{ r: 4, fill: COLORS.bmi, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
+          <LabelList dataKey="bmi" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.bmi} />
         </Line>
       </ComposedChart>
     </ResponsiveContainer>
