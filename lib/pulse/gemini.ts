@@ -96,9 +96,12 @@ ${JSON.stringify(input.matched_rules, null, 2)}
         contents: [{ parts: [{ text: userPrompt }] }],
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
-          temperature:    0.4,
-          maxOutputTokens: 2048,
+          temperature:     0.4,
+          maxOutputTokens: 8192,
           responseMimeType: "application/json",
+          // Disable thinking for Gemini 2.5 — we only need rephrasing, no deep reasoning
+          // Saves token budget so response doesn't get truncated
+          thinkingConfig: { thinkingBudget: 0 },
         },
       }),
     },
@@ -110,10 +113,20 @@ ${JSON.stringify(input.matched_rules, null, 2)}
   }
   const json = await res.json();
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+  const finishReason = json.candidates?.[0]?.finishReason;
 
   let parsed: GeminiOutput;
-  try { parsed = JSON.parse(text); }
-  catch { throw new Error("Gemini returned invalid JSON: " + text.slice(0, 200)); }
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Try to repair truncated JSON: trim to last complete brace/bracket
+    const trimmed = text.replace(/,\s*$/, "").replace(/[,\s]*$/, "") + "}}}}]}";
+    try { parsed = JSON.parse(trimmed); }
+    catch {
+      const reason = finishReason ? ` (finishReason=${finishReason})` : "";
+      throw new Error(`Gemini invalid JSON${reason}: ${text.slice(0, 300)}`);
+    }
+  }
 
   // Validate: every SKU in output must exist in input
   const allowedSkus = new Set(input.matched_rules.flatMap((r) => r.skus.map((s) => s.sku)));
