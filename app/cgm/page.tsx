@@ -194,17 +194,30 @@ export default function CGMPage() {
         {/* Chart */}
         {profile && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
-            <div className="mb-4 flex items-end justify-between">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Glucose Trace</div>
                 <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">กราฟระดับน้ำตาล</h2>
-                <p className="mt-1 font-thai text-[12px] text-ink-40">เขียว 70-110 · เหลือง 110-140 · แดง &gt;140 · สามเหลี่ยม = มื้ออาหาร</p>
+              </div>
+              <div className="flex gap-4 text-[11px] font-medium text-ink-60">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#14B8A6" }} />
+                  Glucose
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-3 rounded-sm" style={{ background: "#10B981", opacity: 0.25 }} />
+                  Optimal 70-110
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#FB7185" }} />
+                  มื้ออาหาร
+                </span>
               </div>
             </div>
             {loading ? (
-              <div className="h-80 animate-pulse rounded-2xl bg-surface" />
+              <div className="h-96 animate-pulse rounded-2xl bg-surface" />
             ) : (
-              <GlucoseChart readings={readings} meals={meals} height={320} />
+              <GlucoseChart readings={readings} meals={meals} height={380} />
             )}
           </section>
         )}
