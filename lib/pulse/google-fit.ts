@@ -97,41 +97,57 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
   const startMs = endMs - 7 * 24 * 60 * 60 * 1000;
   const oneDay  = 86_400_000;
 
-  const body = {
-    aggregateBy: [
-      { dataTypeName: "com.google.heart_rate.bpm" },
-      { dataTypeName: "com.google.step_count.delta" },
-      { dataTypeName: "com.google.sleep.segment" },
-      { dataTypeName: "com.google.active_minutes" },
-      { dataTypeName: "com.google.calories.expended" },
-      { dataTypeName: "com.google.calories.bmr" },
-      { dataTypeName: "com.google.heart_minutes" },
-      { dataTypeName: "com.google.weight" },
-      { dataTypeName: "com.google.body.fat.percentage" },
-      { dataTypeName: "com.google.distance.delta" },
-      { dataTypeName: "com.google.power.sample" },
-    ],
-    bucketByTime: { durationMillis: oneDay },
-    startTimeMillis: startMs,
-    endTimeMillis: endMs,
-  };
+  // Note: skip `calories.bmr` and `power.sample` — require explicit data source
+  // (return 400 if user has no default source). We'll derive BMR from weight if needed.
+  const baseDataTypes = [
+    "com.google.heart_rate.bpm",
+    "com.google.step_count.delta",
+    "com.google.sleep.segment",
+    "com.google.active_minutes",
+    "com.google.calories.expended",
+    "com.google.heart_minutes",
+    "com.google.weight",
+    "com.google.body.fat.percentage",
+    "com.google.distance.delta",
+  ];
 
-  const res = await fetch(
-    "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type":  "application/json",
+  // Resilient: if one metric fails, retry without it (max 3 tries) so users
+  // missing one data source still get the rest.
+  let dataTypes = [...baseDataTypes];
+  let json: any = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(
+      "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type":  "application/json",
+        },
+        body: JSON.stringify({
+          aggregateBy: dataTypes.map((dt) => ({ dataTypeName: dt })),
+          bucketByTime: { durationMillis: oneDay },
+          startTimeMillis: startMs,
+          endTimeMillis: endMs,
+        }),
       },
-      body: JSON.stringify(body),
-    },
-  );
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Google Fit fetch failed: ${res.status} ${t}`);
+    );
+
+    if (res.ok) { json = await res.json(); break; }
+
+    const errText = await res.text();
+    // Parse the offending data type from error message and retry without it
+    const match = errText.match(/no default datasource found for: ([\w.]+)/);
+    if (match && match[1]) {
+      const bad = match[1];
+      dataTypes = dataTypes.filter((dt) => dt !== bad);
+      if (dataTypes.length === 0) throw new Error(`Google Fit fetch failed: all data types invalid`);
+      continue;
+    }
+    throw new Error(`Google Fit fetch failed: ${res.status} ${errText}`);
   }
-  const json = await res.json();
+  if (!json) throw new Error("Google Fit fetch failed after retries");
 
   const out: AggregateRow[] = [];
   // Google Fit returns "bucket" (singular) — not "buckets"
