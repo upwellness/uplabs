@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import { enrichMeasurement } from "@/lib/bca-derive";
 import type { Customer, Measurement } from "@/lib/types";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const supa = getSupabase();
+    const supa = createClient();
     const [{ data: customer, error: cErr }, { data: measurements, error: mErr }] = await Promise.all([
       supa.from("customers").select("*").eq("id", params.id).single(),
       supa.from("measurements").select("*").eq("customer_id", params.id).order("recorded_at", { ascending: false }),
@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!weight) {
       return NextResponse.json({ error: "weight is required" }, { status: 400 });
     }
-    const supa = getSupabase();
+    const supa = createClient();
     const { data, error } = await supa
       .from("measurements")
       .insert({

@@ -1,0 +1,184 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
+import { ROLES, ROLE_LABEL_TH, ROLE_COLOR, type Role } from "@/lib/auth/roles";
+import { APPS } from "@/lib/apps-registry";
+import { formatDate } from "@/lib/utils";
+import {
+  updateUserRole, updateUserEmail, updateDisplayName,
+  sendResetEmail, generateResetLink, toggleAppGrant,
+  type UserListRow,
+} from "./actions";
+
+export function UserRow({ user }: { user: UserListRow }) {
+  const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [linkOut, setLinkOut] = useState<string | null>(null);
+  const [emailEdit, setEmailEdit] = useState(user.email ?? "");
+  const [nameEdit,  setNameEdit]  = useState(user.display_name ?? "");
+  const [, start] = useTransition();
+
+  const run = async (key: string, fn: () => Promise<{ error?: string; ok?: boolean; url?: string | null } | void>) => {
+    setBusy(key);
+    const r = await fn();
+    setBusy(null);
+    if (r && "error" in r && r.error) alert(`ผิดพลาด: ${r.error}`);
+    if (r && "url" in r && r.url) setLinkOut(r.url);
+  };
+
+  return (
+    <>
+      <tr className="border-b border-ink-5 hover:bg-surface transition-colors">
+        <td className="px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose text-[12px] font-bold text-white shrink-0">
+              {(user.display_name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="font-head text-sm font-bold text-ink">{user.display_name ?? "—"}</div>
+              <div className="font-mono text-[11px] text-ink-40">{user.email ?? "no email"}</div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-3">
+          <select
+            value={user.role}
+            onChange={(e) => start(() => run("role", () => updateUserRole(user.id, e.target.value as Role)))}
+            disabled={busy !== null}
+            className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider border-0 outline-none cursor-pointer ${ROLE_COLOR[user.role]}`}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>{ROLE_LABEL_TH[r]}</option>
+            ))}
+          </select>
+        </td>
+        <td className="px-6 py-3">
+          <div className="font-mono text-[11px] text-ink-60">
+            {user.granted_app_slugs.length} explicit grant{user.granted_app_slugs.length !== 1 ? "s" : ""}
+          </div>
+        </td>
+        <td className="px-6 py-3 font-mono text-[11px] text-ink-60">
+          {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : "—"}
+        </td>
+        <td className="px-6 py-3 text-right">
+          <Button size="sm" variant={expanded ? "primary" : "outline"} onClick={() => setExpanded(!expanded)}>
+            {expanded ? "ปิด" : "จัดการ"}
+          </Button>
+        </td>
+      </tr>
+
+      {expanded && (
+        <tr className="border-b border-ink-10 bg-surface">
+          <td colSpan={5} className="px-6 py-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* ── Identity ── */}
+              <div className="rounded-2xl border border-ink-10 bg-white p-5">
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">Identity</div>
+
+                <div className="space-y-3">
+                  <InlineField
+                    label="Display name"
+                    value={nameEdit}
+                    onChange={setNameEdit}
+                    onSave={() => run("name", () => updateDisplayName(user.id, nameEdit))}
+                    busy={busy === "name"}
+                  />
+                  <InlineField
+                    label="Email"
+                    value={emailEdit}
+                    onChange={setEmailEdit}
+                    onSave={() => run("email", () => updateUserEmail(user.id, emailEdit))}
+                    busy={busy === "email"}
+                    type="email"
+                  />
+                </div>
+
+                <div className="mt-5 border-t border-ink-10 pt-4">
+                  <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">Password Reset</div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="rose" onClick={() => start(() => run("send", () => sendResetEmail(user.email ?? "")))} disabled={!user.email || busy !== null}>
+                      ส่ง reset email
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => start(() => run("link", () => generateResetLink(user.email ?? "")))} disabled={!user.email || busy !== null}>
+                      Copy reset link
+                    </Button>
+                  </div>
+                  {linkOut && (
+                    <div className="mt-3 rounded-xl bg-ink p-3 font-mono text-[11px] text-white break-all">
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(linkOut); alert("Copied!"); }}
+                        className="text-left w-full hover:underline"
+                      >
+                        {linkOut}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── App Grants ── */}
+              <div className="rounded-2xl border border-ink-10 bg-white p-5">
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">App Permissions</div>
+                <p className="mb-3 font-thai text-[12px] text-ink-60">
+                  Role <strong>{ROLE_LABEL_TH[user.role]}</strong> เห็น apps ตาม default — ติ๊กเพิ่มเพื่อให้สิทธิ์พิเศษ
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {APPS.map((app) => {
+                    const byRole = app.allowedRoles.includes(user.role);
+                    const granted = user.granted_app_slugs.includes(app.slug);
+                    const effective = byRole || granted;
+                    return (
+                      <label
+                        key={app.slug}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] cursor-pointer ${effective ? "bg-status-bg-optimal" : "bg-ink-5"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={granted}
+                          disabled={busy !== null || byRole}
+                          onChange={(e) => start(() => run(`grant-${app.slug}`, () => toggleAppGrant(user.id, app.slug, e.target.checked)))}
+                          className="accent-rose"
+                        />
+                        <span className="text-sm">{app.icon}</span>
+                        <span className="font-medium text-ink flex-1">{app.name}</span>
+                        {byRole && <span className="text-[9px] font-bold uppercase text-status-optimal">role</span>}
+                        {!byRole && granted && <span className="text-[9px] font-bold uppercase text-rose">granted</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function InlineField({ label, value, onChange, onSave, busy, type = "text" }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  busy: boolean;
+  type?: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-60">{label}</div>
+      <div className="flex gap-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 rounded-lg border border-ink-10 bg-white px-3 py-2 text-sm outline-none focus:border-rose"
+        />
+        <Button size="sm" variant="primary" onClick={onSave} disabled={busy}>
+          {busy ? "..." : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
