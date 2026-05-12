@@ -90,7 +90,19 @@ export default function PulsePage() {
       const res = await fetch(`/api/pulse/customers/${customer.id}/sync`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
-      await loadCustomer(customer);   // refresh display
+      await loadCustomer(customer);
+      if (json.count === 0) {
+        alert(
+          "Sync สำเร็จ — แต่ Google Fit ของลูกค้าไม่มีข้อมูลใน 7 วันที่ผ่านมา\n\n" +
+          "สาเหตุที่เป็นไปได้:\n" +
+          "• ลูกค้าไม่ได้ใส่ Android wearable (Apple Watch ไม่ sync เข้า Google Fit)\n" +
+          "• ลูกค้ายังไม่ได้ติดตั้ง Google Fit app\n" +
+          "• ลูกค้าไม่ได้บันทึก activity\n\n" +
+          "ขอให้ลูกค้าใส่นาฬิกาวัด/ใช้ Google Fit อย่างน้อย 24 ชม. แล้วลองใหม่"
+        );
+      } else {
+        alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading จาก Google Fit`);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
