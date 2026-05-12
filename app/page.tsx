@@ -162,7 +162,8 @@ function AudienceSection({ number, title, subtitle, description, accent, apps }:
 
 function AppCard({ app, accent }: { app: AppMeta; accent: keyof typeof accentMap }) {
   const c = accentMap[accent];
-  const disabled = app.status !== "live";
+  // Only "soon" is disabled — "beta" apps are clickable
+  const disabled = app.status === "soon";
   const audienceLabel = { rose: "Business", science: "Customer", amber: "Internal", wellness: "Content" }[accent];
 
   const card = (
