@@ -14,35 +14,45 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const supa = createClient();
-    // Aggregate per profile_name. Supabase doesn't expose GROUP BY in PostgREST,
-    // so we use a Postgres function or fall back to fetching distinct names then count.
-    // Fast path: get all profile_names + timestamps then aggregate in JS.
-    // To stay cheap, select just the 3 columns.
-    const { data, error } = await supa
-      .from("cgm_readings")
-      .select("profile_name, reading_timestamp")
-      .order("reading_timestamp", { ascending: false })
-      .limit(50000);
 
-    if (error) throw error;
+    // Use Postgres RPC `cgm_list_profiles` to aggregate in SQL — avoids PostgREST row limits.
+    const { data, error } = await supa.rpc("cgm_list_profiles");
 
-    const map = new Map<string, { count: number; first: number; last: number }>();
-    for (const r of data ?? []) {
-      const name = r.profile_name as string;
-      const ts   = Number(r.reading_timestamp);
-      const cur = map.get(name);
-      if (cur) {
-        cur.count += 1;
-        if (ts < cur.first) cur.first = ts;
-        if (ts > cur.last)  cur.last  = ts;
-      } else {
-        map.set(name, { count: 1, first: ts, last: ts });
+    if (error) {
+      // Fallback: scan rows client-side (capped). Useful while RPC isn't installed.
+      const fallback = await supa
+        .from("cgm_readings")
+        .select("profile_name, reading_timestamp")
+        .order("reading_timestamp", { ascending: false })
+        .limit(50000);
+
+      if (fallback.error) throw error; // throw original RPC error
+
+      const map = new Map<string, { count: number; first: number; last: number }>();
+      for (const r of fallback.data ?? []) {
+        const name = r.profile_name as string;
+        const ts   = Number(r.reading_timestamp);
+        const cur = map.get(name);
+        if (cur) {
+          cur.count += 1;
+          if (ts < cur.first) cur.first = ts;
+          if (ts > cur.last)  cur.last  = ts;
+        } else {
+          map.set(name, { count: 1, first: ts, last: ts });
+        }
       }
+      const profiles = Array.from(map.entries())
+        .map(([name, v]) => ({ name, readings_count: v.count, first_reading: v.first, last_reading: v.last }))
+        .sort((a, b) => b.last_reading - a.last_reading);
+      return NextResponse.json({ profiles, fallback: true });
     }
 
-    const profiles = Array.from(map.entries())
-      .map(([name, v]) => ({ name, readings_count: v.count, first_reading: v.first, last_reading: v.last }))
-      .sort((a, b) => b.last_reading - a.last_reading);
+    const profiles = (data ?? []).map((r: any) => ({
+      name:           r.profile_name,
+      readings_count: Number(r.readings_count),
+      first_reading:  Number(r.first_reading),
+      last_reading:   Number(r.last_reading),
+    }));
 
     return NextResponse.json({ profiles });
   } catch (err: any) {
