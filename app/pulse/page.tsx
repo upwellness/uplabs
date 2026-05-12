@@ -135,6 +135,7 @@ export default function PulsePage() {
                 inviteUrl={inviteUrl}
                 onCopy={copyInvite}
                 pendingInvite={data?.latest_invite ?? null}
+                siteUrl={typeof window !== "undefined" ? window.location.origin : ""}
               />
             )}
 
@@ -182,12 +183,29 @@ function ConnectedCard({ conn }: { conn: ConnectionInfo }) {
   );
 }
 
-function NotConnectedCard({ onCreate, inviteUrl, onCopy, pendingInvite }: {
+function NotConnectedCard({ onCreate, inviteUrl, onCopy, pendingInvite, siteUrl }: {
   onCreate: () => void;
   inviteUrl: string | null;
   onCopy: () => void;
   pendingInvite: { token: string; expires_at: string; used_at: string | null } | null;
+  siteUrl: string;
 }) {
+  // Show pending invite URL if no fresh one was created this session
+  const effectiveUrl = inviteUrl
+    ?? (pendingInvite && !pendingInvite.used_at && new Date(pendingInvite.expires_at).getTime() > Date.now()
+        ? `${siteUrl}/connect/${pendingInvite.token}`
+        : null);
+
+  const effectiveExpires = inviteUrl
+    ? null
+    : pendingInvite?.expires_at ?? null;
+
+  const handleCopy = async () => {
+    if (!effectiveUrl) return;
+    await navigator.clipboard.writeText(effectiveUrl);
+    alert("คัดลอกลิงก์แล้ว");
+  };
+
   return (
     <div className="mt-6 rounded-2xl border border-ink-10 bg-surface p-5">
       <div className="font-head text-base font-bold text-ink">📱 ยังไม่ได้เชื่อมต่อ Google Fit</div>
@@ -195,28 +213,29 @@ function NotConnectedCard({ onCreate, inviteUrl, onCopy, pendingInvite }: {
         สร้างลิงก์เชิญ → ส่งให้ลูกค้าทาง LINE → ลูกค้าเปิด → เชื่อม Google Fit เอง
       </p>
 
-      {!inviteUrl ? (
+      {!effectiveUrl ? (
         <Button variant="rose" className="mt-4" onClick={onCreate}>
           + สร้างลิงก์เชื่อมต่อ
         </Button>
       ) : (
         <div className="mt-4 space-y-2">
           <div className="rounded-xl bg-ink p-3 font-mono text-[11px] text-white break-all">
-            {inviteUrl}
+            {effectiveUrl}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onCopy}>📋 คัดลอก</Button>
-            <Button variant="ghost" size="sm" onClick={onCreate}>♻️ สร้างใหม่</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="rose"   size="sm" onClick={handleCopy}>📋 คัดลอก</Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (typeof window !== "undefined") {
+                window.open(`https://line.me/R/share?text=${encodeURIComponent(`คุณค่ะ ลิงก์เชื่อมต่อ Google Fit สำหรับ UP Pulse → ${effectiveUrl} (ใช้ได้ 7 วัน)`)}`);
+              }
+            }}>💬 ส่ง LINE</Button>
+            <Button variant="ghost"  size="sm" onClick={onCreate}>♻️ สร้างใหม่</Button>
           </div>
-          <p className="font-thai text-[11px] text-ink-60">
-            ลิงก์หมดอายุใน 7 วัน · ส่งให้ลูกค้าทาง LINE หรือ SMS
-          </p>
-        </div>
-      )}
-
-      {pendingInvite && !pendingInvite.used_at && !inviteUrl && (
-        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 font-thai text-[11px] text-amber-700">
-          มีลิงก์ที่ยังไม่ใช้อยู่ — หมดอายุ {new Date(pendingInvite.expires_at).toLocaleString("th-TH")}
+          {effectiveExpires && (
+            <p className="font-thai text-[11px] text-ink-60">
+              ลิงก์หมดอายุ {new Date(effectiveExpires).toLocaleString("th-TH")}
+            </p>
+          )}
         </div>
       )}
     </div>
