@@ -1,17 +1,31 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
 import { enrichMeasurement } from "@/lib/bca-derive";
 import type { Customer, Measurement } from "@/lib/types";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
     const supa = createClient();
-    const [{ data: customer, error: cErr }, { data: measurements, error: mErr }] = await Promise.all([
-      supa.from("customers").select("*").eq("id", params.id).single(),
-      supa.from("measurements").select("*").eq("customer_id", params.id).order("recorded_at", { ascending: false }),
-    ]);
+    const { data: customer, error: cErr } = await supa
+      .from("customers").select("*").eq("id", params.id).single();
     if (cErr) throw cErr;
+
+    // Non-admin can only access their own customers
+    const isAdmin = session.profile.role === "admin";
+    if (!isAdmin && customer.coach_id !== session.user.id) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const { data: measurements, error: mErr } = await supa
+      .from("measurements").select("*")
+      .eq("customer_id", params.id)
+      .order("recorded_at", { ascending: false });
     if (mErr) throw mErr;
+
     const enriched = (measurements ?? []).map((m: Measurement) => enrichMeasurement(m, customer as Customer));
     return NextResponse.json({ customer, measurements: enriched });
   } catch (err: any) {

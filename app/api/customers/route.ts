@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET() {
   try {
-    const supa = createClient();
-    const { data: { user } } = await supa.auth.getUser();
-    if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-    const { data, error } = await supa.from("customers").select("*").eq("coach_id", user.id).order("name");
+    const supa = createClient();
+    const isAdmin = session.profile.role === "admin";
+
+    const query = supa.from("customers").select("*").order("name");
+    const { data, error } = isAdmin
+      ? await query
+      : await query.eq("coach_id", session.user.id);
+
     if (error) throw error;
     return NextResponse.json({ customers: data ?? [] });
   } catch (err: any) {
