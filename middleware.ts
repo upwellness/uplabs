@@ -6,18 +6,30 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
+  "/_health",
 ];
 
 const isPublic = (path: string) =>
   PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
 
 export async function middleware(req: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Fail-safe: if Supabase env not configured, render an explicit setup page
+  // for non-public routes instead of crashing the whole site with a 500.
+  if (!url || !key) {
+    const path = req.nextUrl.pathname;
+    if (isPublic(path)) return NextResponse.next();
+    const redirect = req.nextUrl.clone();
+    redirect.pathname = "/_health";
+    return NextResponse.rewrite(redirect);
+  }
+
   let res = NextResponse.next({ request: { headers: req.headers } });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(url, key, {
       cookies: {
         get: (name: string) => req.cookies.get(name)?.value,
         set: (name: string, value: string, options: CookieOptions) => {
@@ -31,33 +43,37 @@ export async function middleware(req: NextRequest) {
           res.cookies.set({ name, value: "", ...options });
         },
       },
-    },
-  );
+    });
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const path = req.nextUrl.pathname;
+    const { data: { user } } = await supabase.auth.getUser();
+    const path = req.nextUrl.pathname;
 
-  // Authenticated user trying to visit auth pages → bounce to home
-  if (user && (path === "/login" || path === "/forgot-password")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+    if (user && (path === "/login" || path === "/forgot-password")) {
+      const u = req.nextUrl.clone();
+      u.pathname = "/";
+      return NextResponse.redirect(u);
+    }
+
+    if (!user && !isPublic(path)) {
+      const u = req.nextUrl.clone();
+      u.pathname = "/login";
+      u.searchParams.set("next", path);
+      return NextResponse.redirect(u);
+    }
+
+    return res;
+  } catch (err) {
+    console.error("[middleware] auth check failed:", err);
+    // Allow public paths through; rewrite the rest to a friendly health page.
+    if (isPublic(req.nextUrl.pathname)) return NextResponse.next();
+    const redirect = req.nextUrl.clone();
+    redirect.pathname = "/_health";
+    return NextResponse.rewrite(redirect);
   }
-
-  // Unauthenticated user trying to visit a private page → bounce to login
-  if (!user && !isPublic(path)) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
-  }
-
-  return res;
 }
 
 export const config = {
   matcher: [
-    // Run on everything except static assets and API routes that handle their own auth
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
