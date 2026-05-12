@@ -9,7 +9,10 @@ import { GlucoseChart } from "./_components/GlucoseChart";
 import { MealForm } from "./_components/MealForm";
 import { MealTable } from "./_components/MealTable";
 import { ReportBuilder } from "./_components/ReportBuilder";
+import { MealAnalyzer } from "./_components/MealAnalyzer";
+import { CompareChart } from "./_components/CompareChart";
 import { computeStats } from "@/lib/glucose-status";
+import { analyzeMeals } from "@/lib/cgm-analyze";
 import type { CGMProfile, CGMReading, CGMMeal } from "@/lib/types-cgm";
 
 const PERIODS = [
@@ -66,6 +69,23 @@ export default function CGMPage() {
   }, [period]);
 
   const stats = useMemo(() => computeStats(readings), [readings]);
+
+  const analyzedMeals = useMemo(() => analyzeMeals(readings, meals)
+    .sort((a, b) => b.meal_timestamp - a.meal_timestamp), [readings, meals]);
+
+  const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
+  const toggleCompare = useCallback((id: number) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < 6) next.add(id);
+      return next;
+    });
+  }, []);
+  const comparingMeals = useMemo(
+    () => analyzedMeals.filter((m) => m.valid && compareIds.has(m.id)),
+    [analyzedMeals, compareIds],
+  );
 
   const currentPeriodLabel = PERIODS.find((p) => p.key === period)?.label ?? "";
 
@@ -222,12 +242,52 @@ export default function CGMPage() {
           </section>
         )}
 
-        {/* Meals table */}
+        {/* Compare chart (when 1+ meal selected) */}
+        {profile && comparingMeals.length > 0 && (
+          <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Comparison</div>
+                <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">
+                  เปรียบเทียบการตอบสนอง (0-3 ชม.)
+                </h2>
+                <p className="mt-1 font-thai text-[12px] text-ink-40">เลือก {comparingMeals.length} มื้อ · กด checkbox ที่การ์ดเพื่อเพิ่ม/ลบ</p>
+              </div>
+              <button
+                onClick={() => setCompareIds(new Set())}
+                className="rounded-full border border-ink-10 px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20"
+              >
+                ล้างการเลือก
+              </button>
+            </div>
+            <CompareChart meals={comparingMeals} />
+          </section>
+        )}
+
+        {/* Meal Analyzer cards */}
+        {profile && analyzedMeals.length > 0 && (
+          <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Meal Response Analysis</div>
+                <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">
+                  วิเคราะห์การตอบสนองแต่ละมื้อ
+                </h2>
+                <p className="mt-1 font-thai text-[12px] text-ink-40">
+                  Peak · Lag · Δ Delta · +1h / +2h / +3h · curve shape · grade
+                </p>
+              </div>
+            </div>
+            <MealAnalyzer meals={analyzedMeals} selected={compareIds} onToggleSelect={toggleCompare} />
+          </section>
+        )}
+
+        {/* Meal Log (raw table) */}
         {profile && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
             <div className="mb-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Meal Log</div>
-              <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">บันทึกมื้ออาหาร</h2>
+              <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">รายการมื้อ (Edit / Delete)</h2>
             </div>
             <MealTable meals={meals} onEdit={handleEdit} onDelete={handleDelete} />
           </section>

@@ -95,6 +95,17 @@ export function GlucoseChart({ readings, meals, height = 380 }: GlucoseChartProp
           {/* Low threshold line (70) */}
           <ReferenceLine y={70}  stroke="#EF4444" strokeDasharray="3 3" opacity={0.3} />
 
+          {/* 3-hour post-meal shaded zones */}
+          {meals.map((m) => (
+            <ReferenceArea
+              key={`zone-${m.id}`}
+              x1={m.meal_timestamp}
+              x2={m.meal_timestamp + 3 * 60 * 60 * 1000}
+              fill="#FB7185"
+              fillOpacity={0.06}
+              ifOverflow="hidden"
+            />
+          ))}
           {/* Meal markers as vertical lines */}
           {meals.map((m) => (
             <ReferenceLine
