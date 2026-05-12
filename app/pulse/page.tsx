@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { CustomerPicker } from "../bca/_components/CustomerPicker";
+import { PulseCharts } from "./_components/PulseCharts";
 import type { Customer } from "@/lib/types";
 
 interface PulseReading {
@@ -36,6 +37,7 @@ export default function PulsePage() {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [syncing,  setSyncing]  = useState(false);
 
   const loadCustomer = useCallback(async (c: Customer) => {
     setCustomer(c);
@@ -78,6 +80,22 @@ export default function PulsePage() {
     if (!inviteUrl) return;
     await navigator.clipboard.writeText(inviteUrl);
     alert("คัดลอกลิงก์แล้ว");
+  };
+
+  const syncNow = async () => {
+    if (!customer) return;
+    setSyncing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/pulse/customers/${customer.id}/sync`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "sync failed");
+      await loadCustomer(customer);   // refresh display
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Group readings by metric for compact display
@@ -128,7 +146,7 @@ export default function PulsePage() {
             {loading ? (
               <div className="mt-6 h-24 animate-pulse rounded-2xl bg-surface" />
             ) : data?.connection ? (
-              <ConnectedCard conn={data.connection} />
+              <ConnectedCard conn={data.connection} onSync={syncNow} syncing={syncing} />
             ) : (
               <NotConnectedCard
                 onCreate={createInvite}
@@ -139,11 +157,11 @@ export default function PulsePage() {
               />
             )}
 
-            {/* Readings preview */}
-            {grouped && (
+            {/* Summary cards */}
+            {grouped && grouped.length > 0 && (
               <div className="mt-8">
                 <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">
-                  Recent Readings (7 days)
+                  Summary (7 days)
                 </div>
                 <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
                   {grouped.map((g) => (
@@ -152,6 +170,17 @@ export default function PulsePage() {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* Charts */}
+        {customer && data?.connection && (
+          <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
+            <div className="mb-5">
+              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Trend Charts</div>
+              <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">แนวโน้ม 7 วัน</h2>
+            </div>
+            <PulseCharts readings={data.readings} />
           </section>
         )}
 
@@ -165,10 +194,10 @@ export default function PulsePage() {
 
 /* ─────────────────────────────────────────────── */
 
-function ConnectedCard({ conn }: { conn: ConnectionInfo }) {
+function ConnectedCard({ conn, onSync, syncing }: { conn: ConnectionInfo; onSync: () => void; syncing: boolean }) {
   return (
     <div className="mt-6 rounded-2xl border border-status-bg-optimal bg-status-bg-optimal/30 p-5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-2 font-head text-base font-bold text-status-optimal">
             ✓ Connected · {conn.provider === "google_fit" ? "Google Fit" : conn.provider}
@@ -178,6 +207,9 @@ function ConnectedCard({ conn }: { conn: ConnectionInfo }) {
             <div>Last sync: {conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("th-TH") : "—"}</div>
           </div>
         </div>
+        <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
+          {syncing ? "กำลัง sync..." : "↻ Sync Now"}
+        </Button>
       </div>
     </div>
   );
