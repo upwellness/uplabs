@@ -234,8 +234,8 @@ function WeightChart({ data }: { data: any[] }) {
         <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" kg" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="linear" dataKey="weight_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="linear" dataKey="weight" name="น้ำหนัก" stroke={COLORS.weight} strokeWidth={2.5}
+        <Line type="monotone" dataKey="weight_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="weight" name="น้ำหนัก" stroke={COLORS.weight} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.weight, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="weight" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.weight} />
         </Line>
@@ -256,12 +256,12 @@ function FatChart({ data }: { data: any[] }) {
         <YAxis yAxisId="right" stroke={COLORS.fatPct}  fontSize={11} tickLine={false} axisLine={false} unit="%"   orientation="right" domain={pctDomain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line yAxisId="left" type="linear" dataKey="fat_mass_trend" name="แนวโน้ม Fat Mass" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line yAxisId="left" type="linear" dataKey="fat_mass" name="Fat Mass (kg)" stroke={COLORS.fatMass} strokeWidth={2.5}
+        <Line yAxisId="left" type="monotone" dataKey="fat_mass_trend" name="แนวโน้ม Fat Mass" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line yAxisId="left" type="monotone" dataKey="fat_mass" name="Fat Mass (kg)" stroke={COLORS.fatMass} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.fatMass, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="fat_mass" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.fatMass} />
         </Line>
-        <Line yAxisId="right" type="linear" dataKey="fat_pct" name="% Fat" stroke={COLORS.fatPct} strokeWidth={2}
+        <Line yAxisId="right" type="monotone" dataKey="fat_pct" name="% Fat" stroke={COLORS.fatPct} strokeWidth={2}
           strokeDasharray="3 3" dot={{ r: 3, fill: COLORS.fatPct, strokeWidth: 0 }} connectNulls />
       </ComposedChart>
     </ResponsiveContainer>
@@ -278,8 +278,8 @@ function MuscleChart({ data }: { data: any[] }) {
         <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit="%" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="linear" dataKey="muscle_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="linear" dataKey="muscle_pct" name="กล้ามเนื้อ %" stroke={COLORS.muscle} strokeWidth={2.5}
+        <Line type="monotone" dataKey="muscle_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="muscle_pct" name="กล้ามเนื้อ %" stroke={COLORS.muscle} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.muscle, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="muscle_pct" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.muscle} />
         </Line>
@@ -298,8 +298,8 @@ function VisceralChart({ data }: { data: any[] }) {
         <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="linear" dataKey="visceral_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="linear" dataKey="visceral" name="Visceral" stroke={COLORS.visceral} strokeWidth={2.5}
+        <Line type="monotone" dataKey="visceral_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="visceral" name="Visceral" stroke={COLORS.visceral} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.visceral, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="visceral" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.visceral} />
         </Line>
@@ -318,8 +318,8 @@ function BMIChart({ data }: { data: any[] }) {
         <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="linear" dataKey="bmi_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="linear" dataKey="bmi" name="BMI" stroke={COLORS.bmi} strokeWidth={2.5}
+        <Line type="monotone" dataKey="bmi_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="bmi" name="BMI" stroke={COLORS.bmi} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.bmi, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="bmi" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.bmi} />
         </Line>
@@ -340,9 +340,9 @@ function BodyAgeChart({ data }: { data: any[] }) {
         <YAxis stroke="#8A838E" fontSize={11} tickLine={false} axisLine={false} unit=" yr" domain={domain} />
         <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "rgba(255,255,255,0.6)", marginBottom: 4 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="linear" dataKey="chrono_age" name="อายุจริง" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="3 3" dot={false} connectNulls />
-        <Line type="linear" dataKey="body_age_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-        <Line type="linear" dataKey="body_age" name="Body Age" stroke={COLORS.bodyAge} strokeWidth={2.5}
+        <Line type="monotone" dataKey="chrono_age" name="อายุจริง" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="3 3" dot={false} connectNulls />
+        <Line type="monotone" dataKey="body_age_trend" name="แนวโน้ม" stroke={COLORS.trend} strokeWidth={1} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="body_age" name="Body Age" stroke={COLORS.bodyAge} strokeWidth={2.5}
           dot={{ r: 4, fill: COLORS.bodyAge, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls>
           <LabelList dataKey="body_age" position="top" formatter={labelFmt} fontSize={10} fill={COLORS.bodyAge} />
         </Line>
