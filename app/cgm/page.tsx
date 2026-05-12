@@ -10,7 +10,7 @@ import { MealForm } from "./_components/MealForm";
 import { MealTable } from "./_components/MealTable";
 import { ReportBuilder } from "./_components/ReportBuilder";
 import { MealAnalyzer } from "./_components/MealAnalyzer";
-import { CompareChart } from "./_components/CompareChart";
+import { CompareModal } from "./_components/CompareModal";
 import { computeStats } from "@/lib/glucose-status";
 import { analyzeMeals } from "@/lib/cgm-analyze";
 import type { CGMProfile, CGMReading, CGMMeal } from "@/lib/types-cgm";
@@ -28,30 +28,32 @@ const PERIODS = [
 type PeriodKey = typeof PERIODS[number]["key"];
 
 export default function CGMPage() {
-  const [profile,    setProfile]    = useState<CGMProfile | null>(null);
-  const [readings,   setReadings]   = useState<CGMReading[]>([]);
-  const [meals,      setMeals]      = useState<CGMMeal[]>([]);
-  const [period,     setPeriod]     = useState<PeriodKey>(24);
-  const [formOpen,   setFormOpen]   = useState(false);
-  const [editing,    setEditing]    = useState<CGMMeal | null>(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
+  const [profile,       setProfile]       = useState<CGMProfile | null>(null);
+  const [allReadings,   setAllReadings]   = useState<CGMReading[]>([]);
+  const [allMeals,      setAllMeals]      = useState<CGMMeal[]>([]);
+  const [period,        setPeriod]        = useState<PeriodKey>(24);
+  const [anchorDate,    setAnchorDate]    = useState<string>(""); // date_str e.g. 2026-05-12
+  const [formOpen,      setFormOpen]      = useState(false);
+  const [editing,       setEditing]       = useState<CGMMeal | null>(null);
+  const [reportOpen,    setReportOpen]    = useState(false);
+  const [compareOpen,   setCompareOpen]   = useState(false);
+  const [compareIds,    setCompareIds]    = useState<Set<number>>(new Set());
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
 
-  const loadData = useCallback(async (p: CGMProfile, pKey: PeriodKey) => {
+  /* ── Load ALL readings + meals for the profile (no time filter server-side) ── */
+  const loadProfile = useCallback(async (p: CGMProfile) => {
     setLoading(true);
     setError(null);
+    setAllReadings([]); setAllMeals([]); setAnchorDate("");
     try {
-      const def = PERIODS.find((x) => x.key === pKey);
-      const qs  = def?.h ? `?from=${Date.now() - def.h * 60 * 60 * 1000}` : "";
-      const res = await fetch(`/api/cgm/profiles/${encodeURIComponent(p.name)}${qs}`);
+      const res  = await fetch(`/api/cgm/profiles/${encodeURIComponent(p.name)}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "โหลดข้อมูลไม่สำเร็จ");
-      setReadings(json.readings ?? []);
-      setMeals(json.meals ?? []);
+      setAllReadings(json.readings ?? []);
+      setAllMeals(json.meals ?? []);
     } catch (e: any) {
       setError(e.message);
-      setReadings([]); setMeals([]);
     } finally {
       setLoading(false);
     }
@@ -59,21 +61,67 @@ export default function CGMPage() {
 
   const handleSelectProfile = useCallback((p: CGMProfile) => {
     setProfile(p);
-    loadData(p, period);
-  }, [period, loadData]);
+    setCompareIds(new Set());
+    loadProfile(p);
+  }, [loadProfile]);
 
-  // Reload when period changes
+  /* ── Unique days from data (newest first) ── */
+  const uniqueDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of allReadings) if (r.date_str) set.add(r.date_str);
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [allReadings]);
+
+  /* Default anchorDate when data arrives */
   useEffect(() => {
-    if (profile) loadData(profile, period);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+    if (!anchorDate || !uniqueDays.includes(anchorDate)) {
+      if (uniqueDays.length > 0) setAnchorDate(uniqueDays[0]);
+    }
+  }, [uniqueDays, anchorDate]);
+
+  /* ── Compute time window [startTs, endTs] ── */
+  const { startTs, endTs } = useMemo(() => {
+    if (allReadings.length === 0) return { startTs: 0, endTs: 0 };
+    const periodDef = PERIODS.find((x) => x.key === period);
+
+    if (periodDef?.h == null) {
+      // "all"
+      const first = allReadings[0].reading_timestamp;
+      const last  = allReadings[allReadings.length - 1].reading_timestamp;
+      return { startTs: first, endTs: last };
+    }
+
+    // Anchor day's last reading is the end; backward h hours
+    const onAnchor = allReadings.filter((r) => r.date_str === anchorDate);
+    const endTs = onAnchor.length > 0
+      ? Math.max(...onAnchor.map((r) => r.reading_timestamp))
+      : new Date(`${anchorDate}T23:59:59`).getTime();
+    const startTs = endTs - periodDef.h * 60 * 60 * 1000;
+    return { startTs, endTs };
+  }, [allReadings, anchorDate, period]);
+
+  /* ── Filtered (visible) data ── */
+  const readings = useMemo(
+    () => allReadings.filter((r) => r.reading_timestamp >= startTs && r.reading_timestamp <= endTs),
+    [allReadings, startTs, endTs],
+  );
+  const meals = useMemo(
+    () => allMeals.filter((m) => m.meal_timestamp >= startTs && m.meal_timestamp <= endTs),
+    [allMeals, startTs, endTs],
+  );
 
   const stats = useMemo(() => computeStats(readings), [readings]);
 
-  const analyzedMeals = useMemo(() => analyzeMeals(readings, meals)
-    .sort((a, b) => b.meal_timestamp - a.meal_timestamp), [readings, meals]);
+  /* ── Analyze ALL meals across all data (so compare can include any) ── */
+  const analyzedAll = useMemo(() => analyzeMeals(allReadings, allMeals)
+    .sort((a, b) => b.meal_timestamp - a.meal_timestamp), [allReadings, allMeals]);
 
-  const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
+  /* ── Analyzed meals in current window only ── */
+  const analyzedInWindow = useMemo(
+    () => analyzedAll.filter((m) => m.meal_timestamp >= startTs && m.meal_timestamp <= endTs),
+    [analyzedAll, startTs, endTs],
+  );
+
   const toggleCompare = useCallback((id: number) => {
     setCompareIds((prev) => {
       const next = new Set(prev);
@@ -82,35 +130,35 @@ export default function CGMPage() {
       return next;
     });
   }, []);
+
   const comparingMeals = useMemo(
-    () => analyzedMeals.filter((m) => m.valid && compareIds.has(m.id)),
-    [analyzedMeals, compareIds],
+    () => analyzedAll.filter((m) => m.valid && compareIds.has(m.id)),
+    [analyzedAll, compareIds],
   );
 
   const currentPeriodLabel = PERIODS.find((p) => p.key === period)?.label ?? "";
 
+  /* ── Meal CRUD (operates on allMeals) ── */
   const handleMealSubmit = useCallback(async (data: { meal_timestamp: number; description: string; carbs: number | null; protein: number | null; fat: number | null }) => {
     if (!profile) return;
     try {
       if (editing) {
         const res = await fetch(`/api/cgm/meals/${editing.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "แก้ไขไม่สำเร็จ");
-        setMeals((prev) => prev.map((m) => (m.id === editing.id ? json.meal : m))
+        setAllMeals((prev) => prev.map((m) => (m.id === editing.id ? json.meal : m))
           .sort((a, b) => a.meal_timestamp - b.meal_timestamp));
       } else {
         const res = await fetch(`/api/cgm/profiles/${encodeURIComponent(profile.name)}/meals`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
-        setMeals((prev) => [...prev, json.meal].sort((a, b) => a.meal_timestamp - b.meal_timestamp));
+        setAllMeals((prev) => [...prev, json.meal].sort((a, b) => a.meal_timestamp - b.meal_timestamp));
       }
       setFormOpen(false);
       setEditing(null);
@@ -119,17 +167,14 @@ export default function CGMPage() {
     }
   }, [profile, editing]);
 
-  const handleEdit = useCallback((m: CGMMeal) => {
-    setEditing(m);
-    setFormOpen(true);
-  }, []);
+  const handleEdit = useCallback((m: CGMMeal) => { setEditing(m); setFormOpen(true); }, []);
 
   const handleDelete = useCallback(async (m: CGMMeal) => {
     try {
       const res = await fetch(`/api/cgm/meals/${m.id}`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "ลบไม่สำเร็จ");
-      setMeals((prev) => prev.filter((x) => x.id !== m.id));
+      setAllMeals((prev) => prev.filter((x) => x.id !== m.id));
     } catch (e: any) {
       alert(e.message);
     }
@@ -166,7 +211,7 @@ export default function CGMPage() {
                 <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">Profile</div>
                 <h1 className="mt-2 font-head text-[32px] font-extrabold tracking-tight text-ink">{profile.name}</h1>
                 <div className="mt-2 flex items-center gap-5 font-thai text-sm text-ink-60">
-                  <span>{profile.readings_count.toLocaleString()} total readings</span>
+                  <span>{allReadings.length.toLocaleString()} readings · {uniqueDays.length} วันที่มีข้อมูล</span>
                   <span className="h-1 w-1 rounded-full bg-ink-20" />
                   {loading ? <span className="animate-pulse text-ink-40">กำลังโหลด...</span> : <span>{readings.length.toLocaleString()} ในช่วง {currentPeriodLabel}</span>}
                 </div>
@@ -182,22 +227,42 @@ export default function CGMPage() {
               </div>
             </div>
 
-            {/* Period filter */}
-            <div className="mt-6 flex flex-wrap gap-1.5">
-              {PERIODS.map((p) => (
-                <button
-                  key={p.key}
-                  onClick={() => setPeriod(p.key)}
-                  className={`rounded-full border px-3.5 py-1 text-[11px] font-semibold transition-all ${
-                    period === p.key
-                      ? "border-rose bg-rose text-white"
-                      : "border-ink-10 bg-white text-ink-60 hover:border-ink-20"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            {/* Time range controls: anchor date + period */}
+            {uniqueDays.length > 0 && (
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-2">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink-40">วันอ้างอิง</span>
+                  <select
+                    value={anchorDate}
+                    onChange={(e) => setAnchorDate(e.target.value)}
+                    disabled={period === 9999}
+                    className="rounded-lg border border-ink-10 bg-white px-3 py-1.5 text-sm font-medium text-ink outline-none transition-all focus:border-rose disabled:opacity-50"
+                  >
+                    {uniqueDays.map((d) => (
+                      <option key={d} value={d}>
+                        {new Date(d).toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="h-5 w-px bg-ink-10" />
+                <div className="flex flex-wrap gap-1.5">
+                  {PERIODS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => setPeriod(p.key)}
+                      className={`rounded-full border px-3.5 py-1 text-[11px] font-semibold transition-all ${
+                        period === p.key
+                          ? "border-rose bg-rose text-white"
+                          : "border-ink-10 bg-white text-ink-60 hover:border-ink-20"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Stats */}
             {stats && (
@@ -211,7 +276,7 @@ export default function CGMPage() {
           </section>
         )}
 
-        {/* Chart */}
+        {/* Glucose Chart */}
         {profile && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -230,7 +295,7 @@ export default function CGMPage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#FB7185" }} />
-                  มื้ออาหาร
+                  มื้ออาหาร (3h zone)
                 </span>
               </div>
             </div>
@@ -242,43 +307,39 @@ export default function CGMPage() {
           </section>
         )}
 
-        {/* Compare chart (when 1+ meal selected) */}
-        {profile && comparingMeals.length > 0 && (
+        {/* Meal Analyzer cards */}
+        {profile && analyzedInWindow.length > 0 && (
           <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Comparison</div>
-                <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">
-                  เปรียบเทียบการตอบสนอง (0-3 ชม.)
-                </h2>
-                <p className="mt-1 font-thai text-[12px] text-ink-40">เลือก {comparingMeals.length} มื้อ · กด checkbox ที่การ์ดเพื่อเพิ่ม/ลบ</p>
-              </div>
-              <button
-                onClick={() => setCompareIds(new Set())}
-                className="rounded-full border border-ink-10 px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20"
-              >
-                ล้างการเลือก
-              </button>
-            </div>
-            <CompareChart meals={comparingMeals} />
-          </section>
-        )}
-
-        {/* Meal Analyzer cards */}
-        {profile && analyzedMeals.length > 0 && (
-          <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
-            <div className="mb-4 flex items-end justify-between">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Meal Response Analysis</div>
                 <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">
                   วิเคราะห์การตอบสนองแต่ละมื้อ
                 </h2>
                 <p className="mt-1 font-thai text-[12px] text-ink-40">
-                  Peak · Lag · Δ Delta · +1h / +2h / +3h · curve shape · grade
+                  เลือก ≥2 มื้อ → เปิดหน้าเปรียบเทียบ
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {compareIds.size > 0 && (
+                  <button
+                    onClick={() => setCompareIds(new Set())}
+                    className="rounded-full border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink-60 hover:border-ink-20"
+                  >
+                    ล้าง ({compareIds.size})
+                  </button>
+                )}
+                <Button
+                  variant={compareIds.size >= 2 ? "rose" : "outline"}
+                  size="sm"
+                  onClick={() => setCompareOpen(true)}
+                  disabled={compareIds.size < 2}
+                >
+                  📊 เปรียบเทียบ ({compareIds.size})
+                </Button>
+              </div>
             </div>
-            <MealAnalyzer meals={analyzedMeals} selected={compareIds} onToggleSelect={toggleCompare} />
+            <MealAnalyzer meals={analyzedInWindow} selected={compareIds} onToggleSelect={toggleCompare} />
           </section>
         )}
 
@@ -315,6 +376,14 @@ export default function CGMPage() {
           stats={stats}
           periodLabel={currentPeriodLabel}
           onClose={() => setReportOpen(false)}
+        />
+      )}
+
+      {compareOpen && profile && comparingMeals.length >= 2 && (
+        <CompareModal
+          profileName={profile.name}
+          meals={comparingMeals}
+          onClose={() => setCompareOpen(false)}
         />
       )}
     </main>
