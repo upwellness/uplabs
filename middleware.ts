@@ -9,6 +9,10 @@ const PUBLIC_PATHS = [
   "/setup",
   "/connect",                 // UP Pulse customer-facing connect flow
   "/api/pulse/oauth",         // OAuth start + callback (called by Google)
+  "/intake",                  // UP Pulse customer-facing intake form
+  "/api/pulse/intakes",       // intake submit (POST by token — no auth)
+  "/api/pulse/share",         // public report fetch
+  "/r",                       // public report page
 ];
 
 const isPublic = (path: string) =>

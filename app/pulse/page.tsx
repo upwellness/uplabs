@@ -8,27 +8,19 @@ import { CustomerPicker } from "../bca/_components/CustomerPicker";
 import { PulseCharts } from "./_components/PulseCharts";
 import type { Customer } from "@/lib/types";
 
-interface PulseReading {
-  recorded_at: string;
-  metric_type: string;
-  value: number;
-  unit: string;
-}
-
-interface ConnectionInfo {
-  id: string;
-  provider: string;
-  status: string;
-  connected_at: string;
-  last_sync_at: string | null;
-  expires_at: string;
-}
+interface Reading { recorded_at: string; metric_type: string; value: number; unit: string; }
+interface Connection { id: string; provider: string; status: string; connected_at: string; last_sync_at: string | null; expires_at: string; }
+interface Invite     { token: string; expires_at: string; used_at: string | null; }
+interface Intake     { id: string; token: string; submitted_at: string | null; expires_at: string; goal: string | null; budget_range: string | null; }
+interface Assessment { id: string; status: string; blocked: boolean; block_reasons: string[]; share_token: string; sent_at: string | null; created_at: string; ai_output: any; }
 
 interface PulseData {
   customer: Customer;
-  connection: ConnectionInfo | null;
-  readings: PulseReading[];
-  latest_invite: { token: string; expires_at: string; used_at: string | null } | null;
+  connection: Connection | null;
+  readings: Reading[];
+  latest_invite: Invite | null;
+  latest_intake: Intake | null;
+  assessments: Assessment[];
 }
 
 export default function PulsePage() {
@@ -37,14 +29,14 @@ export default function PulsePage() {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [intakeUrl, setIntakeUrl] = useState<string | null>(null);
   const [syncing,  setSyncing]  = useState(false);
+  const [assessing, setAssessing] = useState(false);
 
   const loadCustomer = useCallback(async (c: Customer) => {
     setCustomer(c);
-    setData(null);
-    setInviteUrl(null);
-    setError(null);
-    setLoading(true);
+    setData(null); setInviteUrl(null); setIntakeUrl(null);
+    setError(null); setLoading(true);
     try {
       const res = await fetch(`/api/pulse/customers/${c.id}`);
       const json = await res.json();
@@ -59,59 +51,85 @@ export default function PulsePage() {
 
   const createInvite = async () => {
     if (!customer) return;
-    setError(null);
     try {
       const res = await fetch("/api/pulse/invites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customer_id: customer.id }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "invite failed");
       setInviteUrl(json.url);
-      // refresh status
       loadCustomer(customer);
-    } catch (e: any) {
-      setError(e.message);
-    }
+    } catch (e: any) { setError(e.message); }
   };
 
-  const copyInvite = async () => {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
-    alert("คัดลอกลิงก์แล้ว");
+  const createIntake = async () => {
+    if (!customer) return;
+    try {
+      const res = await fetch("/api/pulse/intakes", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer_id: customer.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "intake link failed");
+      setIntakeUrl(json.url);
+      loadCustomer(customer);
+    } catch (e: any) { setError(e.message); }
   };
 
   const syncNow = async () => {
     if (!customer) return;
-    setSyncing(true);
-    setError(null);
+    setSyncing(true); setError(null);
     try {
       const res = await fetch(`/api/pulse/customers/${customer.id}/sync`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
       await loadCustomer(customer);
       if (json.count === 0) {
-        alert(
-          "Sync สำเร็จ — แต่ Google Fit ของลูกค้าไม่มีข้อมูลใน 7 วันที่ผ่านมา\n\n" +
-          "สาเหตุที่เป็นไปได้:\n" +
-          "• ลูกค้าไม่ได้ใส่ Android wearable (Apple Watch ไม่ sync เข้า Google Fit)\n" +
-          "• ลูกค้ายังไม่ได้ติดตั้ง Google Fit app\n" +
-          "• ลูกค้าไม่ได้บันทึก activity\n\n" +
-          "ขอให้ลูกค้าใส่นาฬิกาวัด/ใช้ Google Fit อย่างน้อย 24 ชม. แล้วลองใหม่"
-        );
+        alert("Sync สำเร็จ — แต่ Google Fit ไม่มี data ใน 7 วันที่ผ่านมา");
       } else {
         alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading จาก Google Fit`);
       }
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSyncing(false);
-    }
+    } catch (e: any) { setError(e.message); }
+    finally { setSyncing(false); }
   };
 
-  // Group readings by metric for compact display
-  const grouped = data?.readings ? groupReadings(data.readings) : null;
+  const runAssess = async () => {
+    if (!customer) return;
+    setAssessing(true); setError(null);
+    try {
+      const res = await fetch(`/api/pulse/customers/${customer.id}/assess`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "assess failed");
+      await loadCustomer(customer);
+      if (json.assessment?.blocked) {
+        alert("AI วิเคราะห์เสร็จแล้ว — แต่ block เพราะ:\n" + (json.assessment.block_reasons ?? []).join("\n"));
+      } else {
+        alert("AI วิเคราะห์เสร็จแล้ว — ดู draft แล้วกด 'เผยแพร่' เพื่อส่งลูกค้า");
+      }
+    } catch (e: any) { setError(e.message); }
+    finally { setAssessing(false); }
+  };
+
+  const publishAssessment = async (a: Assessment) => {
+    if (!confirm("เผยแพร่รายงานนี้ให้ลูกค้า?")) return;
+    try {
+      const res = await fetch(`/api/pulse/assessments/${a.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "sent" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "publish failed");
+      loadCustomer(customer!);
+    } catch (e: any) { alert(e.message); }
+  };
+
+  const copy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    alert("คัดลอกแล้ว");
+  };
+
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <main className="min-h-screen bg-surface">
@@ -121,16 +139,13 @@ export default function PulsePage() {
             <Link href="/" className="text-ink-40 hover:text-ink transition-colors text-sm">← Hub</Link>
             <div className="h-5 w-px bg-ink-10" />
             <Logo size="sm" />
-            <span className="rounded-full bg-rose-ultra px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-rose">
-              UP Pulse · Beta
-            </span>
+            <span className="rounded-full bg-rose-ultra px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-rose">UP Pulse · Beta</span>
           </div>
           <CustomerPicker current={customer} onChange={loadCustomer} />
         </div>
       </header>
 
       <div className="mx-auto max-w-content px-10 py-10">
-
         {!customer && (
           <section className="flex flex-col items-center justify-center py-40 text-center">
             <div className="mb-4 text-5xl">📱</div>
@@ -140,206 +155,225 @@ export default function PulsePage() {
         )}
 
         {customer && (
-          <section className="rounded-3xl border border-ink-10 bg-white p-8">
-            <div className="flex flex-wrap items-start justify-between gap-6">
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">Customer</div>
-                <h1 className="mt-2 font-head text-[32px] font-extrabold tracking-tight text-ink">{customer.name}</h1>
-                <div className="mt-2 flex items-center gap-5 font-thai text-sm text-ink-60">
-                  <span>{customer.gender === "male" ? "ชาย" : "หญิง"}</span>
-                  <span className="h-1 w-1 rounded-full bg-ink-20" />
-                  <span>{customer.birth_year ? `${new Date().getFullYear() - customer.birth_year} ปี` : "—"}</span>
+          <>
+            {/* Patient header */}
+            <section className="rounded-3xl border border-ink-10 bg-white p-8">
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">Customer</div>
+                  <h1 className="mt-2 font-head text-[32px] font-extrabold tracking-tight text-ink">{customer.name}</h1>
+                  <div className="mt-2 flex items-center gap-5 font-thai text-sm text-ink-60">
+                    <span>{customer.gender === "male" ? "ชาย" : "หญิง"}</span>
+                    <span className="h-1 w-1 rounded-full bg-ink-20" />
+                    <span>{customer.birth_year ? `${new Date().getFullYear() - customer.birth_year} ปี` : "—"}</span>
+                  </div>
+                  {error && <p className="mt-2 text-xs text-status-warning">{error}</p>}
                 </div>
-                {error && <p className="mt-2 text-xs text-status-warning">{error}</p>}
               </div>
-            </div>
 
-            {/* Connection status */}
-            {loading ? (
-              <div className="mt-6 h-24 animate-pulse rounded-2xl bg-surface" />
-            ) : data?.connection ? (
-              <ConnectedCard conn={data.connection} onSync={syncNow} syncing={syncing} />
-            ) : (
-              <NotConnectedCard
-                onCreate={createInvite}
-                inviteUrl={inviteUrl}
-                onCopy={copyInvite}
-                pendingInvite={data?.latest_invite ?? null}
-                siteUrl={typeof window !== "undefined" ? window.location.origin : ""}
-              />
-            )}
+              {/* Workflow steps */}
+              <div className="mt-8 grid gap-4 md:grid-cols-3">
+                {/* Step 1: Connect Google Fit */}
+                <WorkflowCard
+                  step="1"
+                  title="เชื่อม Google Fit"
+                  done={!!data?.connection}
+                >
+                  {loading ? <Skeleton /> : data?.connection ? (
+                    <div>
+                      <div className="text-[12px] font-bold text-status-optimal">✓ Connected</div>
+                      <div className="mt-1 font-mono text-[10px] text-ink-40">
+                        Last sync: {data.connection.last_sync_at ? new Date(data.connection.last_sync_at).toLocaleString("th-TH") : "—"}
+                      </div>
+                      <Button variant="outline" size="sm" className="mt-3" onClick={syncNow} disabled={syncing}>
+                        {syncing ? "Syncing..." : "↻ Sync Now"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <InviteUI
+                      url={inviteUrl ?? (data?.latest_invite && !data.latest_invite.used_at ? `${siteUrl}/connect/${data.latest_invite.token}` : null)}
+                      onCreate={createInvite}
+                      onCopy={copy}
+                    />
+                  )}
+                </WorkflowCard>
 
-            {/* Summary cards */}
-            {grouped && grouped.length > 0 && (
-              <div className="mt-8">
-                <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">
-                  Summary (7 days)
+                {/* Step 2: Intake */}
+                <WorkflowCard
+                  step="2"
+                  title="กรอก Intake (5 ข้อ)"
+                  done={!!data?.latest_intake?.submitted_at}
+                >
+                  {loading ? <Skeleton /> : data?.latest_intake?.submitted_at ? (
+                    <div>
+                      <div className="text-[12px] font-bold text-status-optimal">✓ Submitted</div>
+                      <div className="mt-1 font-mono text-[10px] text-ink-40">
+                        {new Date(data.latest_intake.submitted_at).toLocaleString("th-TH")}
+                      </div>
+                      <Button variant="ghost" size="sm" className="mt-3" onClick={createIntake}>
+                        + กรอกใหม่
+                      </Button>
+                    </div>
+                  ) : (
+                    <InviteUI
+                      url={intakeUrl ?? (data?.latest_intake && !data.latest_intake.submitted_at ? `${siteUrl}/intake/${data.latest_intake.token}` : null)}
+                      onCreate={createIntake}
+                      onCopy={copy}
+                      label="สร้างลิงก์ Intake"
+                    />
+                  )}
+                </WorkflowCard>
+
+                {/* Step 3: Assess */}
+                <WorkflowCard
+                  step="3"
+                  title="วิเคราะห์ + แนะนำ"
+                  done={(data?.assessments?.length ?? 0) > 0}
+                >
+                  {loading ? <Skeleton /> : (
+                    <div>
+                      <Button
+                        variant="rose" size="sm"
+                        onClick={runAssess}
+                        disabled={assessing || !data?.connection || !data?.latest_intake?.submitted_at}
+                      >
+                        {assessing ? "AI กำลังคิด..." : "🧠 รัน AI Assessment"}
+                      </Button>
+                      {(!data?.connection || !data?.latest_intake?.submitted_at) && (
+                        <p className="mt-2 font-thai text-[11px] text-ink-40">
+                          ต้อง connect Google Fit + Intake submitted ก่อน
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </WorkflowCard>
+              </div>
+            </section>
+
+            {/* Assessments list */}
+            {data?.assessments && data.assessments.length > 0 && (
+              <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
+                <div className="mb-5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Assessments</div>
+                  <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">รายงานที่ AI วิเคราะห์</h2>
                 </div>
-                <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
-                  {grouped.map((g) => (
-                    <ReadingCard key={g.metric_type} {...g} />
+                <div className="space-y-3">
+                  {data.assessments.map((a) => (
+                    <AssessmentRow
+                      key={a.id}
+                      a={a}
+                      siteUrl={siteUrl}
+                      onPublish={publishAssessment}
+                      onCopy={copy}
+                    />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
-          </section>
-        )}
 
-        {/* Charts */}
-        {customer && data?.connection && (
-          <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
-            <div className="mb-5">
-              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Trend Charts</div>
-              <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">แนวโน้ม 7 วัน</h2>
-            </div>
-            <PulseCharts readings={data.readings} />
-          </section>
+            {/* Charts */}
+            {data?.connection && data.readings.length > 0 && (
+              <section className="mt-6 rounded-3xl border border-ink-10 bg-white p-8">
+                <div className="mb-5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-40">Trend Charts</div>
+                  <h2 className="mt-1 font-head text-2xl font-extrabold tracking-tight text-ink">แนวโน้ม 7 วัน</h2>
+                </div>
+                <PulseCharts readings={data.readings} />
+              </section>
+            )}
+          </>
         )}
 
         <footer className="mt-12 pb-8 text-center font-mono text-[11px] text-ink-40">
-          UPLABS UP Pulse · v0 Beta · Google Fit integration · pharmacist review queue coming next
+          UPLABS UP Pulse · v0 Beta · Google Fit · Gemini AI · Pharmacist-led
         </footer>
       </div>
     </main>
   );
 }
 
-/* ─────────────────────────────────────────────── */
+/* ── Components ─────────────────────────────────── */
 
-function ConnectedCard({ conn, onSync, syncing }: { conn: ConnectionInfo; onSync: () => void; syncing: boolean }) {
+function WorkflowCard({ step, title, done, children }: {
+  step: string; title: string; done: boolean; children: React.ReactNode;
+}) {
   return (
-    <div className="mt-6 rounded-2xl border border-status-bg-optimal bg-status-bg-optimal/30 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="inline-flex items-center gap-2 font-head text-base font-bold text-status-optimal">
-            ✓ Connected · {conn.provider === "google_fit" ? "Google Fit" : conn.provider}
-          </div>
-          <div className="mt-2 grid gap-1 font-mono text-[11px] text-ink-60">
-            <div>Connected: {new Date(conn.connected_at).toLocaleString("th-TH")}</div>
-            <div>Last sync: {conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("th-TH") : "—"}</div>
-          </div>
+    <div className={`rounded-2xl border p-5 ${done ? "border-status-bg-optimal bg-status-bg-optimal/20" : "border-ink-10 bg-surface"}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`flex h-7 w-7 items-center justify-center rounded-full font-mono text-[12px] font-bold ${done ? "bg-status-optimal text-white" : "bg-ink-10 text-ink"}`}>
+          {done ? "✓" : step}
         </div>
-        <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
-          {syncing ? "กำลัง sync..." : "↻ Sync Now"}
-        </Button>
+        <div className="font-head text-[14px] font-bold text-ink">{title}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Skeleton() {
+  return <div className="h-12 animate-pulse rounded-lg bg-ink-5" />;
+}
+
+function InviteUI({ url, onCreate, onCopy, label = "สร้างลิงก์" }: {
+  url: string | null; onCreate: () => void; onCopy: (s: string) => void; label?: string;
+}) {
+  if (!url) return <Button variant="rose" size="sm" onClick={onCreate}>+ {label}</Button>;
+  return (
+    <div>
+      <div className="rounded-lg bg-ink p-2 font-mono text-[10px] text-white break-all">{url}</div>
+      <div className="mt-2 flex gap-2">
+        <Button variant="rose"    size="sm" onClick={() => onCopy(url)}>📋 Copy</Button>
+        <Button variant="ghost"   size="sm" onClick={onCreate}>♻️</Button>
       </div>
     </div>
   );
 }
 
-function NotConnectedCard({ onCreate, inviteUrl, onCopy, pendingInvite, siteUrl }: {
-  onCreate: () => void;
-  inviteUrl: string | null;
-  onCopy: () => void;
-  pendingInvite: { token: string; expires_at: string; used_at: string | null } | null;
-  siteUrl: string;
+function AssessmentRow({ a, siteUrl, onPublish, onCopy }: {
+  a: Assessment; siteUrl: string;
+  onPublish: (a: Assessment) => void;
+  onCopy: (s: string) => void;
 }) {
-  // Show pending invite URL if no fresh one was created this session
-  const effectiveUrl = inviteUrl
-    ?? (pendingInvite && !pendingInvite.used_at && new Date(pendingInvite.expires_at).getTime() > Date.now()
-        ? `${siteUrl}/connect/${pendingInvite.token}`
-        : null);
-
-  const effectiveExpires = inviteUrl
-    ? null
-    : pendingInvite?.expires_at ?? null;
-
-  const handleCopy = async () => {
-    if (!effectiveUrl) return;
-    await navigator.clipboard.writeText(effectiveUrl);
-    alert("คัดลอกลิงก์แล้ว");
-  };
+  const reportUrl = `${siteUrl}/r/${a.share_token}`;
+  const summary = a.ai_output?.summary ?? "";
 
   return (
-    <div className="mt-6 rounded-2xl border border-ink-10 bg-surface p-5">
-      <div className="font-head text-base font-bold text-ink">📱 ยังไม่ได้เชื่อมต่อ Google Fit</div>
-      <p className="mt-1.5 font-thai text-[13px] text-ink-60">
-        สร้างลิงก์เชิญ → ส่งให้ลูกค้าทาง LINE → ลูกค้าเปิด → เชื่อม Google Fit เอง
-      </p>
-
-      {!effectiveUrl ? (
-        <Button variant="rose" className="mt-4" onClick={onCreate}>
-          + สร้างลิงก์เชื่อมต่อ
-        </Button>
-      ) : (
-        <div className="mt-4 space-y-2">
-          <div className="rounded-xl bg-ink p-3 font-mono text-[11px] text-white break-all">
-            {effectiveUrl}
+    <div className={`rounded-2xl border p-5 ${a.blocked ? "border-amber-300 bg-amber-50" : a.sent_at ? "border-status-bg-optimal bg-white" : "border-ink-10 bg-white"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink-40">
+            <span>{new Date(a.created_at).toLocaleString("th-TH")}</span>
+            <StatusBadge a={a} />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="rose"   size="sm" onClick={handleCopy}>📋 คัดลอก</Button>
-            <Button variant="outline" size="sm" onClick={() => {
-              if (typeof window !== "undefined") {
-                window.open(`https://line.me/R/share?text=${encodeURIComponent(`คุณค่ะ ลิงก์เชื่อมต่อ Google Fit สำหรับ UP Pulse → ${effectiveUrl} (ใช้ได้ 7 วัน)`)}`);
-              }
-            }}>💬 ส่ง LINE</Button>
-            <Button variant="ghost"  size="sm" onClick={onCreate}>♻️ สร้างใหม่</Button>
-          </div>
-          {effectiveExpires && (
-            <p className="font-thai text-[11px] text-ink-60">
-              ลิงก์หมดอายุ {new Date(effectiveExpires).toLocaleString("th-TH")}
-            </p>
+          {a.blocked ? (
+            <div className="mt-2 font-thai text-[13px] text-amber-900">
+              ⚕️ Blocked: {(a.block_reasons ?? []).join(" · ")}
+            </div>
+          ) : (
+            <p className="mt-2 font-thai text-[13px] leading-[1.6] text-ink line-clamp-2">{summary}</p>
           )}
         </div>
-      )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a href={reportUrl} target="_blank" rel="noopener" className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
+          👁 ดูรายงาน
+        </a>
+        <button onClick={() => onCopy(reportUrl)} className="rounded-md border border-ink-10 px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-ink-20">
+          📋 Copy link
+        </button>
+        {!a.sent_at && !a.blocked && (
+          <button onClick={() => onPublish(a)} className="rounded-md bg-rose px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose/90">
+            🚀 เผยแพร่ให้ลูกค้า
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-/* ── Group readings by metric_type ── */
-function groupReadings(readings: PulseReading[]) {
-  const map = new Map<string, { values: number[]; unit: string }>();
-  for (const r of readings) {
-    const g = map.get(r.metric_type) ?? { values: [], unit: r.unit };
-    g.values.push(r.value);
-    map.set(r.metric_type, g);
-  }
-
-  const LABELS: Record<string, string> = {
-    hr_bpm:            "Heart Rate (avg)",
-    rhr:               "Resting HR",
-    hr_max:            "Heart Rate (max)",
-    hrv_rmssd:         "HRV",
-    sleep_minutes:     "Sleep (mixed)",
-    sleep_total:       "Sleep (total)",
-    sleep_light:       "Light Sleep",
-    sleep_deep:        "Deep Sleep",
-    sleep_rem:         "REM Sleep",
-    steps:             "Steps",
-    active_minutes:    "Active Minutes",
-    calories_expended: "Calories",
-    bmr:               "BMR",
-    heart_minutes:     "Heart Minutes",
-    weight:            "Weight",
-    body_fat_pct:      "Body Fat %",
-    distance_km:       "Distance",
-    spo2:              "SpO2",
-  };
-
-  return Array.from(map.entries()).map(([metric_type, g]) => ({
-    metric_type,
-    label: LABELS[metric_type] ?? metric_type,
-    avg:   +(g.values.reduce((a, b) => a + b, 0) / g.values.length).toFixed(1),
-    min:   Math.min(...g.values),
-    max:   Math.max(...g.values),
-    count: g.values.length,
-    unit:  g.unit,
-  }));
-}
-
-function ReadingCard({ label, avg, min, max, count, unit }: {
-  label: string; avg: number; min: number; max: number; count: number; unit: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-ink-10 bg-white px-5 py-4">
-      <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-40">{label}</div>
-      <div className="mt-2 flex items-baseline gap-1.5">
-        <div className="font-head text-[24px] font-extrabold leading-none tracking-tight text-ink">{avg}</div>
-        <div className="text-xs text-ink-40">{unit}</div>
-      </div>
-      <div className="mt-1 font-mono text-[10px] text-ink-40">
-        min {min} · max {max} · n={count}
-      </div>
-    </div>
-  );
+function StatusBadge({ a }: { a: Assessment }) {
+  if (a.blocked) return <span className="rounded-full bg-amber-200 px-2 py-0.5 text-amber-800">BLOCKED</span>;
+  if (a.sent_at) return <span className="rounded-full bg-status-bg-optimal px-2 py-0.5 text-status-optimal">SENT</span>;
+  return <span className="rounded-full bg-ink-10 px-2 py-0.5 text-ink-60">DRAFT</span>;
 }
