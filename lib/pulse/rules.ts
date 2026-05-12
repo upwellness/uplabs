@@ -15,9 +15,9 @@
 export interface BiomarkerAggregates {
   days_with_data:        number;
   hr_avg:                number | null;
-  rhr_avg:               number | null;     // resting HR averaged
+  rhr_avg:               number | null;
   hr_max:                number | null;
-  hr_variability:        number | null;     // (max - avg) avg over days
+  hr_variability:        number | null;
   steps_avg:             number | null;
   steps_min:             number | null;
   active_minutes_avg:    number | null;
@@ -28,6 +28,11 @@ export interface BiomarkerAggregates {
   sleep_hours_avg:       number | null;
   sleep_deep_avg:        number | null;
   sleep_rem_avg:         number | null;
+  // CGM (from master snapshot)
+  glucose_avg:           number | null;
+  glucose_tir:           number | null;  // % in optimal range 70-110
+  glucose_max:           number | null;
+  glucose_gmi:           number | null;  // estimated HbA1c%
 }
 
 export type Grade = "A" | "B" | "C";
@@ -160,6 +165,64 @@ export const PULSE_RULES: Rule[] = [
     ],
   },
 
+  /* ── Glucose / Metabolic (CGM-based) ──────────────────── */
+  {
+    id: "high_avg_glucose",
+    name: "Average glucose สูง",
+    condition: (b) => b.glucose_avg != null && b.glucose_avg > 110,
+    nutrient_category: "Glucose Management — Pre-meal Fiber",
+    why_th: "ค่าเฉลี่ย glucose สูงกว่า 110 mg/dL · ใยอาหารก่อนมื้อช่วยชะลอการดูดซึมน้ำตาล · ลด post-meal spike · protein with meal blunts glycemic response",
+    evidence_grade: "A",
+    citation: "Jenkins AJCN 2008 · Marathe Diabetic Med 2017",
+    skus: [
+      { sku: "Calow (Fiber)",          dose: "1 ซอง 10-15 นาทีก่อนมื้อหลัก", timing: "ก่อนอาหารเช้า+เที่ยง" },
+      { sku: "All Plant Protein",      dose: "1 scoop กับมื้ออาหาร",          timing: "พร้อมมื้อหลัก" },
+      { sku: "Bodykey BSC powder",     dose: "1 มื้อ/วัน แทนอาหาร",         timing: "เช้าหรือเที่ยง" },
+    ],
+  },
+  {
+    id: "low_tir_glucose",
+    name: "Time in Range ต่ำ",
+    condition: (b) => b.glucose_tir != null && b.glucose_tir < 70,
+    nutrient_category: "Insulin Sensitivity Support",
+    why_th: "Time in Range (70-110) ต่ำกว่า 70% บ่งชี้ insulin resistance pattern · fiber + chromium + cinnamon-like phytonutrients ช่วย sensitivity · protein satiety lower carb load",
+    evidence_grade: "B",
+    citation: "Anderson Nutrients 2014 (fiber) · Anton J Am Coll Nutr (chromium)",
+    skus: [
+      { sku: "Calow (Fiber)",        dose: "1 ซองก่อนมื้อหลัก 2 มื้อ" },
+      { sku: "All Plant Protein",    dose: "1 scoop กับอาหาร" },
+      { sku: "Double X",             dose: "3 เม็ดเช้า + 3 เม็ดเย็น" },
+    ],
+  },
+  {
+    id: "high_glucose_spike",
+    name: "Glucose spike สูง (postprandial)",
+    condition: (b) => b.glucose_max != null && b.glucose_max > 180,
+    nutrient_category: "Post-meal Spike Buffer",
+    why_th: "Glucose max > 180 mg/dL หลังมื้อ · viscous fiber (psyllium-like) ก่อนมื้อช่วยลด peak ~30% · ทาน protein/fat ก่อน carb ช่วย delay gastric emptying",
+    evidence_grade: "A",
+    citation: "Brand-Miller Diabetes Care 2009 · Shukla BMJ Open Diab Res Care 2015",
+    skus: [
+      { sku: "Calow (Fiber)",          dose: "1 ซอง 15 นาทีก่อนมื้อที่มีคาร์บสูง" },
+      { sku: "All Plant Protein",      dose: "1 scoop กับมื้อ" },
+    ],
+  },
+  {
+    id: "elevated_gmi",
+    name: "GMI (HbA1c est) สูง — pre-diabetic range",
+    condition: (b) => b.glucose_gmi != null && b.glucose_gmi >= 5.7,
+    nutrient_category: "Comprehensive Glucose Support",
+    why_th: "Estimated HbA1c ≥ 5.7% อยู่ในช่วง pre-diabetic · ต้องการ comprehensive approach · fiber + protein + Omega-3 anti-inflammatory + foundational micronutrient",
+    evidence_grade: "A",
+    citation: "ADA Diabetes Care 2024 · Sievenpiper Nutrients 2018",
+    skus: [
+      { sku: "Calow (Fiber)",          dose: "1 ซอง × 2-3 มื้อ/วัน" },
+      { sku: "All Plant Protein",      dose: "1-2 scoop/วัน กับมื้อ" },
+      { sku: "Salmon Omega-3",         dose: "2-3 เม็ด/วัน กับอาหาร" },
+      { sku: "Double X",               dose: "3 เม็ดเช้า + 3 เย็น" },
+    ],
+  },
+
   /* ── Foundational / Default ───────────────────────────── */
   {
     id: "default_multivit",
@@ -231,6 +294,11 @@ export function aggregateBiomarkers(readings: Array<{ metric_type: string; value
     sleep_hours_avg:       avg((groups.sleep_total ?? groups.sleep_minutes ?? []).map((v) => v / 60)),
     sleep_deep_avg:        avg((groups.sleep_deep ?? []).map((v) => v / 60)),
     sleep_rem_avg:         avg((groups.sleep_rem ?? []).map((v) => v / 60)),
+    // CGM injected separately by assess.ts from master snapshot
+    glucose_avg:           null,
+    glucose_tir:           null,
+    glucose_max:           null,
+    glucose_gmi:           null,
   };
 }
 

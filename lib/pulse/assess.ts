@@ -33,9 +33,13 @@ export async function runAssessment(input: AssessInput): Promise<AssessResult> {
   // Build biomarker aggregates from pulse readings for rule engine
   const aggs = aggregateBiomarkers(input.pulse_readings);
 
-  // Add BCA-derived data into aggs so rules can use them
+  // Inject BCA + CGM data into aggregates so rules can use them
   if (master.body_fat_pct?.value != null) aggs.body_fat_pct = Number(master.body_fat_pct.value);
   if (master.weight?.value      != null) aggs.weight       = Number(master.weight.value);
+  if (master.glucose_avg?.value != null) aggs.glucose_avg  = Number(master.glucose_avg.value);
+  if (master.glucose_tir?.value != null) aggs.glucose_tir  = Number(master.glucose_tir.value);
+  if (master.glucose_max?.value != null) aggs.glucose_max  = Number(master.glucose_max.value);
+  if (master.glucose_gmi?.value != null) aggs.glucose_gmi  = Number(master.glucose_gmi.value);
 
   const matched = evaluateRules(aggs);
 
