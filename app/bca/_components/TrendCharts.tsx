@@ -23,16 +23,9 @@ const PERIODS = [
 
 type PeriodKey = typeof PERIODS[number]["key"];
 
-interface Visibility {
-  weight:   boolean;
-  fat:      boolean;
-  muscle:   boolean;
-  visceral: boolean;
-  bodyAge:  boolean;
-  bmi:      boolean;
-}
+type ChartKey = "weight" | "fat" | "muscle" | "visceral" | "bodyAge" | "bmi";
 
-const DEFAULT_VIS: Visibility = { weight: true, fat: true, muscle: true, visceral: true, bodyAge: true, bmi: true };
+const ALL_KEYS: ChartKey[] = ["weight", "fat", "muscle", "visceral", "bodyAge", "bmi"];
 
 const COLORS = {
   weight:   "#2563EB",  // blue
@@ -100,7 +93,15 @@ const TOOLTIP_STYLE = {
 
 export function TrendCharts({ measurements, gender }: TrendChartsProps) {
   const [period, setPeriod] = useState<PeriodKey>(180);
-  const [vis,    setVis]    = useState<Visibility>(DEFAULT_VIS);
+  // visibleOrder: list of currently-visible chart keys, in the order they were toggled on.
+  // Initialize with the default order so the first render is predictable.
+  const [visibleOrder, setVisibleOrder] = useState<ChartKey[]>(ALL_KEYS);
+  const isVisible = (k: ChartKey) => visibleOrder.includes(k);
+
+  const toggle = (k: ChartKey) =>
+    setVisibleOrder((prev) =>
+      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k],
+    );
 
   /* ── Filter by period + reverse (oldest → newest) ── */
   const data = useMemo(() => {
@@ -142,8 +143,6 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
     }));
   }, [measurements, period]);
 
-  const toggle = (k: keyof Visibility) => setVis((v) => ({ ...v, [k]: !v[k] }));
-
   return (
     <div>
       {/* ── Period filter ── */}
@@ -165,28 +164,39 @@ export function TrendCharts({ measurements, gender }: TrendChartsProps) {
 
       {/* ── Visibility toggles ── */}
       <div className="mb-6 flex flex-wrap gap-x-4 gap-y-2 border-b border-ink-5 pb-4">
-        <VisCheck label="น้ำหนัก"     color={COLORS.weight}   checked={vis.weight}   onChange={() => toggle("weight")} />
-        <VisCheck label="ไขมัน"        color={COLORS.fatMass}  checked={vis.fat}      onChange={() => toggle("fat")} />
-        <VisCheck label="กล้ามเนื้อ"  color={COLORS.muscle}   checked={vis.muscle}   onChange={() => toggle("muscle")} />
-        <VisCheck label="Visceral"    color={COLORS.visceral} checked={vis.visceral} onChange={() => toggle("visceral")} />
-        <VisCheck label="Body Age"    color={COLORS.bodyAge}  checked={vis.bodyAge}  onChange={() => toggle("bodyAge")} />
-        <VisCheck label="BMI"          color={COLORS.bmi}      checked={vis.bmi}      onChange={() => toggle("bmi")} />
+        <VisCheck label="น้ำหนัก"     color={COLORS.weight}   checked={isVisible("weight")}   onChange={() => toggle("weight")} />
+        <VisCheck label="ไขมัน"        color={COLORS.fatMass}  checked={isVisible("fat")}      onChange={() => toggle("fat")} />
+        <VisCheck label="กล้ามเนื้อ"  color={COLORS.muscle}   checked={isVisible("muscle")}   onChange={() => toggle("muscle")} />
+        <VisCheck label="Visceral"    color={COLORS.visceral} checked={isVisible("visceral")} onChange={() => toggle("visceral")} />
+        <VisCheck label="Body Age"    color={COLORS.bodyAge}  checked={isVisible("bodyAge")}  onChange={() => toggle("bodyAge")} />
+        <VisCheck label="BMI"          color={COLORS.bmi}      checked={isVisible("bmi")}      onChange={() => toggle("bmi")} />
       </div>
 
       {data.length === 0 ? (
         <div className="py-16 text-center font-thai text-sm text-ink-40">
           ไม่มีข้อมูลในช่วงเวลานี้
         </div>
+      ) : visibleOrder.length === 0 ? (
+        <div className="py-16 text-center font-thai text-sm text-ink-40">
+          กรุณาเปิดอย่างน้อย 1 กราฟ
+        </div>
       ) : (
-        // Mobile: 1 col stack · Desktop: 2 cols paired
-        // Pairing: weight↔fat · muscle↔visceral · bodyAge↔bmi
+        // Mobile: 1 col stack · Desktop: 2 cols paired in toggle-on order.
+        // If odd count, the orphan (last item) spans full width.
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {vis.weight   && <ChartPanel title="น้ำหนัก (kg)"><WeightChart data={data} /></ChartPanel>}
-          {vis.fat      && <ChartPanel title="ไขมัน — Fat Mass & % Fat"><FatChart data={data} /></ChartPanel>}
-          {vis.muscle   && <ChartPanel title="กล้ามเนื้อ (%)"><MuscleChart data={data} /></ChartPanel>}
-          {vis.visceral && <ChartPanel title="Visceral Fat (level)"><VisceralChart data={data} /></ChartPanel>}
-          {vis.bodyAge  && <ChartPanel title="Body Age (ปี)"><BodyAgeChart data={data} /></ChartPanel>}
-          {vis.bmi      && <ChartPanel title="BMI"><BMIChart data={data} /></ChartPanel>}
+          {visibleOrder.map((key, i) => {
+            const isOrphan = visibleOrder.length % 2 === 1 && i === visibleOrder.length - 1;
+            return (
+              <div key={key} className={isOrphan ? "lg:col-span-2" : ""}>
+                {key === "weight"   && <ChartPanel title="น้ำหนัก (kg)"><WeightChart data={data} /></ChartPanel>}
+                {key === "fat"      && <ChartPanel title="ไขมัน — Fat Mass & % Fat"><FatChart data={data} /></ChartPanel>}
+                {key === "muscle"   && <ChartPanel title="กล้ามเนื้อ (%)"><MuscleChart data={data} /></ChartPanel>}
+                {key === "visceral" && <ChartPanel title="Visceral Fat (level)"><VisceralChart data={data} /></ChartPanel>}
+                {key === "bodyAge"  && <ChartPanel title="Body Age (ปี)"><BodyAgeChart data={data} /></ChartPanel>}
+                {key === "bmi"      && <ChartPanel title="BMI"><BMIChart data={data} /></ChartPanel>}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
