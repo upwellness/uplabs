@@ -13,6 +13,8 @@ const PUBLIC_PATHS = [
   "/api/pulse/intakes",       // intake submit (POST by token — no auth)
   "/api/pulse/share",         // public report fetch
   "/r",                       // public report page
+  "/check",                   // Public Health Check form (lead capture)
+  "/api/check",               // Public submit endpoint
 ];
 
 const isPublic = (path: string) =>

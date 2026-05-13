@@ -20,7 +20,7 @@ export interface AppMeta {
 
 export const APPS: AppMeta[] = [
   // ── Customer ──
-  { slug: "healthcheck",  name: "Health Check",    description: "ประเมินสุขภาพ metabolic ครบชุด อิงเกณฑ์ WHO & AHA",  icon: "🏥", audience: "customer", href: "/healthcheck",  status: "soon", allowedRoles: ["member", "abo", "admin"] },
+  { slug: "healthcheck",  name: "Health Check",    description: "ประเมินสุขภาพ + Lead Capture · ส่งลิงก์ให้คน · เก็บ lead อัตโนมัติ",  icon: "🏥", audience: "business", href: "/healthcheck",  status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "metaflexquiz", name: "MetaFlex Quiz",   description: "วัดความยืดหยุ่นระบบเผาผลาญ",                        icon: "🔥", audience: "customer", href: "/metaflexquiz", status: "soon", allowedRoles: ["member", "abo", "admin"] },
 
   // ── Business ──
