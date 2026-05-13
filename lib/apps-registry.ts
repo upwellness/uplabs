@@ -24,6 +24,7 @@ export const APPS: AppMeta[] = [
   { slug: "metaflexquiz", name: "MetaFlex Quiz",   description: "วัด Metabolic Flexibility · Lead capture · share ลิงก์ให้คน",  icon: "🔥", audience: "business", href: "/healthcheck?quiz=metaflex", status: "live", allowedRoles: ["abo", "admin"] },
 
   // ── Business ──
+  { slug: "customers",    name: "Customer Profiles",description: "จัดการลูกค้า · link BCA + CGM + Wearable · master profile",    icon: "👥", audience: "business", href: "/customers",   status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "bca",          name: "BCA Tracker",     description: "ติดตาม Body Composition ของลูกค้าแบบต่อเนื่อง",     icon: "📊", audience: "business", href: "/bca",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "cgm",          name: "CGM Analyzer",    description: "วิเคราะห์ glucose monitoring patterns",            icon: "📈", audience: "business", href: "/cgm",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "pulse",        name: "UP Pulse",        description: "Wearable biomarker → Nutrient → Nutrilite mapping",icon: "📱", audience: "business", href: "/pulse",        status: "beta", allowedRoles: ["abo", "admin"] },
