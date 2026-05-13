@@ -267,7 +267,7 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
 }
 
 function LeadRow({ lead, isMine, onClick }: { lead: Lead; isMine: boolean; onClick: () => void }) {
-  const meta = RISK_LABEL[lead.risk_level];
+  const meta = RISK_LABEL[lead.risk_level] ?? RISK_LABEL.moderate;
   return (
     <button
       onClick={onClick}
@@ -331,7 +331,7 @@ function LeadDetailModal({ lead, onClose, onUpdate, onConvert }: {
   onConvert: (id: string) => void;
 }) {
   const [notes, setNotes] = useState(lead.notes ?? "");
-  const meta = RISK_LABEL[lead.risk_level];
+  const meta = RISK_LABEL[lead.risk_level] ?? RISK_LABEL.moderate;
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-ink/50 p-4 backdrop-blur-sm" onClick={onClose}>

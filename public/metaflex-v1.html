@@ -476,8 +476,14 @@
             try {
                 const params = new URLSearchParams(window.location.search);
                 const coachId = params.get('coach') || null;
-                // detect whether contact is phone or email
                 const isEmail = /@/.test(contact);
+                // Map MetaFlex level (CRITICAL/WARNING/FLEXIBLE) → enum (very_high/high/low)
+                // so it slots into the shared 4-level UI vocabulary
+                const levelEnum =
+                    totalScore >= 10 ? 'very_high' :
+                    totalScore >= 5  ? 'high'      : 'low';
+                // Convert to 0-100 risk_score so lead row displays meaningfully
+                const scaledScore = Math.min(100, Math.round(totalScore * 7));
                 await fetch('/api/check/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -488,10 +494,10 @@
                         phone:   isEmail ? null  : contact,
                         email:   isEmail ? contact : null,
                         consent_followup: true,
-                        pre_score: totalScore,
-                        pre_level: resultData.level,
-                        pre_flags: [resultData.label || ''],
-                        answers: { score: totalScore, level: resultData.level, label: resultData.label },
+                        pre_score: scaledScore,
+                        pre_level: levelEnum,
+                        pre_flags: [resultData.level, resultData.title].filter(Boolean),
+                        answers: { raw_score: totalScore, level: resultData.level, title: resultData.title },
                     }),
                 });
                 console.log("Lead saved via UPLABS API");
