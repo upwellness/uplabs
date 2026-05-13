@@ -161,20 +161,30 @@ function RegionDetail({ region, items, onClose }: {
             : v.ref_high != null ? `< ${v.ref_high}`
             : v.ref_low != null  ? `> ${v.ref_low}`
             : v.ref_text ?? "—";
+          // Long narrative (imaging findings etc) → put on own row · numeric values inline
+          const isNarrative = (v.value ?? "").length > 25 || !!v.value_num === false && /[ก-๛]/.test(v.value ?? "");
           return (
             <div key={v.id} className="rounded-xl border border-ink-10 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="font-thai text-[13px] font-semibold text-ink">{v.metric_label_th || v.metric_key}</div>
-                  {v.metric_label_en && <div className="font-mono text-[10px] text-ink-40">{v.metric_label_en}</div>}
+                  <div className="font-thai text-[13px] font-semibold text-ink break-words">{v.metric_label_th || v.metric_key}</div>
+                  {v.metric_label_en && <div className="mt-0.5 font-mono text-[10px] text-ink-40">{v.metric_label_en}</div>}
                 </div>
-                <div className="text-right">
-                  <div className="font-mono text-[14px] font-bold" style={{ color: vc.text }}>
-                    {v.value} {v.unit && <span className="text-[10px] text-ink-40 font-normal">{v.unit}</span>}
+                {!isNarrative && (
+                  <div className="text-right shrink-0">
+                    <div className="font-mono text-[14px] font-bold" style={{ color: vc.text }}>
+                      {v.value} {v.unit && <span className="text-[10px] text-ink-40 font-normal">{v.unit}</span>}
+                    </div>
+                    <div className="mt-0.5 font-mono text-[9px] text-ink-40">ปกติ: {range}</div>
                   </div>
-                  <div className="mt-0.5 font-mono text-[9px] text-ink-40">ปกติ: {range}</div>
-                </div>
+                )}
               </div>
+              {isNarrative && (
+                <div className="mt-2 rounded-lg px-3 py-2 font-thai text-[12px] leading-[1.6] break-words"
+                  style={{ background: vc.bg, color: vc.text }}>
+                  {v.value}
+                </div>
+              )}
             </div>
           );
         })}
@@ -239,38 +249,58 @@ function LegendCard({ regionData, onSelect }: {
   );
 }
 
-/* ── Body silhouette (stylized) ─────────────────── */
+/* ── Body silhouette (stylized · single continuous outline) ─────── */
 
 function BodyOutline({ gender }: { gender?: string | null }) {
+  // Single connected path — avoids overlapping rectangles seen previously.
+  // Mostly mirror-symmetric around x=200.
   return (
-    <g stroke="#94A3B8" strokeWidth={1.5} fill="#F8FAFC">
+    <g stroke="#94A3B8" strokeWidth={1.5} fill="#F8FAFC" strokeLinejoin="round" strokeLinecap="round">
       {/* Head */}
-      <ellipse cx={200} cy={65} rx={32} ry={38} />
-      {/* Neck */}
-      <rect x={188} y={100} width={24} height={20} />
-      {/* Shoulders */}
-      <path d="M 130 140 Q 200 115 270 140 L 280 165 Q 200 138 120 165 Z" />
-      {/* Torso */}
-      <path d="M 130 160 L 145 350 Q 200 360 255 350 L 270 160 Z" />
-      {/* Hips */}
-      <path d="M 145 340 L 145 410 Q 200 420 255 410 L 255 340 Z" />
-      {/* Arms */}
-      <path d="M 130 160 L 95 280 L 105 380" fill="none" />
-      <path d="M 270 160 L 305 280 L 295 380" fill="none" />
-      {/* Hands hint */}
-      <circle cx={107} cy={385} r={8} />
-      <circle cx={293} cy={385} r={8} />
-      {/* Legs */}
-      <path d="M 170 410 L 165 600 L 180 600 L 195 410 Z" />
-      <path d="M 205 410 L 220 600 L 235 600 L 230 410 Z" />
-      {/* Feet hint */}
-      <ellipse cx={172} cy={605} rx={12} ry={5} />
-      <ellipse cx={227} cy={605} rx={12} ry={5} />
+      <ellipse cx={200} cy={70} rx={36} ry={42} />
+      {/* Face hint */}
+      <circle cx={188} cy={66} r={2} fill="#94A3B8" stroke="none" />
+      <circle cx={212} cy={66} r={2} fill="#94A3B8" stroke="none" />
+      <path d="M 190 84 Q 200 90 210 84" fill="none" />
 
-      {/* Subtle face hint */}
-      <circle cx={188} cy={62} r={2} fill="#94A3B8" stroke="none" />
-      <circle cx={212} cy={62} r={2} fill="#94A3B8" stroke="none" />
-      <path d="M 192 78 Q 200 82 208 78" fill="none" />
+      {/* Body — single continuous path: neck → shoulders → torso → hips → outside leg → inseam → other leg → other inseam → mirror */}
+      <path d="
+        M 188 110
+        L 188 122
+        L 152 138
+        Q 138 148 138 178
+        L 144 320
+        L 152 410
+        L 168 590
+        Q 172 605 184 605
+        L 195 605
+        Q 200 605 200 590
+        L 200 410
+        L 200 590
+        Q 200 605 205 605
+        L 216 605
+        Q 228 605 232 590
+        L 248 410
+        L 256 320
+        L 262 178
+        Q 262 148 248 138
+        L 212 122
+        L 212 110
+        Z" />
+
+      {/* Arms — separate (so they don't fight with the torso fill) */}
+      <path d="M 142 142 Q 110 200 100 280 L 108 380 Q 110 392 120 388 Q 124 386 122 376 L 116 280 Q 122 220 152 162"
+        fill="none" />
+      <path d="M 258 142 Q 290 200 300 280 L 292 380 Q 290 392 280 388 Q 276 386 278 376 L 284 280 Q 278 220 248 162"
+        fill="none" />
+
+      {/* Hands */}
+      <ellipse cx={115}  cy={392} rx={10} ry={7} />
+      <ellipse cx={285} cy={392} rx={10} ry={7} />
+
+      {/* Feet */}
+      <ellipse cx={178} cy={618} rx={16} ry={7} />
+      <ellipse cx={222} cy={618} rx={16} ry={7} />
     </g>
   );
 }
