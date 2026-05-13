@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metabolic Flexibility Check | เช็กระบบเผาผลาญ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        
+        /* Light Mode Glass Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+        .toast {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* Shimmer Effect for Button */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen overflow-x-hidden relative selection:bg-cyan-200 selection:text-cyan-900">
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Background Effects (Soft & Light) -->
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-200/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply delay-1000"></div>
+
+    <!-- Main Container -->
+    <div id="app" class="relative z-10 container mx-auto px-4 py-8 max-w-md min-h-screen flex flex-col justify-center">
+        
+        <!-- STEP 1: WELCOME -->
+        <div id="step-welcome" class="text-center space-y-8 animate-fade-in">
+            <div class="inline-block p-5 rounded-3xl bg-white shadow-xl shadow-rose-100 mb-2 border border-slate-100">
+                <i class="fa-solid fa-heart-pulse text-5xl text-rose-500"></i>
+            </div>
+            
+            <h1 class="text-5xl font-extrabold text-slate-800 leading-tight pb-2 tracking-tight">
+                Metabolic<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-blue-600">Check</span>
+            </h1>
+            
+            <div class="space-y-4">
+                <p class="text-xl font-bold text-slate-700">
+                    เช็กด่วน: ร่างกายคุณ <span class="text-rose-500 underline decoration-rose-200 decoration-4 underline-offset-4">"ล็อก"</span> การเผาผลาญไขมันอยู่หรือไม่?
+                </p>
+                <p class="text-slate-500 font-normal text-base px-2">
+                    ตอบคำถาม 5 ข้อ เพื่อวิเคราะห์สาเหตุ "อ้วนง่าย ผอมยาก" พร้อมรับเทคนิค Metabolic Flexibility ฟรี
+                </p>
+            </div>
+
+            <button onclick="startQuiz()" class="group relative w-full py-4 px-6 bg-slate-900 text-white rounded-2xl font-bold text-lg overflow-hidden shadow-xl shadow-slate-200 hover:shadow-2xl hover:shadow-rose-100 transition-all duration-300 transform hover:-translate-y-1">
+                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-slate-700 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                <span class="flex items-center justify-center gap-2 relative z-10">
+                    เริ่มทำแบบทดสอบ <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform text-rose-700"></i>
+                </span>
+            </button>
+            <p class="text-xs text-slate-400 mt-4 font-medium"><i class="fa-regular fa-clock mr-1"></i> ใช้เวลาเพียง 1 นาที • ไม่มีค่าใช้จ่าย</p>
+        </div>
+
+        <!-- STEP 2: QUIZ -->
+        <div id="step-quiz" class="hidden space-y-6 animate-fade-in">
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-gradient-to-r from-rose-700 to-blue-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: 0%"></div>
+            </div>
+            
+            <div class="flex justify-between text-xs text-slate-400 font-bold tracking-widest uppercase">
+                <span id="question-count">Question 1 of 5</span>
+                <span>Metabolic Test</span>
+            </div>
+
+            <!-- Question Card -->
+            <div class="glass-panel p-8 rounded-3xl min-h-[280px] flex flex-col justify-center items-center text-center space-y-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-700 to-blue-500"></div>
+                <div id="q-icon" class="p-4 bg-slate-50 rounded-full text-4xl shadow-inner">
+                    <!-- Icon inject via JS -->
+                </div>
+                <h2 id="q-text" class="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed">
+                    <!-- Question inject via JS -->
+                </h2>
+            </div>
+
+            <!-- Options -->
+            <div id="options-container" class="grid gap-3">
+                <!-- Options inject via JS -->
+            </div>
+        </div>
+
+        <!-- STEP 3: ANALYZING -->
+        <div id="step-analyzing" class="hidden text-center space-y-8 animate-fade-in flex-col items-center justify-center h-[60vh]">
+            <div class="relative">
+                <div class="w-24 h-24 border-4 border-slate-100 rounded-full"></div>
+                <div class="absolute top-0 left-0 w-24 h-24 border-t-4 border-rose-500 rounded-full animate-spin"></div>
+                <i class="fa-solid fa-microchip absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-rose-500 text-2xl animate-pulse"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h2 class="text-2xl font-bold text-slate-800">กำลังวิเคราะห์ระบบเผาผลาญ...</h2>
+                <p class="text-slate-500 text-sm typing-effect font-medium">ตรวจสอบระดับอินซูลิน...</p>
+            </div>
+
+            <div class="w-full max-w-xs space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+               <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fa-solid fa-circle-check text-green-500"></i> ประมวลผลพฤติกรรม</div>
+               <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fa-solid fa-circle-check text-green-500"></i> คำนวณความยืดหยุ่น</div>
+               <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fa-solid fa-circle-check text-green-500"></i> จัดเตรียมคำแนะนำ</div>
+            </div>
+        </div>
+
+        <!-- STEP 4: LEAD CAPTURE -->
+        <div id="step-capture" class="hidden space-y-6 animate-fade-in">
+            <div class="glass-panel p-8 rounded-3xl text-center space-y-6">
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg">
+                    <i class="fa-solid fa-clipboard-check text-3xl text-green-500"></i>
+                </div>
+                
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">วิเคราะห์ผลเสร็จสิ้น!</h2>
+                    <p class="text-slate-500">
+                        เราได้สรุปผลระดับ <span class="text-cyan-600 font-bold">Metabolic Flexibility</span> ของคุณเรียบร้อยแล้ว
+                    </p>
+                </div>
+
+                <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 text-left">
+                    <p class="text-xs text-blue-400 mb-3 font-bold uppercase tracking-wide">รายงานที่คุณจะได้รับ:</p>
+                    <ul class="text-sm space-y-3 text-slate-700 font-medium">
+                        <li class="flex gap-3 items-center"><div class="w-5 h-5 rounded-full bg-white flex items-center justify-center text-rose-500 shadow-sm"><i class="fa-solid fa-check text-xs"></i></div> คะแนนความยืดหยุ่นระบบเผาผลาญ</li>
+                        <li class="flex gap-3 items-center"><div class="w-5 h-5 rounded-full bg-white flex items-center justify-center text-rose-500 shadow-sm"><i class="fa-solid fa-check text-xs"></i></div> สาเหตุที่ทำให้คุณอ้วนง่าย</li>
+                        <li class="flex gap-3 items-center text-cyan-700 font-bold"><div class="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center text-cyan-600 shadow-sm"><i class="fa-solid fa-gift text-xs"></i></div> ฟรี! สูตร Reset ระบบเผาผลาญ (Phase 1)</li>
+                    </ul>
+                </div>
+
+                <form id="lead-form" class="space-y-4">
+                    <div class="relative">
+                        <i class="fa-regular fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="input-name" placeholder="ชื่อเล่นของคุณ" required
+                            class="w-full p-4 pl-12 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-700 focus:ring-4 focus:ring-rose-100 transition-all font-medium">
+                    </div>
+                    
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="input-contact" placeholder="Email หรือ Line ID (เพื่อรับผลลัพธ์)" required
+                            class="w-full p-4 pl-12 bg-white border-2 border-slate-100 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-700 focus:ring-4 focus:ring-rose-100 transition-all font-medium">
+                    </div>
+                    
+                    <button type="submit" id="submit-btn"
+                        class="w-full py-4 bg-gradient-to-r from-rose-500 to-blue-600 rounded-xl font-bold text-lg text-white shadow-lg shadow-cyan-200 hover:shadow-cyan-300 hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+                        <span>ดูผลลัพธ์ & รับสูตรฟรี</span>
+                        <i class="fa-solid fa-lock text-sm opacity-80"></i>
+                    </button>
+                </form>
+                <div class="flex justify-center items-center gap-2 text-[10px] text-slate-400 font-medium">
+                    <i class="fa-solid fa-shield-halved"></i> ข้อมูลของคุณปลอดภัย 100% ไม่มีการเปิดเผย
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: RESULT -->
+        <div id="step-result" class="hidden space-y-6 animate-fade-in pb-12">
+            <!-- Score Card -->
+            <div id="result-card-bg" class="rounded-3xl shadow-xl overflow-hidden relative text-white">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 text-center space-y-4 h-full relative z-10">
+                    <div class="absolute top-0 right-0 p-6 opacity-10"><i class="fa-solid fa-quote-right text-6xl"></i></div>
+                    
+                    <div class="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                        <p id="result-badge-color" class="text-xs font-bold tracking-widest uppercase">
+                            STATUS
+                        </p>
+                    </div>
+                    
+                    <h2 id="result-title" class="text-3xl font-extrabold leading-tight">...</h2>
+                    
+                    <!-- Score Bar Container -->
+                    <div class="w-full bg-black/20 rounded-full h-4 mt-4 p-1 backdrop-blur-sm">
+                        <div id="result-score-bar" class="h-full rounded-full transition-all duration-1000 shadow-lg relative" style="width: 0%">
+                             <div class="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-slate-200 rounded-full shadow"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-bold text-slate-800 pl-3 border-l-4 border-rose-500">ผลวิเคราะห์:</h3>
+                <div id="result-desc-bg" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <p id="result-desc" class="text-slate-600 leading-relaxed font-medium">
+                        ...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Unlock Content -->
+            <div class="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-3xl p-6 space-y-5 relative overflow-hidden group shadow-lg">
+                
+                <div class="flex items-center gap-3 mb-2 relative z-10 border-b border-slate-100 pb-4">
+                    <div class="p-3 bg-rose-100 rounded-xl text-cyan-600">
+                        <i class="fa-solid fa-unlock-keyhole text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-cyan-600 uppercase tracking-wide">Action Plan</p>
+                        <h3 class="text-lg font-bold text-slate-800">สูตรลับ: Reset Phase (3 วันแรก)</h3>
+                    </div>
+                </div>
+
+                <div id="locked-content" class="text-center py-8 relative z-10">
+                     <p class="text-slate-500 mb-4 text-sm">ข้อมูลส่วนนี้ถูกล็อกไว้สำหรับคุณ</p>
+                     <button onclick="revealTips()" class="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 hover:shadow-lg transition-all transform hover:-translate-y-1 active:translate-y-0">
+                        <i class="fa-solid fa-fingerprint mr-2 text-rose-700"></i> กดเพื่อเปิดดูเทคนิค
+                     </button>
+                </div>
+
+                <div id="unlocked-content" class="hidden space-y-4 animate-fade-in relative z-10">
+                    <div class="p-5 bg-white rounded-2xl border-l-4 border-rose-400 shadow-sm">
+                        <h4 class="font-bold text-slate-800 mb-1 text-lg flex items-center gap-2"><i class="fa-solid fa-ban text-rose-400 text-sm"></i> 1. Reset อินซูลิน (Insulin Break)</h4>
+                        <p class="text-sm text-slate-600">งดแป้งและน้ำตาล 100% ในมื้อเช้า เพื่อบังคับร่างกายให้ดึงไขมันเก่ามาใช้ตั้งแต่ตื่นนอน (Switch Fuel Source)</p>
+                    </div>
+                    <div class="p-5 bg-white rounded-2xl border-l-4 border-amber-400 shadow-sm">
+                        <h4 class="font-bold text-slate-800 mb-1 text-lg flex items-center gap-2"><i class="fa-solid fa-traffic-light text-amber-400 text-sm"></i> 2. ควบคุม Randle Effect</h4>
+                        <p class="text-sm text-slate-600">อย่ากินไขมันสูงพร้อมกับน้ำตาลสูง เพราะจะทำให้ระบบเผาผลาญติดขัด (Traffic Jam) เลือกกินอย่างใดอย่างหนึ่งในมื้อนั้น</p>
+                    </div>
+                    <div class="p-5 bg-white rounded-2xl border-l-4 border-rose-700 shadow-sm">
+                        <h4 class="font-bold text-slate-800 mb-1 text-lg flex items-center gap-2"><i class="fa-solid fa-fire text-rose-700 text-sm"></i> 3. กระตุ้น PPARs</h4>
+                        <p class="text-sm text-slate-600">ทานไขมันดี เช่น น้ำมันมะกอก หรือ อะโวคาโด เพื่อส่งสัญญาณระดับเซลล์ให้เริ่มเผาผลาญไขมัน</p>
+                    </div>
+                    
+                    <div class="pt-6 text-center">
+                        <p class="text-slate-500 text-sm mb-3 font-medium">ต้องการตารางอาหารแบบละเอียด?</p>
+                        <a href="https://lin.ee/fB5mvdy" target="_blank" class="block w-full py-4 bg-[#06C755] text-white rounded-xl font-bold shadow-lg shadow-green-100 hover:shadow-green-200 transition-all transform hover:-translate-y-1">
+                           <i class="fa-brands fa-line text-xl mr-2 align-middle"></i> แอดไลน์รับตารางอาหารฟรี
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION (แก้ไขตรงนี้!)
+        // ==========================================
+        // 1. นำ Project URL มาใส่ในเครื่องหมายคำพูด
+        const SUPABASE_URL = 'https://qzqvwbucjxwgtmbdkrlu.supabase.co'; 
+        
+        // 2. นำ anon / public key มาใส่ในเครื่องหมายคำพูด
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6cXZ3YnVjanh3Z3RtYmRrcmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNzgxODksImV4cCI6MjA4MDk1NDE4OX0.RYvc5kMueNhsOu---WOKcXYnOZLVnjiWklp1IiHmgS8';
+        
+        // Initialize Supabase (ตรวจสอบว่าใส่ Key หรือยัง)
+        let supabaseClient = null;
+        
+        // เช็คว่า User เปลี่ยนค่า Default หรือยัง
+        const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+        if(isConfigured && window.supabase) {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log("Supabase initialized successfully");
+            } catch (e) {
+                console.error("Supabase init error:", e);
+            }
+        }
+
+        // ==========================================
+        // UI UTILS (Toast)
+        // ==========================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Colors based on type for Light Mode
+            let bgClass = type === 'success' ? 'bg-emerald-500' : 'bg-rose-500';
+            let icon = type === 'success' ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
+
+            toast.className = `toast flex items-center gap-3 p-4 mb-3 rounded-xl shadow-xl text-white ${bgClass} min-w-[300px] font-medium`;
+            toast.innerHTML = `
+                <div class="text-xl">${icon}</div>
+                <div class="text-sm">${message}</div>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Remove after 4s
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ==========================================
+        // DATA
+        // ==========================================
+        const questions = [
+            {
+                text: "คุณรู้สึกหงุดหงิด หรือมือสั่น หากมื้ออาหารล่าช้าเกิน 1-2 ชั่วโมงหรือไม่?",
+                icon: "fa-burger",
+                color: "text-rose-500",
+                options: [
+                    { text: "เป็นบ่อยมาก (Hangry สุดๆ)", value: 3 },
+                    { text: "เป็นบ้าง บางครั้ง", value: 1 },
+                    { text: "ไม่เป็นเลย สบายมาก", value: 0 }
+                ]
+            },
+            {
+                text: "หลังจากกินมื้อเที่ยงเสร็จ คุณรู้สึกง่วงนอนหนักมาก จนแทบทำงานต่อไม่ไหว?",
+                icon: "fa-bed",
+                color: "text-amber-500",
+                options: [
+                    { text: "ง่วงทุกวัน ตาจะปิด", value: 3 },
+                    { text: "ง่วงแค่วันที่กินแป้งเยอะ", value: 1 },
+                    { text: "ตื่นตัวปกติ สดชื่นดี", value: 0 }
+                ]
+            },
+            {
+                text: "คุณมีไขมันสะสมที่ 'พุง' หรือ 'รอบเอว' ที่ลดยากที่สุด แม้จะคุมอาหารแล้วก็ตาม?",
+                icon: "fa-weight-scale",
+                color: "text-blue-500",
+                options: [
+                    { text: "ใช่! พุงป่องไม่ยอมยุบ", value: 3 },
+                    { text: "มีบ้างนิดหน่อย", value: 1 },
+                    { text: "ไม่มี หน้าท้องแบนราบ", value: 0 }
+                ]
+            },
+            {
+                text: "ถ้าให้คุณงดมื้อเช้า (Fast) ไปกินเที่ยงเลย คุณไหวไหม?",
+                icon: "fa-utensils",
+                color: "text-emerald-500",
+                options: [
+                    { text: "ไม่ไหว จะเป็นลม", value: 3 },
+                    { text: "พอทนได้ แต่หิว", value: 1 },
+                    { text: "ไหวสบายมาก ชิลๆ", value: 0 }
+                ]
+            },
+            {
+                text: "คุณมักจะอยากกินของหวาน หรือน้ำหวาน หลังอาหารมื้อหลักเสมอ?",
+                icon: "fa-ice-cream",
+                color: "text-purple-500",
+                options: [
+                    { text: "ต้องกิน ไม่งั้นไม่จบ", value: 3 },
+                    { text: "อยากบ้าง นานๆ ที", value: 1 },
+                    { text: "ไม่ค่อยอยาก", value: 0 }
+                ]
+            }
+        ];
+
+        let currentQIndex = 0;
+        let totalScore = 0;
+
+        // ==========================================
+        // APP LOGIC
+        // ==========================================
+        
+        function showStep(stepId) {
+            document.querySelectorAll('#app > div').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`step-${stepId}`).classList.remove('hidden');
+        }
+
+        function startQuiz() {
+            showStep('quiz');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQIndex];
+            
+            // Update Text & Icon
+            document.getElementById('q-text').innerText = q.text;
+            document.getElementById('q-icon').innerHTML = `<i class="fa-solid ${q.icon} ${q.color}"></i>`;
+            document.getElementById('question-count').innerText = `Question ${currentQIndex + 1} of ${questions.length}`;
+            
+            // Update Progress Bar
+            const progress = ((currentQIndex) / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Render Options
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 rounded-xl bg-white border-2 border-slate-100 hover:border-rose-700 hover:shadow-lg hover:shadow-rose-50 transition-all duration-200 text-left flex items-center justify-between group";
+                btn.innerHTML = `
+                    <span class="text-slate-600 font-medium group-hover:text-slate-900">${opt.text}</span>
+                    <div class="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-rose-700 flex items-center justify-center">
+                        <div class="w-2.5 h-2.5 bg-rose-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+                `;
+                btn.onclick = () => handleAnswer(opt.value);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(value) {
+            totalScore += value;
+            currentQIndex++;
+
+            if (currentQIndex < questions.length) {
+                renderQuestion();
+            } else {
+                document.getElementById('progress-bar').style.width = `100%`;
+                setTimeout(() => {
+                    startAnalyzing();
+                }, 300);
+            }
+        }
+
+        function startAnalyzing() {
+            showStep('analyzing');
+            
+            // Fake loading sequence
+            setTimeout(() => {
+                document.querySelector('.typing-effect').innerText = "กำลังคำนวณคะแนน...";
+            }, 1500);
+            
+            setTimeout(() => {
+                showStep('capture');
+            }, 3000);
+        }
+
+        // ==========================================
+        // SUBMIT FORM & SUPABASE
+        // ==========================================
+        document.getElementById('lead-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const name = document.getElementById('input-name').value;
+            const contact = document.getElementById('input-contact').value;
+            const resultData = calculateResult(totalScore);
+
+            // SAVE via UPLABS API (attributes lead to coach via ?coach=... in URL)
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const coachId = params.get('coach') || null;
+                // detect whether contact is phone or email
+                const isEmail = /@/.test(contact);
+                await fetch('/api/check/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coach_id: coachId,
+                        quiz_type: 'metaflex',
+                        name: name,
+                        phone:   isEmail ? null  : contact,
+                        email:   isEmail ? contact : null,
+                        consent_followup: true,
+                        pre_score: totalScore,
+                        pre_level: resultData.level,
+                        pre_flags: [resultData.label || ''],
+                        answers: { score: totalScore, level: resultData.level, label: resultData.label },
+                    }),
+                });
+                console.log("Lead saved via UPLABS API");
+            } catch (error) {
+                console.error("Error saving lead:", error);
+                showToast("เกิดข้อผิดพลาดในการบันทึกข้อมูล (แต่ดูผลได้)", "error");
+            }
+
+            // Show Result (Even if save fails, show result so user isn't stuck)
+            setTimeout(() => {
+                renderResult(resultData);
+                showStep('result');
+            }, 1000);
+        });
+
+        function calculateResult(score) {
+            if (score >= 10) {
+                return {
+                    level: "CRITICAL LOCK 🚨",
+                    title: "ระบบเผาผลาญถูก 'ล็อก'!",
+                    desc: "ร่างกายสูญเสียความยืดหยุ่น (Metabolic Inflexibility) อย่างหนัก คุณติดกับดักการใช้น้ำตาลเป็นพลังงานหลัก ทำให้ดึงไขมันมาใช้ไม่ได้เลย (Insulin Resistance สูง)",
+                    colorClass: "from-red-500 to-rose-600",
+                    bgClass: "bg-white"
+                };
+            } else if (score >= 5) {
+                return {
+                    level: "WARNING ZONE ⚠️",
+                    title: "เริ่มติดขัด! ไม่ลื่นไหล",
+                    desc: "คุณอยู่ในภาวะกึ่งกลาง ร่างกายพยายามจะเผาไขมันแต่อินซูลินยังค้างสูงในบางช่วง (Randle Effect ทำงานไม่สมบูรณ์) ทำให้ลดน้ำหนักเริ่มยาก",
+                    colorClass: "from-orange-400 to-amber-500",
+                    bgClass: "bg-white"
+                };
+            } else {
+                return {
+                    level: "FLEXIBLE MODE ✅",
+                    title: "ยอดเยี่ยม! ยืดหยุ่นดี",
+                    desc: "ร่างกายคุณสลับโหมดพลังงานได้ดี (Good Flexibility) แต่ถ้าอยากลีนกว่านี้ เพื่อยืดอายุขัย เรามีเทคนิค Advance เพิ่มเติมให้",
+                    colorClass: "from-emerald-400 to-green-600",
+                    bgClass: "bg-white"
+                };
+            }
+        }
+
+        function renderResult(data) {
+            // Update Badge
+            document.getElementById('result-badge-color').className = `text-xs font-bold tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r ${data.colorClass}`;
+            document.getElementById('result-badge-color').innerText = data.level;
+
+            // Update Title & Desc
+            document.getElementById('result-title').innerText = data.title;
+            document.getElementById('result-desc').innerText = data.desc;
+            
+            // Update Card Gradient (Keep it dark for contrast or change to light?)
+            // For this design, let's keep the result header distinct but maybe cleaner
+            document.getElementById('result-card-bg').className = `rounded-3xl shadow-xl overflow-hidden relative text-white`;
+            document.querySelector('#result-card-bg > div').className = `bg-gradient-to-br ${data.colorClass} p-8 text-center space-y-4 h-full relative z-10`;
+
+            // Score Bar
+            document.getElementById('result-score-bar').className = `h-full rounded-full transition-all duration-1000 shadow-lg relative bg-white/30 backdrop-blur-md`;
+            
+            setTimeout(() => {
+                const percentage = (totalScore / 15) * 100;
+                document.getElementById('result-score-bar').style.width = `${percentage}%`;
+            }, 500);
+        }
+
+        function revealTips() {
+            document.getElementById('locked-content').classList.add('hidden');
+            document.getElementById('unlocked-content').classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>

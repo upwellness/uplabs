@@ -9,6 +9,7 @@ import { RISK_LABEL } from "@/lib/healthcheck/score";
 interface Lead {
   id:             string;
   coach_id:       string | null;
+  quiz_type:      string;
   created_at:     string;
   name:           string;
   phone:          string | null;
@@ -43,10 +44,12 @@ export default function HealthCheckPage() {
   const [leads, setLeads]       = useState<Lead[]>([]);
   const [loading, setLoading]   = useState(true);
   const [tab,     setTab]       = useState("all");
+  const [quizType, setQuizType] = useState<"all" | "healthcheck" | "metaflex">("all");
   const [search,  setSearch]    = useState("");
   const [selected, setSelected] = useState<Lead | null>(null);
-  const [shareUrl, setShareUrl] = useState<string>("");
   const [coachId,  setCoachId]  = useState<string>("");
+  const checkUrl    = coachId ? `${typeof window !== "undefined" ? window.location.origin : ""}/check/${coachId}`    : "";
+  const metaflexUrl = coachId ? `${typeof window !== "undefined" ? window.location.origin : ""}/metaflex/${coachId}` : "";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,25 +62,25 @@ export default function HealthCheckPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Get current user id for share URL
   useEffect(() => {
     fetch("/api/debug/me").then(r => r.json()).then((d) => {
-      if (d.user?.id) {
-        setCoachId(d.user.id);
-        setShareUrl(`${window.location.origin}/check/${d.user.id}`);
-      }
+      if (d.user?.id) setCoachId(d.user.id);
     });
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search) return leads;
-    const s = search.toLowerCase();
-    return leads.filter((l) =>
-      l.name.toLowerCase().includes(s) ||
-      l.phone?.includes(s) ||
-      l.line_id?.toLowerCase().includes(s),
-    );
-  }, [leads, search]);
+    let l = leads;
+    if (quizType !== "all") l = l.filter((x) => x.quiz_type === quizType);
+    if (search) {
+      const s = search.toLowerCase();
+      l = l.filter((x) =>
+        x.name.toLowerCase().includes(s) ||
+        x.phone?.includes(s) ||
+        x.line_id?.toLowerCase().includes(s),
+      );
+    }
+    return l;
+  }, [leads, search, quizType]);
 
   const counts = useMemo(() => ({
     new:       leads.filter((l) => l.status === "new").length,
@@ -103,10 +106,10 @@ export default function HealthCheckPage() {
     load();
   };
 
-  const copyShare = async () => {
-    if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    alert("คัดลอกลิงก์ Health Check แล้ว — ส่งให้คนทาง LINE/SNS");
+  const copyLink = async (url: string, label: string) => {
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    alert(`คัดลอกลิงก์ ${label} แล้ว — ส่งให้คนทาง LINE/SNS`);
   };
 
   return (
@@ -125,30 +128,20 @@ export default function HealthCheckPage() {
       </header>
 
       <div className="mx-auto max-w-content px-10 py-10">
-        {/* Share link card */}
-        <section className="rounded-3xl border border-rose bg-rose-ultra p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-rose">ลิงก์เก็บ Lead ของคุณ</div>
-              <h2 className="mt-1 font-head text-[18px] font-extrabold text-ink">📋 Public Health Check Form</h2>
-              <p className="mt-1.5 font-thai text-[13px] text-ink-60">
-                ส่งลิงก์นี้ผ่าน LINE/FB/IG — ใครก็ตามที่กรอก จะถูกเก็บเป็น lead ของคุณอัตโนมัติ
-              </p>
-              {shareUrl && (
-                <div className="mt-3 rounded-xl bg-ink p-3 font-mono text-[11px] text-white break-all">
-                  {shareUrl}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="rose" size="sm" onClick={copyShare} disabled={!shareUrl}>📋 Copy</Button>
-              {shareUrl && (
-                <a href={shareUrl} target="_blank" rel="noopener" className="rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink">
-                  👁 Preview
-                </a>
-              )}
-            </div>
-          </div>
+        {/* Share link cards — 2 quizzes */}
+        <section className="grid gap-4 md:grid-cols-2">
+          <ShareCard
+            title="🏥 Health Check"
+            desc="ประเมินสุขภาพ metabolic ครบชุด · risk score · BMI · 6 sections"
+            url={checkUrl}
+            onCopy={() => copyLink(checkUrl, "Health Check")}
+          />
+          <ShareCard
+            title="🔥 MetaFlex Quiz"
+            desc="วัด Metabolic Flexibility · sci-fi UI · quick 8 คำถาม"
+            url={metaflexUrl}
+            onCopy={() => copyLink(metaflexUrl, "MetaFlex Quiz")}
+          />
         </section>
 
         {/* Stats */}
@@ -159,15 +152,20 @@ export default function HealthCheckPage() {
           <Stat label="High Risk"      value={counts.high_risk} color="#DC2626" />
         </section>
 
-        {/* Filters */}
-        <section className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-1.5">
-            {STATUS_TABS.map((t) => (
+        {/* Filters: Quiz Type + Status + Search */}
+        <section className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-ink-40">Quiz:</span>
+            {([
+              { v: "all",         label: "ทั้งหมด" },
+              { v: "healthcheck", label: "🏥 Health Check" },
+              { v: "metaflex",    label: "🔥 MetaFlex" },
+            ] as const).map((t) => (
               <button
                 key={t.v}
-                onClick={() => setTab(t.v)}
-                className={`rounded-full border px-3.5 py-1 text-[11px] font-semibold transition-all ${
-                  tab === t.v
+                onClick={() => setQuizType(t.v)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-all ${
+                  quizType === t.v
                     ? "border-rose bg-rose text-white"
                     : "border-ink-10 bg-white text-ink-60 hover:border-ink-20"
                 }`}
@@ -176,12 +174,30 @@ export default function HealthCheckPage() {
               </button>
             ))}
           </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 ค้นหาชื่อ / เบอร์ / LINE..."
-            className="w-full sm:w-72 rounded-full border border-ink-10 bg-white px-4 py-2 text-sm outline-none focus:border-rose"
-          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-ink-40">Status:</span>
+              {STATUS_TABS.map((t) => (
+                <button
+                  key={t.v}
+                  onClick={() => setTab(t.v)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-all ${
+                    tab === t.v
+                      ? "border-rose bg-rose text-white"
+                      : "border-ink-10 bg-white text-ink-60 hover:border-ink-20"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 ค้นหาชื่อ / เบอร์ / LINE..."
+              className="w-full sm:w-72 rounded-full border border-ink-10 bg-white px-4 py-2 text-sm outline-none focus:border-rose"
+            />
+          </div>
         </section>
 
         {/* Leads list */}
@@ -219,6 +235,28 @@ export default function HealthCheckPage() {
 
 /* ───────────────────────────────────────────────── */
 
+function ShareCard({ title, desc, url, onCopy }: { title: string; desc: string; url: string; onCopy: () => void }) {
+  return (
+    <div className="rounded-3xl border border-rose bg-rose-ultra p-5">
+      <div className="font-head text-[16px] font-extrabold text-ink">{title}</div>
+      <p className="mt-1 font-thai text-[12px] text-ink-60">{desc}</p>
+      {url ? (
+        <div className="mt-3 rounded-xl bg-ink p-2.5 font-mono text-[10px] text-white break-all">{url}</div>
+      ) : (
+        <div className="mt-3 h-9 animate-pulse rounded-xl bg-ink-10" />
+      )}
+      <div className="mt-3 flex gap-2">
+        <Button variant="rose" size="sm" onClick={onCopy} disabled={!url}>📋 Copy</Button>
+        {url && (
+          <a href={url} target="_blank" rel="noopener" className="rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[11px] font-semibold text-ink">
+            👁 Preview
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="rounded-2xl border border-ink-10 bg-white px-5 py-4">
@@ -237,8 +275,9 @@ function LeadRow({ lead, isMine, onClick }: { lead: Lead; isMine: boolean; onCli
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="font-head text-[15px] font-bold text-ink truncate">{lead.name}</div>
+            <QuizPill type={lead.quiz_type} />
             {!isMine && <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-700">other coach</span>}
             <StatusPill status={lead.status} />
           </div>
@@ -256,6 +295,18 @@ function LeadRow({ lead, isMine, onClick }: { lead: Lead; isMine: boolean; onCli
         </div>
       </div>
     </button>
+  );
+}
+
+function QuizPill({ type }: { type: string }) {
+  const map: Record<string, { bg: string; fg: string; label: string }> = {
+    healthcheck: { bg: "#DBEAFE", fg: "#1D4ED8", label: "🏥 HEALTH" },
+    metaflex:    { bg: "#FEE2E2", fg: "#B91C1C", label: "🔥 METAFLEX" },
+  };
+  const m = map[type] ?? map.healthcheck;
+  return (
+    <span className="rounded-full px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider"
+      style={{ background: m.bg, color: m.fg }}>{m.label}</span>
   );
 }
 

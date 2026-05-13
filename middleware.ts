@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/api/pulse/share",         // public report fetch
   "/r",                       // public report page
   "/check",                   // Public Health Check form (lead capture)
+  "/metaflex",                // Public MetaFlex Quiz (lead capture)
   "/api/check",               // Public submit endpoint
 ];
 
