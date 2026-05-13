@@ -80,8 +80,8 @@ Coach UI (/pulse)
 
 10 seed rules pharmacist can extend:
 - RHR elevated → CoQ10 + Triple Omega
-- HR variability high → Cal Mag D + B-Complex
-- Low active minutes → Iron Folate + B-Complex
+- HR variability high → Cal Mag D + Vitamin B Plus
+- Low active minutes → Iron Folate + Vitamin B Plus
 - Low steps (sedentary) → All Plant Protein + Cal Mag D
 - Low heart minutes → CoQ10 + Omega-3
 - Short sleep < 6h → Cal Mag D
