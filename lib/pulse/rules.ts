@@ -63,8 +63,8 @@ export const PULSE_RULES: Rule[] = [
     evidence_grade: "B",
     citation: "Mortensen et al. JACC Heart Fail 2014 · Mozaffarian Circulation 2008",
     skus: [
-      { sku: "Heart Q10",      dose: "1 เม็ด/วัน", timing: "หลังอาหารเช้า" },
-      { sku: "Salmon Omega-3", dose: "2 เม็ด/วัน", timing: "กับอาหาร" },
+      { sku: "CoQ10",      dose: "1 เม็ด/วัน", timing: "หลังอาหารเช้า" },
+      { sku: "Triple Omega", dose: "2 เม็ด/วัน", timing: "กับอาหาร" },
     ],
   },
   {
@@ -117,8 +117,8 @@ export const PULSE_RULES: Rule[] = [
     evidence_grade: "B",
     citation: "Mortensen JACC 2014 · GISSI-Prevenzione trial",
     skus: [
-      { sku: "Heart Q10",      dose: "1 เม็ด/วัน" },
-      { sku: "Salmon Omega-3", dose: "2 เม็ด/วัน", timing: "กับอาหาร" },
+      { sku: "CoQ10",      dose: "1 เม็ด/วัน" },
+      { sku: "Triple Omega", dose: "2 เม็ด/วัน", timing: "กับอาหาร" },
     ],
   },
 
@@ -145,7 +145,7 @@ export const PULSE_RULES: Rule[] = [
     citation: "Cherasse Nutrients 2017 · Hansen Sleep Med 2014",
     skus: [
       { sku: "Cal Mag D",         dose: "2 เม็ดก่อนนอน" },
-      { sku: "Salmon Omega-3",    dose: "2 เม็ด/วัน" },
+      { sku: "Triple Omega",    dose: "2 เม็ด/วัน" },
     ],
   },
 
@@ -160,7 +160,7 @@ export const PULSE_RULES: Rule[] = [
     citation: "Calder Nutrients 2017 · Leidy AJCN 2015 (protein satiety)",
     skus: [
       { sku: "All Plant Protein", dose: "1-2 scoop/วัน" },
-      { sku: "Salmon Omega-3",    dose: "2 เม็ด/วัน" },
+      { sku: "Triple Omega",    dose: "2 เม็ด/วัน" },
       { sku: "Bodykey shake",     dose: "1 มื้อ/วัน แทนอาหาร" },
     ],
   },
@@ -218,7 +218,7 @@ export const PULSE_RULES: Rule[] = [
     skus: [
       { sku: "Calow (Fiber)",          dose: "1 ซอง × 2-3 มื้อ/วัน" },
       { sku: "All Plant Protein",      dose: "1-2 scoop/วัน กับมื้อ" },
-      { sku: "Salmon Omega-3",         dose: "2-3 เม็ด/วัน กับอาหาร" },
+      { sku: "Triple Omega",         dose: "2-3 เม็ด/วัน กับอาหาร" },
       { sku: "Double X",               dose: "3 เม็ดเช้า + 3 เย็น" },
     ],
   },
@@ -248,7 +248,7 @@ export const PULSE_RULES: Rule[] = [
     citation: "Calder Br J Nutr 2018 · Sonnenburg Cell 2019 (fiber-microbiome)",
     skus: [
       { sku: "CMS / Synbiotic",  dose: "1 ซอง/วัน" },
-      { sku: "Salmon Omega-3",   dose: "2-3 เม็ด/วัน" },
+      { sku: "Triple Omega",   dose: "2-3 เม็ด/วัน" },
     ],
   },
 ];

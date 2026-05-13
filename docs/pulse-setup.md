@@ -79,11 +79,11 @@ Coach UI (/pulse)
 ## Rule Engine (lib/pulse/rules.ts)
 
 10 seed rules pharmacist can extend:
-- RHR elevated → Heart Q10 + Salmon Omega-3
+- RHR elevated → CoQ10 + Triple Omega
 - HR variability high → Cal Mag D + B-Complex
 - Low active minutes → Iron Folate + B-Complex
 - Low steps (sedentary) → All Plant Protein + Cal Mag D
-- Low heart minutes → Heart Q10 + Omega-3
+- Low heart minutes → CoQ10 + Omega-3
 - Short sleep < 6h → Cal Mag D
 - Low deep sleep → Cal Mag D + Omega-3
 - High body fat → All Plant Protein + Omega-3 + Bodykey
