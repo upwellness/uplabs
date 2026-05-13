@@ -6,6 +6,7 @@ import { Logo } from "@/components/ui/Logo";
 import { CgmLinkManager } from "../../pulse/master/[id]/CgmLinkManager";
 import { CustomerEditor } from "./CustomerEditor";
 import { WearableLinkPanel } from "./WearableLinkPanel";
+import { LatestLabsCard } from "./LatestLabsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,11 @@ export default async function CustomerProfilePage({ params }: { params: { id: st
         <section className="rounded-3xl border border-ink-10 bg-white p-8">
           <CustomerEditor customer={customer} />
         </section>
+
+        {/* Medical Records Overview */}
+        <Section title="🧾 Medical Records · Latest Labs" subtitle="ดูค่าผลตรวจล่าสุดของแต่ละหมวด · คลิกขยายเพื่อดูรายการ">
+          <LatestLabsCard customerId={params.id} />
+        </Section>
 
         {/* Cross-app quick access */}
         <section className="mt-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
