@@ -1,24 +1,8 @@
-/**
- * Program Designer — embeds v1 single-page React app from /public/designer-v1.html
- * Wrapped in UPLABS shell so auth gate (layout.tsx) still applies.
- *
- * v1 features (Baseline 3.2.1):
- *  - 5-step wizard: Energy Block · Cell Nutrients · Gut Balance · Targeted Care · Final Summary
- *  - Product database with prices, pack sizes, can-discount flags
- *  - Standard 60d preset · 30d/60d toggle
- *  - Condition addons (high BP · high cholesterol · plateau · hunger · cancer/immune)
- *  - Auto-calculate units from doses (morning/noon/evening) and duration
- *  - 15% discount logic (BDK max 3, others max 1)
- *  - Membership fees: reg (+900) / e-Starter (-300) / A-Joy (-500)
- *  - PV + Cashback rate calculation
- *  - Save as 1800px HD image (html2canvas)
- *
- * SKU naming aligned with Pulse rules: Bio C (was BioC Plus).
- */
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { Logo } from "@/components/ui/Logo";
+import { DesignerClient } from "./DesignerClient";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +11,7 @@ export default async function DesignerPage() {
   if (!session) redirect("/login");
 
   return (
-    <main className="flex min-h-screen flex-col bg-white">
+    <main className="min-h-screen bg-surface">
       <header className="sticky top-0 z-40 border-b border-ink-10 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-content items-center justify-between px-6">
           <div className="flex items-center gap-5">
@@ -40,12 +24,20 @@ export default async function DesignerPage() {
           </div>
         </div>
       </header>
-      <iframe
-        src="/designer-v1.html"
-        title="Program Designer"
-        className="flex-1 w-full border-0"
-        style={{ height: "calc(100vh - 56px)" }}
-      />
+
+      <div className="mx-auto max-w-content px-6 py-10">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-40">
+          Full Course Customizer
+        </div>
+        <h1 className="mt-1 font-head text-[28px] font-extrabold tracking-tight text-ink">
+          🎨 Program Designer
+        </h1>
+        <p className="mt-2 max-w-2xl font-thai text-sm text-ink-60">
+          ออกแบบ Full Course เฉพาะบุคคล · 5 ขั้นตอน · คำนวณ unit อัตโนมัติ · ส่วนลด · PV + cashback · ส่งออก HD report
+        </p>
+
+        <DesignerClient />
+      </div>
     </main>
   );
 }
