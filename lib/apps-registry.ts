@@ -19,16 +19,16 @@ export interface AppMeta {
 }
 
 export const APPS: AppMeta[] = [
-  // ── Customer ──
-  { slug: "healthcheck",  name: "Health Check",    description: "ประเมินสุขภาพ + Lead Capture · ส่งลิงก์ให้คน · เก็บ lead อัตโนมัติ",  icon: "🏥", audience: "business", href: "/healthcheck",  status: "live", allowedRoles: ["abo", "admin"] },
-  { slug: "metaflexquiz", name: "MetaFlex Quiz",   description: "วัด Metabolic Flexibility · Lead capture · share ลิงก์ให้คน",  icon: "🔥", audience: "business", href: "/healthcheck?quiz=metaflex", status: "live", allowedRoles: ["abo", "admin"] },
+  // ── Customer (lead-facing · ส่งให้ prospect ได้) ──
+  { slug: "healthcheck",  name: "Health Check",    description: "ประเมินสุขภาพ + Lead Capture · ส่งลิงก์ให้คน · เก็บ lead อัตโนมัติ",  icon: "🏥", audience: "customer", href: "/healthcheck",  status: "live", allowedRoles: ["abo", "admin"] },
+  { slug: "metaflexquiz", name: "MetaFlex Quiz",   description: "วัด Metabolic Flexibility · Lead capture · share ลิงก์ให้คน",  icon: "🔥", audience: "customer", href: "/healthcheck?quiz=metaflex", status: "live", allowedRoles: ["abo", "admin"] },
 
   // ── Business ──
   { slug: "customers",    name: "Customer Profiles",description: "จัดการลูกค้า · link BCA + CGM + Wearable · master profile",    icon: "👥", audience: "business", href: "/customers",   status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "bca",          name: "BCA Tracker",     description: "ติดตาม Body Composition ของลูกค้าแบบต่อเนื่อง",     icon: "📊", audience: "business", href: "/bca",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "cgm",          name: "CGM Analyzer",    description: "วิเคราะห์ glucose monitoring patterns",            icon: "📈", audience: "business", href: "/cgm",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "pulse",        name: "UP Pulse",        description: "Wearable biomarker → Nutrient → Nutrilite mapping",icon: "📱", audience: "business", href: "/pulse",        status: "beta", allowedRoles: ["abo", "admin"] },
-  { slug: "nutriscan",    name: "NutriScan AI",    description: "AI วิเคราะห์โภชนาการจากรูปภาพ",                     icon: "🥗", audience: "business", href: "/nutriscan",    status: "soon", allowedRoles: ["abo", "admin"] },
+  { slug: "nutriscan",    name: "NutriScan AI",    description: "AI วิเคราะห์โภชนาการจากรูปภาพ · ตอบ macros + glucose impact",                     icon: "🥗", audience: "business", href: "/nutriscan",    status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "designer",     name: "Program Designer",description: "ออกแบบโปรแกรม wellness เฉพาะบุคคล",                icon: "🎨", audience: "business", href: "/designer",     status: "soon", allowedRoles: ["abo", "admin"] },
   { slug: "checkform",    name: "Check Form",      description: "Form ประเมิน lead ใหม่อย่างมีระบบ",                icon: "📋", audience: "business", href: "/checkform",    status: "soon", allowedRoles: ["abo", "admin"] },
   { slug: "prospect",     name: "Prospect",        description: "Lead intelligence + FORM scoring",                  icon: "🎯", audience: "business", href: "/prospect",     status: "soon", allowedRoles: ["abo", "admin"] },
