@@ -102,11 +102,12 @@ export interface NutriScanResult {
 }
 
 export interface NutriScanInput {
-  imageBase64: string;   // base64 without data URL prefix
-  mimeType:    string;   // e.g., "image/jpeg"
+  imageBase64?: string;   // base64 without data URL prefix · OR
+  mimeType?:    string;   // image mime · paired with imageBase64
+  textDescription?: string;  // text description instead of image
   context?: {
-    meal_time?:    string;   // "breakfast" | "lunch" | "dinner" | "snack"
-    customer_note?: string;  // optional context (e.g., "ลูกค้าเป็น pre-diabetes")
+    meal_time?:    string;
+    customer_note?: string;
   };
 }
 
@@ -114,15 +115,28 @@ export async function analyzeFood(input: NutriScanInput): Promise<NutriScanResul
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
+  if (!input.imageBase64 && !input.textDescription) {
+    throw new Error("ต้องมี imageBase64 หรือ textDescription อย่างน้อย 1 อย่าง");
+  }
+
   const contextNote = input.context
     ? `\n\nบริบทเพิ่มเติม:\n- เวลามื้อ: ${input.context.meal_time ?? "ไม่ระบุ"}\n- บันทึก: ${input.context.customer_note ?? "ไม่มี"}`
     : "";
 
-  const userText = `วิเคราะห์ภาพอาหารนี้และ output JSON ตาม schema ใน system prompt
-- ระบุอาหารที่เห็น · ประมาณ portion · macros · calorie
+  const inputDescriber = input.imageBase64
+    ? "ภาพอาหารนี้"
+    : `อาหารที่อธิบายไว้ว่า: "${input.textDescription}"`;
+
+  const userText = `วิเคราะห์${inputDescriber}และ output JSON ตาม schema ใน system prompt
+- ระบุอาหาร · ประมาณ portion · macros · calorie
 - ให้ glucose_impact score 1-10 + อธิบาย
 - ให้ health_score 1-10 + pros/cons
 - แนะนำ modifications + Nutrilite SKU ที่เกี่ยวข้อง${contextNote}`;
+
+  const parts: any[] = [{ text: userText }];
+  if (input.imageBase64 && input.mimeType) {
+    parts.push({ inline_data: { mime_type: input.mimeType, data: input.imageBase64 } });
+  }
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
@@ -130,12 +144,7 @@ export async function analyzeFood(input: NutriScanInput): Promise<NutriScanResul
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: userText },
-            { inline_data: { mime_type: input.mimeType, data: input.imageBase64 } },
-          ],
-        }],
+        contents: [{ parts }],
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature:      0.3,
