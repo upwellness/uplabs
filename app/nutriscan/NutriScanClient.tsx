@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { CPFPie } from "@/components/CPFPie";
 import { macroBreakdown, type Macros } from "@/lib/nutriscan/macros";
 
 interface CustomerOpt {
@@ -347,53 +348,41 @@ function ResultCard({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
-      {/* Calorie + Macros + Breakdown */}
+      {/* Calorie + Macros + Pie */}
       {(result.calories_estimate || m) && b && (
         <div className="rounded-2xl border border-ink-10 bg-surface p-5">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">Calories estimate</div>
-              <div className="mt-0.5 font-head text-[36px] font-extrabold text-ink leading-none">
-                {result.calories_estimate ?? b.total_kcal}
-                <span className="ml-1 text-[14px] font-normal text-ink-40">kcal</span>
-              </div>
+          <div className="grid gap-5 sm:grid-cols-[180px,1fr] items-center">
+            {/* Pie chart */}
+            <div className="flex justify-center">
+              <CPFPie
+                carb_pct={b.carb_pct}
+                protein_pct={b.protein_pct}
+                fat_pct={b.fat_pct}
+                total_kcal={result.calories_estimate ?? b.total_kcal}
+                size={170}
+              />
             </div>
-            <div className="text-right">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">จาก macros</div>
-              <div className="mt-0.5 font-mono text-[14px] text-ink-60">≈ {b.total_kcal} kcal</div>
+
+            {/* Right side · macros */}
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">Macros breakdown</div>
+              <div className="mt-2 space-y-2">
+                {m && (
+                  <>
+                    <MacroRow label="Carbohydrate"   g={m.carb_g}    kcal={b.carb_kcal}    pct={b.carb_pct}    color="rose" />
+                    <MacroRow label="Protein"        g={m.protein_g} kcal={b.protein_kcal} pct={b.protein_pct} color="wellness" />
+                    <MacroRow label="Fat"            g={m.fat_g}     kcal={b.fat_kcal}     pct={b.fat_pct}     color="amber" />
+                  </>
+                )}
+              </div>
+              {m && m.fiber_g > 0 && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-science-pale bg-science-ultra px-3 py-2 font-mono text-[11px] text-science">
+                  <span>🌱</span>
+                  <span><b>Fiber {m.fiber_g}g</b> · ไม่นับใน energy</span>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* C:P:F stacked bar */}
-          {b.total_kcal > 0 && (
-            <div className="mt-4">
-              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-ink-5">
-                <div style={{ width: `${b.carb_pct}%` }} className="bg-rose"></div>
-                <div style={{ width: `${b.protein_pct}%` }} className="bg-wellness"></div>
-                <div style={{ width: `${b.fat_pct}%` }} className="bg-amber"></div>
-              </div>
-              <div className="mt-1 flex justify-between font-mono text-[10px] text-ink-40">
-                <span>C {b.carb_pct}%</span>
-                <span>P {b.protein_pct}%</span>
-                <span>F {b.fat_pct}%</span>
-              </div>
-            </div>
-          )}
-
-          {/* Macros grid with kcal + % */}
-          {m && (
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <MacroCard label="Carb" g={m.carb_g} kcal={b.carb_kcal} pct={b.carb_pct} color="rose" />
-              <MacroCard label="Protein" g={m.protein_g} kcal={b.protein_kcal} pct={b.protein_pct} color="wellness" />
-              <MacroCard label="Fat" g={m.fat_g} kcal={b.fat_kcal} pct={b.fat_pct} color="amber" />
-            </div>
-          )}
-          {m && m.fiber_g > 0 && (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-science-pale bg-science-ultra px-3 py-2 font-mono text-[11px] text-science">
-              <span>🌱</span>
-              <span><b>Fiber {m.fiber_g}g</b> · ไม่นับใน energy</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -480,20 +469,22 @@ function ScoreCard({ label, score, note, variant, icon }: {
   );
 }
 
-function MacroCard({ label, g, kcal, pct, color }: { label: string; g: number; kcal: number; pct: number; color: string }) {
+function MacroRow({ label, g, kcal, pct, color }: { label: string; g: number; kcal: number; pct: number; color: string }) {
   const styles = {
     rose:     { dot: "bg-rose",     text: "text-rose" },
     wellness: { dot: "bg-wellness", text: "text-wellness" },
     amber:    { dot: "bg-amber",    text: "text-amber" },
   }[color] ?? { dot: "bg-ink", text: "text-ink" };
   return (
-    <div className="rounded-xl border border-ink-10 bg-white px-3 py-3">
-      <div className="flex items-center gap-1.5">
-        <span className={`h-2 w-2 rounded-full ${styles.dot}`}></span>
-        <span className="font-mono text-[9px] uppercase tracking-wider text-ink-40">{label}</span>
+    <div className="flex items-center gap-3 rounded-xl border border-ink-10 bg-white px-3 py-2">
+      <span className={`h-3 w-3 rounded-full shrink-0 ${styles.dot}`}></span>
+      <div className="min-w-0 flex-1">
+        <div className="font-thai text-[12px] font-semibold text-ink">{label}</div>
+        <div className="font-mono text-[10px] text-ink-40">{Math.round(kcal)} kcal · {pct}%</div>
       </div>
-      <div className={`mt-1 font-head text-[18px] font-bold ${styles.text}`}>{g}<span className="text-[11px] font-normal text-ink-40">g</span></div>
-      <div className="mt-0.5 font-mono text-[10px] text-ink-60">{Math.round(kcal)} kcal · {pct}%</div>
+      <div className={`font-head text-[18px] font-bold ${styles.text}`}>
+        {g}<span className="text-[10px] font-normal text-ink-40 ml-0.5">g</span>
+      </div>
     </div>
   );
 }

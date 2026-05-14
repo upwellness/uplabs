@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { aggregateDay, macroBreakdown } from "@/lib/nutriscan/macros";
+import { CPFPie } from "@/components/CPFPie";
 
 interface CustomerOpt { id: string; name: string }
 
@@ -155,44 +156,51 @@ function DaySummary({ aggregate }: { aggregate: ReturnType<typeof aggregateDay> 
   return (
     <section className="rounded-3xl border border-ink-10 bg-white p-6">
       <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">Day total</div>
-      <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCell label="Calories" value={a.total_kcal.toLocaleString()} unit="kcal" big />
-        <SummaryCell label="มื้อ" value={String(a.count)} unit="มื้อ" />
-        <SummaryCell label="Avg Glucose Impact" value={a.avg_glucose_impact ? a.avg_glucose_impact.toFixed(1) : "—"} unit="/ 10" color={a.avg_glucose_impact >= 7 ? "danger" : a.avg_glucose_impact >= 4 ? "warning" : "optimal"} />
-        <SummaryCell label="Avg Health Score" value={a.avg_health_score ? a.avg_health_score.toFixed(1) : "—"} unit="/ 10" color={a.avg_health_score >= 7 ? "optimal" : a.avg_health_score >= 4 ? "warning" : "danger"} />
-      </div>
 
-      {a.total_kcal > 0 && (
-        <>
-          <div className="mt-5">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">C : P : F (% of energy)</div>
-            <div className="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-ink-5">
-              <div style={{ width: `${a.carb_pct}%` }} className="bg-rose"></div>
-              <div style={{ width: `${a.protein_pct}%` }} className="bg-wellness"></div>
-              <div style={{ width: `${a.fat_pct}%` }} className="bg-amber"></div>
+      <div className="mt-4 grid gap-6 sm:grid-cols-[200px,1fr] items-start">
+        {/* Pie chart left */}
+        <div className="flex justify-center">
+          <CPFPie
+            carb_pct={a.carb_pct}
+            protein_pct={a.protein_pct}
+            fat_pct={a.fat_pct}
+            total_kcal={a.total_kcal}
+            size={200}
+          />
+        </div>
+
+        {/* Stats right */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <SummaryCell label="มื้อ"      value={String(a.count)} unit="มื้อ" />
+            <SummaryCell label="Glucose"   value={a.avg_glucose_impact ? a.avg_glucose_impact.toFixed(1) : "—"} unit="/ 10"
+                         color={a.avg_glucose_impact >= 7 ? "danger" : a.avg_glucose_impact >= 4 ? "warning" : "optimal"} />
+            <SummaryCell label="Health"    value={a.avg_health_score ? a.avg_health_score.toFixed(1) : "—"} unit="/ 10"
+                         color={a.avg_health_score >= 7 ? "optimal" : a.avg_health_score >= 4 ? "warning" : "danger"} />
+          </div>
+
+          {a.total_kcal > 0 && (
+            <div className="space-y-2">
+              <MacroSummaryRow label="Carbohydrate" g={a.total_carb_g}    pct={a.carb_pct}    color="rose" />
+              <MacroSummaryRow label="Protein"      g={a.total_protein_g} pct={a.protein_pct} color="wellness" />
+              <MacroSummaryRow label="Fat"          g={a.total_fat_g}     pct={a.fat_pct}     color="amber" />
             </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <MacroSummary label="Carb" g={a.total_carb_g} pct={a.carb_pct} color="rose" />
-            <MacroSummary label="Protein" g={a.total_protein_g} pct={a.protein_pct} color="wellness" />
-            <MacroSummary label="Fat" g={a.total_fat_g} pct={a.fat_pct} color="amber" />
-          </div>
+          )}
 
           {a.total_fiber_g > 0 && (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-science-pale bg-science-ultra px-3 py-2 font-mono text-[11px] text-science">
+            <div className="flex items-center gap-2 rounded-xl border border-science-pale bg-science-ultra px-3 py-2 font-mono text-[11px] text-science">
               <span>🌱</span>
               <span><b>Fiber {a.total_fiber_g}g</b> · ไม่นับใน energy</span>
             </div>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </section>
   );
 }
 
-function SummaryCell({ label, value, unit, big, color }: {
-  label: string; value: string; unit?: string; big?: boolean;
+function SummaryCell({ label, value, unit, color }: {
+  label: string; value: string; unit?: string;
   color?: "optimal" | "warning" | "danger";
 }) {
   const textColor = color === "optimal" ? "text-status-optimal"
@@ -200,29 +208,31 @@ function SummaryCell({ label, value, unit, big, color }: {
     : color === "danger" ? "text-status-danger"
     : "text-ink";
   return (
-    <div className="rounded-2xl border border-ink-10 bg-surface px-4 py-3">
-      <div className="font-mono text-[10px] uppercase tracking-wider text-ink-40">{label}</div>
-      <div className={`mt-1 font-head font-extrabold ${textColor} ${big ? "text-[28px]" : "text-[22px]"}`}>
-        {value}<span className="ml-1 text-[11px] font-normal text-ink-40">{unit}</span>
+    <div className="rounded-xl border border-ink-10 bg-surface px-3 py-2.5 text-center">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-ink-40">{label}</div>
+      <div className={`mt-1 font-head text-[18px] font-extrabold ${textColor}`}>
+        {value}<span className="ml-0.5 text-[10px] font-normal text-ink-40">{unit}</span>
       </div>
     </div>
   );
 }
 
-function MacroSummary({ label, g, pct, color }: { label: string; g: number; pct: number; color: string }) {
+function MacroSummaryRow({ label, g, pct, color }: { label: string; g: number; pct: number; color: string }) {
   const styles = {
-    rose:     { dot: "bg-rose",     text: "text-rose",     bg: "bg-rose-ultra"     },
-    wellness: { dot: "bg-wellness", text: "text-wellness", bg: "bg-wellness-ultra" },
-    amber:    { dot: "bg-amber",    text: "text-amber",    bg: "bg-amber-ultra"    },
-  }[color] ?? { dot: "bg-ink", text: "text-ink", bg: "bg-surface" };
+    rose:     { dot: "bg-rose",     text: "text-rose" },
+    wellness: { dot: "bg-wellness", text: "text-wellness" },
+    amber:    { dot: "bg-amber",    text: "text-amber" },
+  }[color] ?? { dot: "bg-ink", text: "text-ink" };
   return (
-    <div className={`rounded-xl border border-ink-10 ${styles.bg} px-3 py-2.5`}>
-      <div className="flex items-center gap-1.5">
-        <span className={`h-2 w-2 rounded-full ${styles.dot}`}></span>
-        <span className="font-mono text-[9px] uppercase tracking-wider text-ink-60">{label}</span>
-        <span className="ml-auto font-mono text-[11px] font-bold text-ink">{pct}%</span>
+    <div className="flex items-center gap-3 rounded-xl border border-ink-10 bg-surface px-3 py-2">
+      <span className={`h-3 w-3 rounded-full shrink-0 ${styles.dot}`}></span>
+      <div className="min-w-0 flex-1">
+        <div className="font-thai text-[12px] font-semibold text-ink">{label}</div>
+        <div className="font-mono text-[10px] text-ink-40">{pct}% ของพลังงาน</div>
       </div>
-      <div className={`mt-0.5 font-head text-[16px] font-bold ${styles.text}`}>{g}<span className="text-[11px] font-normal text-ink-40">g</span></div>
+      <div className={`font-head text-[18px] font-bold ${styles.text}`}>
+        {g}<span className="text-[10px] font-normal text-ink-40 ml-0.5">g</span>
+      </div>
     </div>
   );
 }
