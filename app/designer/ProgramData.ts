@@ -139,34 +139,41 @@ export function initialItems(): ItemState[] {
   }));
 }
 
+/**
+ * Process raw items → compute `suggested` packs.
+ *
+ * SINGLE source of truth = dose math: ceil((dM+dN+dE) × duration / pack).
+ * Special cases:
+ *  - BodyKey/All Plant 900 under Standard course: alternate 14-on/14-off → multiplier × 42/60
+ *  - Standard preset has fixed q60 numbers · use them only if dose matches preset
+ *  - Condition addons SET doses (they fill dM/dN/dE) — dose math handles the rest,
+ *    NEVER add condition's q60 on top of dose math (was the double-count bug)
+ *  - แก้ว (p21) is qty-only, no dose math
+ */
 export function processItems(
-  items: ItemState[], duration: number, isStd: boolean, activeConds: string[],
+  items: ItemState[], duration: number, isStd: boolean, _activeConds: string[],
 ): ItemState[] {
+  void _activeConds; // kept for API compatibility; doses already set by toggleCond
   return items.map((item) => {
+    if (item.id === "p21") return { ...item, suggested: item.qty };
+
     const dSum = (parseFloat(item.dM) || 0) + (parseFloat(item.dN) || 0) + (parseFloat(item.dE) || 0);
-    if (dSum === 0 && !item.rmk && item.id !== "p21" && item.qty === 0) {
+
+    if (dSum === 0 && !item.rmk && item.qty === 0) {
       return { ...item, qty: 0, suggested: 0 };
     }
-    if (item.id === "p21") return item;
 
-    let suggested = 0;
     let multiplier = duration;
     if (isStd && (item.id === "p1" || item.id === "p2")) multiplier = (duration / 60) * 42;
 
-    if (dSum > 0) suggested = Math.ceil((dSum * multiplier) / item.pack);
+    let suggested = dSum > 0 ? Math.ceil((dSum * multiplier) / item.pack) : 0;
 
+    // Standard preset override (only if user hasn't deviated from preset doses)
     if (isStd && STANDARD_60D[item.id]) {
       const s = STANDARD_60D[item.id];
       const sSum = (parseFloat(s.dM ?? "0") || 0) + (parseFloat(s.dN ?? "0") || 0) + (parseFloat(s.dE ?? "0") || 0);
       if (dSum === sSum && s.q60 != null) suggested = duration === 60 ? s.q60 : Math.ceil(s.q60 / 2);
     }
-
-    CONDITION_ADDONS.filter((c) => activeConds.includes(c.id)).forEach((c) => {
-      const spec = c.items[item.id];
-      if (spec && spec.q60 != null) {
-        suggested += duration === 60 ? spec.q60 : Math.ceil(spec.q60 / 2);
-      }
-    });
 
     if (suggested === 0 && (dSum > 0 || item.rmk)) suggested = 1;
     return { ...item, suggested, qty: item.isManual ? item.qty : suggested };

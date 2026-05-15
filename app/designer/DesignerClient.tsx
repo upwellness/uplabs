@@ -263,6 +263,7 @@ export function DesignerClient() {
                               className="flex-1 h-9 rounded-lg border border-ink-10 bg-white px-3 font-thai text-xs text-ink focus:border-rose focus:outline-none"
                             />
                           </div>
+                          <PackMath item={item} duration={duration} />
                         </div>
                       )}
                     </div>
@@ -342,6 +343,26 @@ export function DesignerClient() {
           activeConds={activeConds}
           isStd={isStd}
         />
+      )}
+    </div>
+  );
+}
+
+/* ─── Pack math hint (shown under dose inputs) ──────────────── */
+
+function PackMath({ item, duration }: { item: ItemState; duration: number }) {
+  const dSum = (parseFloat(item.dM) || 0) + (parseFloat(item.dN) || 0) + (parseFloat(item.dE) || 0);
+  if (dSum === 0) return null;
+  const tabsTotal = dSum * duration;
+  const packsNeeded = Math.ceil(tabsTotal / item.pack);
+  const isOverride = item.isManual && item.qty !== packsNeeded;
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-surface px-2.5 py-1.5 font-mono text-[10px] text-ink-60">
+      <span>{dSum} เม็ด/วัน × {duration} วัน = {tabsTotal} เม็ด</span>
+      <span className="text-ink-40">→</span>
+      <span className={`font-bold ${isOverride ? "text-ink-40 line-through" : "text-ink"}`}>{packsNeeded} ขวด</span>
+      {isOverride && (
+        <span className="font-bold text-status-warning">·  manual: {item.qty} ขวด</span>
       )}
     </div>
   );
