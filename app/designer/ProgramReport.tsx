@@ -114,12 +114,12 @@ export function ProgramReport({ onClose, name, duration, items, summary, activeC
               <table className="w-full text-left text-sm">
                 <thead className="bg-surface border-b border-ink-10">
                   <tr className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-40">
-                    <th className="px-4 py-3 w-[32%]">ผลิตภัณฑ์</th>
-                    <th className="px-2 py-3 text-center w-[7%]">จำนวน</th>
+                    <th className="px-4 py-3 w-[30%]">ผลิตภัณฑ์</th>
+                    <th className="px-2 py-3 text-center w-[8%]">จำนวน</th>
                     <th className="px-2 py-3 text-center bg-rose-ultra w-[7%]">เช้า</th>
                     <th className="px-2 py-3 text-center bg-amber-ultra w-[7%]">กลางวัน</th>
                     <th className="px-2 py-3 text-center bg-science-ultra w-[7%]">เย็น</th>
-                    <th className="px-4 py-3 w-[40%]">หมายเหตุ</th>
+                    <th className="px-4 py-3 w-[41%]">หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-5">
@@ -129,7 +129,10 @@ export function ProgramReport({ onClose, name, duration, items, summary, activeC
                         <div className="font-thai text-[13px] font-bold text-ink">{i.name}</div>
                         <div className="mt-0.5 font-mono text-[10px] text-ink-40">{i.cat}</div>
                       </td>
-                      <td className="px-2 py-3 text-center font-mono text-base font-bold text-ink">{i.qty}</td>
+                      <td className="px-2 py-3 text-center">
+                        <div className="font-mono text-base font-bold text-ink">{i.qty}</div>
+                        <div className="font-mono text-[9px] text-ink-40 mt-0.5">{i.containerUnit}</div>
+                      </td>
                       <td className="px-2 py-3 text-center font-mono text-lg font-bold text-rose bg-rose-ultra/40">{i.dM || "—"}</td>
                       <td className="px-2 py-3 text-center font-mono text-lg font-bold text-amber bg-amber-ultra/40">{i.dN || "—"}</td>
                       <td className="px-2 py-3 text-center font-mono text-lg font-bold text-science bg-science-ultra/40">{i.dE || "—"}</td>

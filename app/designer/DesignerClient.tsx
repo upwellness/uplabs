@@ -226,7 +226,7 @@ export function DesignerClient() {
                           <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-ink-40">
                             <span>฿{prod.price.toLocaleString()}</span>
                             <span>·</span>
-                            <span>{prod.pack}u/pack</span>
+                            <span>{prod.pack} {prod.doseUnit}/{prod.containerUnit}</span>
                             {prod.canDisc && <><span>·</span><span className="text-status-optimal">15%</span></>}
                           </div>
                         </div>
@@ -313,7 +313,7 @@ export function DesignerClient() {
                   <span className={`h-2 w-2 rounded-full ${c.dot}`} />
                   <div className="min-w-0 flex-1">
                     <div className="font-thai text-[12px] font-semibold text-ink truncate">{i.name}</div>
-                    <div className="font-mono text-[9px] text-ink-40">{i.qty} units · ฿{(i.price * i.qty).toLocaleString()}</div>
+                    <div className="font-mono text-[9px] text-ink-40">{i.qty} {i.containerUnit} · ฿{(i.price * i.qty).toLocaleString()}</div>
                   </div>
                 </div>
               );
@@ -353,16 +353,16 @@ export function DesignerClient() {
 function PackMath({ item, duration }: { item: ItemState; duration: number }) {
   const dSum = (parseFloat(item.dM) || 0) + (parseFloat(item.dN) || 0) + (parseFloat(item.dE) || 0);
   if (dSum === 0) return null;
-  const tabsTotal = dSum * duration;
-  const packsNeeded = Math.ceil(tabsTotal / item.pack);
-  const isOverride = item.isManual && item.qty !== packsNeeded;
+  const unitsTotal = dSum * duration;
+  const containersNeeded = Math.ceil(unitsTotal / item.pack);
+  const isOverride = item.isManual && item.qty !== containersNeeded;
   return (
     <div className="flex items-center gap-2 rounded-lg bg-surface px-2.5 py-1.5 font-mono text-[10px] text-ink-60">
-      <span>{dSum} เม็ด/วัน × {duration} วัน = {tabsTotal} เม็ด</span>
+      <span>{dSum} {item.doseUnit}/วัน × {duration} วัน = {unitsTotal} {item.doseUnit}</span>
       <span className="text-ink-40">→</span>
-      <span className={`font-bold ${isOverride ? "text-ink-40 line-through" : "text-ink"}`}>{packsNeeded} ขวด</span>
+      <span className={`font-bold ${isOverride ? "text-ink-40 line-through" : "text-ink"}`}>{containersNeeded} {item.containerUnit}</span>
       {isOverride && (
-        <span className="font-bold text-status-warning">·  manual: {item.qty} ขวด</span>
+        <span className="font-bold text-status-warning">· manual: {item.qty} {item.containerUnit}</span>
       )}
     </div>
   );

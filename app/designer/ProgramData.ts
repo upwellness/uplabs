@@ -10,42 +10,50 @@ export const PV_RATE = 3.23;
 export type Category = "Calories Restriction" | "Nutrients" | "Hormone Balance" | "NCDs" | "Etc";
 export type Color = "rose" | "wellness" | "science" | "amber" | "ink";
 
+/** Dose unit (what each dM/dN/dE number represents) */
+export type DoseUnit = "เม็ด" | "ซอง" | "ชุด" | "ช้อน";
+
+/** Container unit (what `qty` (= packs/boxes/etc) represents) */
+export type ContainerUnit = "ขวด" | "กล่อง" | "ถัง" | "ใบ";
+
 export interface Product {
-  id:      string;
-  name:    string;
-  price:   number;
-  cat:     Category;
-  pack:    number;
-  color:   Color;
-  canDisc: boolean;
+  id:            string;
+  name:          string;
+  price:         number;
+  cat:           Category;
+  pack:          number;          // doseUnits per container
+  doseUnit:      DoseUnit;
+  containerUnit: ContainerUnit;
+  color:         Color;
+  canDisc:       boolean;
 }
 
 export const PRODUCTS: Product[] = [
   // Calories Restriction
-  { id: "p1",  name: "BodyKey (BK)",     price: 1700, cat: "Calories Restriction", pack: 14,  color: "rose",     canDisc: true  },
-  { id: "p2",  name: "All Plant 900g",   price: 2300, cat: "Calories Restriction", pack: 53,  color: "rose",     canDisc: false },
-  { id: "p3",  name: "All Plant 450g",   price: 1209, cat: "Calories Restriction", pack: 26,  color: "rose",     canDisc: true  },
-  { id: "p4",  name: "GT/Choc Protein",  price: 1500, cat: "Calories Restriction", pack: 26,  color: "rose",     canDisc: true  },
-  { id: "p5",  name: "Green Tea Plus",   price: 1732, cat: "Calories Restriction", pack: 60,  color: "rose",     canDisc: true  },
+  { id: "p1",  name: "BodyKey (BK)",     price: 1700, cat: "Calories Restriction", pack: 14,  doseUnit: "ซอง", containerUnit: "กล่อง", color: "rose",     canDisc: true  },
+  { id: "p2",  name: "All Plant 900g",   price: 2300, cat: "Calories Restriction", pack: 53,  doseUnit: "ช้อน", containerUnit: "ถัง",   color: "rose",     canDisc: false },
+  { id: "p3",  name: "All Plant 450g",   price: 1209, cat: "Calories Restriction", pack: 26,  doseUnit: "ช้อน", containerUnit: "ถัง",   color: "rose",     canDisc: true  },
+  { id: "p4",  name: "GT/Choc Protein",  price: 1500, cat: "Calories Restriction", pack: 26,  doseUnit: "ช้อน", containerUnit: "ถัง",   color: "rose",     canDisc: true  },
+  { id: "p5",  name: "Green Tea Plus",   price: 1732, cat: "Calories Restriction", pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "rose",     canDisc: true  },
   // Nutrients
-  { id: "p6",  name: "DoubleX Box",      price: 2364, cat: "Nutrients",            pack: 62,  color: "wellness", canDisc: true  },
-  { id: "p7",  name: "DoubleX Refill",   price: 4486, cat: "Nutrients",            pack: 124, color: "wellness", canDisc: false },
-  { id: "p9",  name: "Triple Omega",     price: 975,  cat: "Nutrients",            pack: 60,  color: "wellness", canDisc: true  },
-  { id: "p10", name: "Vitamin B Plus",   price: 527,  cat: "Nutrients",            pack: 60,  color: "wellness", canDisc: false },
-  { id: "p11", name: "Bio C",            price: 990,  cat: "Nutrients",            pack: 60,  color: "wellness", canDisc: true  },
+  { id: "p6",  name: "DoubleX Box",      price: 2364, cat: "Nutrients",            pack: 62,  doseUnit: "ชุด",  containerUnit: "กล่อง", color: "wellness", canDisc: true  },
+  { id: "p7",  name: "DoubleX Refill",   price: 4486, cat: "Nutrients",            pack: 124, doseUnit: "ชุด",  containerUnit: "กล่อง", color: "wellness", canDisc: false },
+  { id: "p9",  name: "Triple Omega",     price: 975,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: true  },
+  { id: "p10", name: "Vitamin B Plus",   price: 527,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: false },
+  { id: "p11", name: "Bio C",            price: 990,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: true  },
   // Hormone Balance
-  { id: "p12", name: "Fiber Blend",      price: 1168, cat: "Hormone Balance",      pack: 60,  color: "science",  canDisc: false },
-  { id: "p14", name: "Fiber Powder",     price: 1627, cat: "Hormone Balance",      pack: 30,  color: "science",  canDisc: true  },
-  { id: "p15", name: "Probiotics",       price: 1650, cat: "Hormone Balance",      pack: 30,  color: "science",  canDisc: true  },
+  { id: "p12", name: "Fiber Blend",      price: 1168, cat: "Hormone Balance",      pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "science",  canDisc: false },
+  { id: "p14", name: "Fiber Powder",     price: 1627, cat: "Hormone Balance",      pack: 30,  doseUnit: "ซอง", containerUnit: "กล่อง", color: "science",  canDisc: true  },
+  { id: "p15", name: "Probiotics",       price: 1650, cat: "Hormone Balance",      pack: 30,  doseUnit: "ซอง", containerUnit: "กล่อง", color: "science",  canDisc: true  },
   // NCDs
-  { id: "p16", name: "Garlic",           price: 1195, cat: "NCDs",                 pack: 150, color: "amber",    canDisc: true  },
-  { id: "p17", name: "CoQ10",            price: 2209, cat: "NCDs",                 pack: 60,  color: "amber",    canDisc: true  },
-  { id: "p18", name: "Ginseng",          price: 1300, cat: "NCDs",                 pack: 60,  color: "amber",    canDisc: false },
-  { id: "p19", name: "CVF (Immune)",     price: 1468, cat: "NCDs",                 pack: 60,  color: "amber",    canDisc: false },
-  { id: "p20", name: "Calow",            price: 1314, cat: "NCDs",                 pack: 90,  color: "amber",    canDisc: false },
-  { id: "p22", name: "Lesterol",         price: 1486, cat: "NCDs",                 pack: 60,  color: "amber",    canDisc: false },
+  { id: "p16", name: "Garlic",           price: 1195, cat: "NCDs",                 pack: 150, doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: true  },
+  { id: "p17", name: "CoQ10",            price: 2209, cat: "NCDs",                 pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: true  },
+  { id: "p18", name: "Ginseng",          price: 1300, cat: "NCDs",                 pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: false },
+  { id: "p19", name: "CVF (Immune)",     price: 1468, cat: "NCDs",                 pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: false },
+  { id: "p20", name: "Calow",            price: 1314, cat: "NCDs",                 pack: 90,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: false },
+  { id: "p22", name: "Lesterol",         price: 1486, cat: "NCDs",                 pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "amber",    canDisc: false },
   // Etc
-  { id: "p21", name: "แก้ว UP Labs",    price: 100,  cat: "Etc",                  pack: 1,   color: "ink",      canDisc: false },
+  { id: "p21", name: "แก้ว UP Labs",    price: 100,  cat: "Etc",                  pack: 1,   doseUnit: "เม็ด", containerUnit: "ใบ",    color: "ink",      canDisc: false },
 ];
 
 export interface DoseSpec {
