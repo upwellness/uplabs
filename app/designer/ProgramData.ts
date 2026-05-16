@@ -37,7 +37,7 @@ export const PRODUCTS: Product[] = [
   { id: "p5",  name: "Green Tea Plus",   price: 1732, cat: "Calories Restriction", pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "rose",     canDisc: true  },
   // Nutrients
   { id: "p6",  name: "DoubleX Box",      price: 2364, cat: "Nutrients",            pack: 62,  doseUnit: "ชุด",  containerUnit: "กล่อง", color: "wellness", canDisc: true  },
-  { id: "p7",  name: "DoubleX Refill",   price: 4486, cat: "Nutrients",            pack: 124, doseUnit: "ชุด",  containerUnit: "กล่อง", color: "wellness", canDisc: false },
+  { id: "p7",  name: "DoubleX Refill",   price: 4468, cat: "Nutrients",            pack: 124, doseUnit: "ชุด",  containerUnit: "กล่อง", color: "wellness", canDisc: false },
   { id: "p9",  name: "Triple Omega",     price: 975,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: true  },
   { id: "p10", name: "Vitamin B Plus",   price: 527,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: false },
   { id: "p11", name: "Bio C",            price: 990,  cat: "Nutrients",            pack: 60,  doseUnit: "เม็ด", containerUnit: "ขวด",   color: "wellness", canDisc: true  },
