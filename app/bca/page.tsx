@@ -217,10 +217,15 @@ export default function BCAPage() {
                 level={stats.bmi.level} sub="WHO Asian standards" />
             )}
             {stats.visceral && (
-              <MetricGauge title="Visceral Fat" subtitle="Tanita scale · เป้าหมาย ≤ 9"
+              <MetricGauge title="Visceral Fat" subtitle="UP Wellness scale · เป้าหมาย ≤ 5"
                 value={stats.visceral.value} unit="" min={1} max={20}
-                markers={[{ v: 9, label: "Optimal" }, { v: 12, label: "High" }, { v: 14, label: "Very High" }]}
-                level={stats.visceral.level} sub="ค่าต่ำกว่า 10 = ปลอดภัย" />
+                markers={[
+                  { v: 2,  label: "ดี" },
+                  { v: 5,  label: "ปกติ" },
+                  { v: 9,  label: "สูง" },
+                  { v: 15, label: "สูงมาก" },
+                ]}
+                level={stats.visceral.level} sub="1-2 ดี · 3-5 ปกติ · 6-9 สูง · 10-15 สูงมาก · 16+ อันตราย" />
             )}
           </section>
         )}

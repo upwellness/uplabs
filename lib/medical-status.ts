@@ -88,10 +88,16 @@ export function classifyMusclePct(pct: number, gender: Gender): StatusLevel {
 }
 
 export function classifyVisceralFat(level: number): StatusLevel {
-  // Tanita scale 1–59
-  if (level <= 9)  return "optimal";
-  if (level <= 12) return "caution";
-  if (level <= 14) return "warning";
+  // UP Wellness scale (owner-defined, stricter than Tanita default)
+  // 1-2  = ดี (Excellent · เขียวเข้ม)
+  // 3-5  = ปกติ (Normal · เขียว)
+  // 6-9  = สูง (High · เหลือง)
+  // 10-15 = สูงมาก (Very high · ส้ม)
+  // 16+  = อันตราย (Danger · แดง)
+  if (level <= 2)  return "optimal";
+  if (level <= 5)  return "good";
+  if (level <= 9)  return "caution";
+  if (level <= 15) return "warning";
   return "danger";
 }
 
