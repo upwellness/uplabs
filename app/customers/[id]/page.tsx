@@ -132,8 +132,9 @@ export default async function CustomerProfilePage({ params }: { params: { id: st
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Metric label="น้ำหนัก"    value={bcaLatest.weight}     unit="kg" />
               <Metric label="Fat %"      value={bcaLatest.fat_pct}    unit="%" />
-              <Metric label="Muscle %"   value={bcaLatest.muscle_pct} unit="%" />
+              {/* Omron order: Visceral มาก่อน Muscle */}
               <Metric label="Visceral"   value={bcaLatest.visceral}   unit="lv" />
+              <Metric label="Muscle %"   value={bcaLatest.muscle_pct} unit="%" />
               <Metric label="Body Age"   value={bcaLatest.body_age}   unit="yr" />
             </div>
           </Section>

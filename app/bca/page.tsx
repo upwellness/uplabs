@@ -181,10 +181,11 @@ export default function BCAPage() {
                   delta={previous ? +((latest.weight ?? 0) - (previous.weight ?? 0)).toFixed(1) : null} />
                 {stats.fat && <SummaryCard label="Body Fat" value={stats.fat.value} unit="%" level={stats.fat.level}
                   delta={previous?.fat_pct ? +(stats.fat.value - previous.fat_pct).toFixed(1) : null} />}
-                {stats.muscle && <SummaryCard label="Muscle" value={stats.muscle.value} unit="%" level={stats.muscle.level}
-                  delta={previous?.muscle_pct ? +(stats.muscle.value - previous.muscle_pct).toFixed(1) : null} deltaInverted />}
+                {/* Omron order: Visceral มาก่อน Muscle */}
                 {stats.visceral && <SummaryCard label="Visceral Fat" value={stats.visceral.value} unit="lv" level={stats.visceral.level}
                   delta={previous?.visceral ? stats.visceral.value - previous.visceral : null} />}
+                {stats.muscle && <SummaryCard label="Muscle" value={stats.muscle.value} unit="%" level={stats.muscle.level}
+                  delta={previous?.muscle_pct ? +(stats.muscle.value - previous.muscle_pct).toFixed(1) : null} deltaInverted />}
                 {stats.bodyAge && <SummaryCard label="Body Age" value={stats.bodyAge.value} unit="yr" level={stats.bodyAge.level}
                   delta={previous?.body_age ? stats.bodyAge.value - previous.body_age : null} />}
               </div>
@@ -202,6 +203,18 @@ export default function BCAPage() {
                   : [{ v: 20, label: "Athletic" }, { v: 24, label: "Fitness" }, { v: 31, label: "Average" }, { v: 36, label: "Obese" }]}
                 level={stats.fat.level} sub={`Fat Mass · ${latest.fat_mass} kg`} />
             )}
+            {/* Omron order: Visceral มาก่อน Muscle */}
+            {stats.visceral && (
+              <MetricGauge title="Visceral Fat" subtitle="UP Wellness scale · เป้าหมาย ≤ 5"
+                value={stats.visceral.value} unit="" min={1} max={20}
+                markers={[
+                  { v: 2,  label: "ดี" },
+                  { v: 5,  label: "ปกติ" },
+                  { v: 9,  label: "สูง" },
+                  { v: 15, label: "สูงมาก" },
+                ]}
+                level={stats.visceral.level} sub="1-2 ดี · 3-5 ปกติ · 6-9 สูง · 10-15 สูงมาก · 16+ อันตราย" />
+            )}
             {stats.muscle && (
               <MetricGauge title="Muscle Mass %" subtitle="ค่าสูง = กล้ามเนื้อแข็งแรง"
                 value={stats.muscle.value} unit="%" min={20} max={50}
@@ -215,17 +228,6 @@ export default function BCAPage() {
                 value={stats.bmi.value} unit="" min={15} max={40}
                 markers={[{ v: 18.5, label: "Under" }, { v: 23, label: "Normal" }, { v: 25, label: "Over" }, { v: 30, label: "Obese" }]}
                 level={stats.bmi.level} sub="WHO Asian standards" />
-            )}
-            {stats.visceral && (
-              <MetricGauge title="Visceral Fat" subtitle="UP Wellness scale · เป้าหมาย ≤ 5"
-                value={stats.visceral.value} unit="" min={1} max={20}
-                markers={[
-                  { v: 2,  label: "ดี" },
-                  { v: 5,  label: "ปกติ" },
-                  { v: 9,  label: "สูง" },
-                  { v: 15, label: "สูงมาก" },
-                ]}
-                level={stats.visceral.level} sub="1-2 ดี · 3-5 ปกติ · 6-9 สูง · 10-15 สูงมาก · 16+ อันตราย" />
             )}
           </section>
         )}
