@@ -20,10 +20,24 @@ export function deriveMuscleMass(weight: number | null, musclePct: number | null
   return +((weight * musclePct) / 100).toFixed(1);
 }
 
-export function deriveChronoAge(birthYear: number | null, atIso: string): number | null {
-  if (!birthYear) return null;
+/**
+ * Compute age at a given date. Prefers full birth_date for day-accurate age; falls back to birth_year.
+ */
+export function deriveChronoAge(
+  birthDateOrYear: string | number | null,
+  atIso: string,
+): number | null {
+  if (birthDateOrYear == null) return null;
   const at = new Date(atIso);
-  return at.getFullYear() - birthYear;
+  if (typeof birthDateOrYear === "string") {
+    const birth = new Date(birthDateOrYear);
+    if (isNaN(birth.getTime())) return null;
+    let age = at.getFullYear() - birth.getFullYear();
+    const md = at.getMonth() - birth.getMonth();
+    if (md < 0 || (md === 0 && at.getDate() < birth.getDate())) age--;
+    return age;
+  }
+  return at.getFullYear() - birthDateOrYear;
 }
 
 export function enrichMeasurement(m: Measurement, c: Customer): MeasurementWithDerived {
@@ -32,6 +46,6 @@ export function enrichMeasurement(m: Measurement, c: Customer): MeasurementWithD
     bmi: deriveBMI(m.weight, c.height),
     fat_mass: deriveFatMass(m.weight, m.fat_pct),
     muscle_mass: deriveMuscleMass(m.weight, m.muscle_pct),
-    chrono_age: deriveChronoAge(c.birth_year, m.recorded_at),
+    chrono_age: deriveChronoAge(c.birth_date ?? c.birth_year, m.recorded_at),
   };
 }

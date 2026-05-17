@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { DOBPicker } from "./DOBPicker";
 
 export function NewCustomerForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: () => void }) {
   const [name, setName] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "">("");
-  const [birthYear, setBirthYear] = useState("");
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [height, setHeight] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export function NewCustomerForm({ onCancel, onCreated }: { onCancel: () => void;
         body: JSON.stringify({
           name: name.trim(),
           gender,
-          birth_year: birthYear ? +birthYear : null,
+          birth_date: birthDate,
           height: height ? +height : null,
         }),
       });
@@ -51,10 +52,8 @@ export function NewCustomerForm({ onCancel, onCreated }: { onCancel: () => void;
               <Chip checked={gender === "female"} onClick={() => setGender("female")}>หญิง</Chip>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="ปีเกิด" value={birthYear} onChange={setBirthYear} type="number" placeholder="1985" />
-            <Field label="ส่วนสูง (cm)" value={height} onChange={setHeight} type="number" placeholder="165" />
-          </div>
+          <DOBPicker value={birthDate} onChange={setBirthDate} defaultSystem="be" />
+          <Field label="ส่วนสูง (cm)" value={height} onChange={setHeight} type="number" placeholder="165" />
           {error && <div className="rounded-xl border border-status-bg-danger bg-status-bg-danger px-4 py-3 text-sm text-status-danger">{error}</div>}
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-ink-10 bg-surface px-7 py-4">

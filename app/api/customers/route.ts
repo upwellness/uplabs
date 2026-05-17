@@ -29,13 +29,18 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const body = await req.json();
-    const { name, gender, birth_year, height } = body;
+    const { name, gender, birth_year, birth_date, height } = body;
     if (!name || !gender) {
       return NextResponse.json({ error: "name and gender are required" }, { status: 400 });
     }
+    // birth_year derived from birth_date via DB trigger when birth_date provided
+    const insertRow: Record<string, unknown> = { name: name.trim(), gender, height, coach_id: user.id };
+    if (birth_date) insertRow.birth_date = birth_date;
+    else if (birth_year) insertRow.birth_year = birth_year;
+
     const { data, error } = await supa
       .from("customers")
-      .insert({ name, gender, birth_year, height, coach_id: user.id })
+      .insert(insertRow)
       .select()
       .single();
     if (error) throw error;

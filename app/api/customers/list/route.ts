@@ -17,7 +17,7 @@ export async function GET() {
     const admin = createAdminClient();
 
     let custQuery = supa.from("customers")
-      .select("id, name, gender, birth_year, height, coach_id, cgm_profile_names, created_at")
+      .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
       .order("name");
     if (!isAdmin) custQuery = custQuery.eq("coach_id", session.user.id);
     const { data: customers, error } = await custQuery;

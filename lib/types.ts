@@ -10,7 +10,8 @@ export interface Customer {
   coach_id: string;
   name: string;
   gender: Gender;
-  birth_year: number | null;
+  birth_year: number | null;    // auto-synced from birth_date via DB trigger · kept for back-compat
+  birth_date: string | null;    // ISO date YYYY-MM-DD (Gregorian). UI toggles พ.ศ./ค.ศ. display
   height: number | null;        // cm
   created_at: string;
 }

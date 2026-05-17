@@ -58,13 +58,13 @@ export function MeasurementForm({ customer, initial, onCancel, onSubmit }: Measu
         </div>
         <div className="grid grid-cols-2 gap-4 p-7">
           <Field label="วันที่วัด" value={date} onChange={setDate} type="date" full />
+          {/* Order: นน. → %fat → visceral → %muscle → body age → BMR */}
           <Field label="น้ำหนัก (kg)" value={weight} onChange={setWeight} placeholder="65.0" required />
           <Field label="Body Fat %" value={fat} onChange={setFat} placeholder="22.0" />
-          {/* Omron order: Visceral มาก่อน Muscle */}
           <Field label="Visceral Fat (lv)" value={visceral} onChange={setVisceral} placeholder="6" />
           <Field label="Muscle %" value={muscle} onChange={setMuscle} placeholder="32.0" />
-          <Field label="BMR (kcal)" value={bmr} onChange={setBmr} placeholder="1340" />
           <Field label="Body Age (yr)" value={bodyAge} onChange={setBodyAge} placeholder="32" />
+          <Field label="BMR (kcal)" value={bmr} onChange={setBmr} placeholder="1340" />
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-ink-10 bg-surface px-7 py-4">
           <Button variant="ghost" onClick={onCancel}>ยกเลิก</Button>
