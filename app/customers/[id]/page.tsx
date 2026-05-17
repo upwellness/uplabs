@@ -7,6 +7,7 @@ import { CgmLinkManager } from "../../pulse/master/[id]/CgmLinkManager";
 import { CustomerEditor } from "./CustomerEditor";
 import { WearableLinkPanel } from "./WearableLinkPanel";
 import { LatestLabsCard } from "./LatestLabsCard";
+import { LabTrendCharts } from "./LabTrendCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,11 @@ export default async function CustomerProfilePage({ params }: { params: { id: st
         {/* Medical Records Overview */}
         <Section title="🧾 Medical Records · Latest Labs" subtitle="ดูค่าผลตรวจล่าสุดของแต่ละหมวด · คลิกขยายเพื่อดูรายการ">
           <LatestLabsCard customerId={params.id} />
+        </Section>
+
+        {/* Lab Trends — chart per metric over time */}
+        <Section title="📈 ผลเลือดย้อนหลัง · กราฟแนวโน้ม" subtitle="เลือกหมวดเพื่อดูแต่ละค่าตามเวลา · monotone smooth · มี reference range">
+          <LabTrendCharts customerId={params.id} />
         </Section>
 
         {/* Cross-app quick access */}
