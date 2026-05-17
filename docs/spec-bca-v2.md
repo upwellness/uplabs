@@ -1,4 +1,4 @@
-# UPLABS BCA Tracker — v2 Spec
+# UP Wellness Ops · BCA Tracker — v2 Spec
 
 **Feature:** BCA Dashboard, multi-user access, edit/delete history, report export  
 **Date:** 2026-05-12 (last updated 2026-05-12)

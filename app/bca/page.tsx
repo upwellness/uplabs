@@ -359,7 +359,7 @@ export default function BCAPage() {
           )}
 
           <footer className="relative mx-auto max-w-content px-6 lg:px-10 pb-10 text-center font-mono text-[11px] text-ink-40">
-            UPLABS BCA Tracker · v2.0 · ACE · WHO Asian-Pacific · UP Wellness Visceral scale
+            UP Wellness Ops · BCA Tracker · v2.0 · ACE · WHO Asian-Pacific · UP Wellness Visceral scale
           </footer>
         </>
       )}

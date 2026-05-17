@@ -32,8 +32,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UPLABS — Health Intelligence Platform",
+  title: "UP Wellness Ops — Health Intelligence Platform",
   description: "AI-powered health intelligence by UP Wellness. Science-based, human-centered.",
+  metadataBase: new URL("https://upwellness.vercel.app"),
   icons: { icon: "/favicon.ico" },
 };
 

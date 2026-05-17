@@ -1,6 +1,9 @@
-# UPLABS v2
+# UP Wellness Ops
 
 Health Intelligence Platform — Next.js 14 + Tailwind + BFF.
+
+Live: https://upwellness.vercel.app
+Repo: github.com/upwellness/uplabs (legacy repo name)
 
 ## Architecture
 
@@ -21,7 +24,7 @@ Backend Services (Supabase, Gemini AI, ...)
 ## Stack
 
 - Next.js 14 (App Router) · React 18 · TypeScript
-- Tailwind CSS with UPLABS brand tokens
+- Tailwind CSS with UP Wellness Ops brand tokens
 - Supabase (data persistence)
 - Recharts (visualization)
 

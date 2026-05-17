@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-md">{children}</div>
       </div>
       <footer className="border-t border-ink-10 py-5 text-center font-mono text-[11px] text-ink-40">
-        UPLABS · UP Wellness · Health Intelligence Platform
+        UP Wellness Ops · Health Intelligence Platform
       </footer>
     </main>
   );

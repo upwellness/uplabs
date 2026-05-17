@@ -964,7 +964,7 @@
                 }, 1500);
             };
 
-            // --- POST to UPLABS API (saves with coach attribution) ---
+            // --- POST to UP Wellness Ops API (saves with coach attribution) ---
             const saveToSupabase = async (contactData) => {
                 try {
                     const params = new URLSearchParams(window.location.search);
@@ -990,7 +990,7 @@
                             },
                         }),
                     });
-                    console.log("Lead saved via UPLABS API");
+                    console.log("Lead saved via UP Wellness Ops API");
                 } catch (err) {
                     console.error("Save error:", err);
                 }

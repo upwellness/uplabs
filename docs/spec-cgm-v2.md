@@ -1,4 +1,4 @@
-# UPLABS CGM Analyzer — v2 Spec
+# UP Wellness Ops · CGM Analyzer — v2 Spec
 
 **Feature:** Continuous Glucose Monitor data viewer + meal logger + report export  
 **Date:** 2026-05-12  

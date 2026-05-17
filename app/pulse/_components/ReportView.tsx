@@ -173,7 +173,7 @@ export function ReportView({ customerName, aiOutput, blocked, blockReasons, gene
         </div>
 
         <footer className="mt-8 text-center font-mono text-[10px] text-ink-40">
-          UPLABS · UP Pulse · UP Wellness
+          UP Wellness Ops · UP Pulse · upwellness.vercel.app
         </footer>
       </article>
     </main>

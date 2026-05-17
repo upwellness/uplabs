@@ -1,5 +1,5 @@
 /**
- * UPLABS App Registry — single source of truth.
+ * UP Wellness Ops · App Registry — single source of truth.
  * Used by upmenu, admin (to grant per-user access), and BFF.
  */
 import type { Role } from "./auth/roles";

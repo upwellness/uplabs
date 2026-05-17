@@ -2,7 +2,7 @@
  * Medical Status Color System
  * ────────────────────────────
  * Universal traffic-light scheme — NOT brand colors.
- * Used across all UPLABS apps for any health metric requiring
+ * Used across all UP Wellness Ops apps for any health metric requiring
  * clinical seriousness (lab values, vitals, body composition).
  *
  * Mapping is consistent with international clinical conventions:

@@ -10,7 +10,7 @@ export default function HealthPage() {
     <main className="min-h-screen bg-surface flex items-center justify-center p-10">
       <div className="w-full max-w-lg rounded-3xl border border-ink-10 bg-white p-10">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose">Setup Required</div>
-        <h1 className="mt-2 font-head text-2xl font-extrabold tracking-tight text-ink">UPLABS — Configuration Check</h1>
+        <h1 className="mt-2 font-head text-2xl font-extrabold tracking-tight text-ink">UP Wellness Ops — Configuration Check</h1>
         <p className="mt-3 font-thai text-sm text-ink-60">
           ระบบยังไม่พร้อมใช้งานเพราะ env vars บางตัวยังไม่ได้ตั้ง
           ตั้งค่าใน Vercel → Settings → Environment Variables (Production scope) แล้ว redeploy
@@ -27,7 +27,7 @@ export default function HealthPage() {
           NEXT_PUBLIC_SUPABASE_URL=https://&lt;project&gt;.supabase.co<br />
           NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...<br />
           SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...<br />
-          NEXT_PUBLIC_SITE_URL=https://uplabs-sys.vercel.app
+          NEXT_PUBLIC_SITE_URL=https://upwellness.vercel.app
         </div>
       </div>
     </main>

@@ -7,9 +7,9 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { up: "text-base", labs: "text-[10px] tracking-[4px]" },
-  md: { up: "text-xl",   labs: "text-xs tracking-[5px]" },
-  lg: { up: "text-3xl",  labs: "text-sm tracking-[6px]" },
+  sm: { up: "text-base", suffix: "text-[10px] tracking-[1.5px]" },
+  md: { up: "text-xl",   suffix: "text-xs tracking-[2px]" },
+  lg: { up: "text-3xl",  suffix: "text-sm tracking-[2.5px]" },
 };
 
 export function Logo({ size = "md", inverted = false, className }: LogoProps) {
@@ -17,7 +17,7 @@ export function Logo({ size = "md", inverted = false, className }: LogoProps) {
   return (
     <span className={cn("inline-flex items-baseline font-head font-extrabold tracking-tighter leading-none", inverted ? "text-white" : "text-ink", className)}>
       <span className={s.up}>UP</span>
-      <span className={cn("font-normal opacity-70 ml-1", s.labs, inverted ? "text-rose-light" : "text-rose")}>LABS</span>
+      <span className={cn("font-normal opacity-70 ml-1.5", s.suffix, inverted ? "text-rose-light" : "text-rose")}>Wellness Ops</span>
     </span>
   );
 }

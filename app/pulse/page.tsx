@@ -291,7 +291,7 @@ export default function PulsePage() {
         )}
 
         <footer className="mt-12 pb-8 text-center font-mono text-[11px] text-ink-40">
-          UPLABS UP Pulse · v0 Beta · Google Fit · Gemini AI · Pharmacist-led
+          UP Wellness Ops · UP Pulse · v0 Beta · Google Fit · Gemini AI · Pharmacist-led
         </footer>
       </div>
     </main>

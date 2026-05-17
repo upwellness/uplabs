@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── UPLABS Brand ── */
+        /* ── UP Wellness Ops · Brand ── */
         rose: {
           ultra: "#FAF3F2",
           pale:  "#F0E0DE",

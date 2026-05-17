@@ -105,7 +105,7 @@ export default async function UPMenu() {
                 <span className="text-base leading-none">{g.emoji}</span>
                 {dateLine}
               </span>
-              <span className="font-mono text-[10px] text-ink-40">UPLABS · v2026</span>
+              <span className="font-mono text-[10px] text-ink-40">UP Wellness Ops · v2026</span>
             </div>
             <h1 className="font-head font-extrabold leading-[1.02] tracking-[-2.5px] text-ink text-[clamp(44px,6.5vw,82px)]">
               {g.hello},
@@ -230,7 +230,7 @@ export default async function UPMenu() {
             <div>
               <Logo size="lg" inverted />
               <p className="mt-6 max-w-sm font-thai text-sm leading-[1.8] text-white/40">
-                UPLABS โดย UP Wellness — Science-based · Human-centered · Evidence-first
+                UP Wellness Ops — Science-based · Human-centered · Evidence-first
               </p>
               <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-white/60">
                 <span className="relative h-1.5 w-1.5">
@@ -257,8 +257,8 @@ export default async function UPMenu() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 pt-6 font-mono text-[11px] text-white/30">
-            <span>UPLABS v2.0 · UP Wellness · {dateLine}</span>
-            <span>github.com/upwellness/uplabs</span>
+            <span>UP Wellness Ops · v2.0 · {dateLine}</span>
+            <span>upwellness.vercel.app</span>
           </div>
         </div>
       </footer>

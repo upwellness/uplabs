@@ -1,6 +1,6 @@
 /**
  * CGM Analyzer — embeds the v1 single-page React app from /public/cgm-v1.html
- * Wrapped in UPLABS shell so auth gate (layout.tsx) still applies.
+ * Wrapped in UP Wellness Ops shell so auth gate (layout.tsx) still applies.
  *
  * The v1 file has: profile pagination · 0-3hr meal analysis · compare modal · CSV
  * import · AI section · save-as-image. Auth is via Supabase anon key inline.

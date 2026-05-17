@@ -160,7 +160,7 @@ export function ReportBuilder({ customer, measurements, highlight, onClose }: Re
 
           {/* Footer */}
           <div className="mt-10 border-t border-ink-10 pt-4 text-center font-mono text-[10px] text-ink-40">
-            UPLABS BCA Tracker · UP Wellness · upwellness.coach
+            UP Wellness Ops · BCA Tracker · upwellness.vercel.app
           </div>
         </div>
       </div>

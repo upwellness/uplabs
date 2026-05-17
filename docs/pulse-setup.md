@@ -21,7 +21,7 @@ GOOGLE_FIT_CLIENT_ID       = <Google Cloud OAuth client>
 GOOGLE_FIT_CLIENT_SECRET   = <same>
 PULSE_ENC_KEY              = 32-byte base64 (node -e "...")
 GEMINI_API_KEY             = <Google AI Studio key — free at aistudio.google.com/app/apikey>
-NEXT_PUBLIC_SITE_URL       = https://uplabs-sys.vercel.app
+NEXT_PUBLIC_SITE_URL       = https://upwellness.vercel.app
 ```
 
 Redeploy after adding.
@@ -58,7 +58,7 @@ The /pulse page now shows **3 workflow cards**:
 /r/[share_token]          → Customer reads final report
 ```
 
-ทุกหน้า **ไม่ต้อง login UPLABS** · token-based access (expire 7-14 วัน)
+ทุกหน้า **ไม่ต้อง login UP Wellness Ops** · token-based access (expire 7-14 วัน)
 
 ## Architecture
 

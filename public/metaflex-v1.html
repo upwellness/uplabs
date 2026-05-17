@@ -472,7 +472,7 @@
             const contact = document.getElementById('input-contact').value;
             const resultData = calculateResult(totalScore);
 
-            // SAVE via UPLABS API (attributes lead to coach via ?coach=... in URL)
+            // SAVE via UP Wellness Ops API (attributes lead to coach via ?coach=... in URL)
             try {
                 const params = new URLSearchParams(window.location.search);
                 const coachId = params.get('coach') || null;
@@ -500,7 +500,7 @@
                         answers: { raw_score: totalScore, level: resultData.level, title: resultData.title },
                     }),
                 });
-                console.log("Lead saved via UPLABS API");
+                console.log("Lead saved via UP Wellness Ops API");
             } catch (error) {
                 console.error("Error saving lead:", error);
                 showToast("เกิดข้อผิดพลาดในการบันทึกข้อมูล (แต่ดูผลได้)", "error");

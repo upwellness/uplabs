@@ -174,7 +174,7 @@ export function ProgramReport({ onClose, name, duration, items, summary, activeC
           {/* Footer */}
           <div className="mt-10 border-t border-ink-10 pt-4 flex items-center justify-between">
             <div className="font-mono text-[10px] text-ink-40">
-              UPLABS Program Designer · UP Wellness
+              UP Wellness Ops · Program Designer
             </div>
             <div className="font-mono text-[10px] text-ink-40">
               {new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
