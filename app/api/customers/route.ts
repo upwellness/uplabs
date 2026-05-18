@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
 
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
       .select()
       .single();
     if (error) throw error;
+    revalidateTag("dashboard");
     return NextResponse.json({ customer: data });
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });

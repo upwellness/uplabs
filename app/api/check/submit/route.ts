@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreHealthCheck, type HealthAnswers } from "@/lib/healthcheck/score";
 
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
       .single();
     if (error) throw error;
 
+    revalidateTag("dashboard");
     return NextResponse.json({ ok: true, lead });
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });

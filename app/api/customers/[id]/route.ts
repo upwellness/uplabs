@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
 
@@ -31,6 +32,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const supa = createClient();
     const { data, error } = await supa.from("customers").update(update).eq("id", params.id).select().single();
     if (error) throw error;
+    revalidateTag("dashboard");
     return NextResponse.json({ customer: data });
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });
@@ -54,6 +56,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
     const { error } = await supa.from("customers").delete().eq("id", params.id);
     if (error) throw error;
+    revalidateTag("dashboard");
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });

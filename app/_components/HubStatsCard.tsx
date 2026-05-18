@@ -53,7 +53,7 @@ const getHubStats = unstable_cache(
     };
   },
   ["hub-stats"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["dashboard"] },
 );
 
 export async function HubStatsCard({ coachId, role }: { coachId: string | null; role: string }) {
