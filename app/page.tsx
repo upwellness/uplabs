@@ -1,11 +1,12 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { APPS, appsByAudience, type AppMeta } from "@/lib/apps-registry";
 import { canAccessApp } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { UserMenu } from "@/components/ui/UserMenu";
+import { HubStatsCard, HubStatsSkeleton } from "./_components/HubStatsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -44,34 +45,8 @@ export default async function UPMenu() {
   const contentApps  = appsByAudience("content").filter(canSee);
   const visibleCount = customerApps.length + businessApps.length + internalApps.length + contentApps.length;
 
-  // Live pulse stats (parallel fetch · admin sees all · coach sees own)
-  const admin = createAdminClient();
-  const isAdmin = profile.role === "admin";
-  const coachFilter = (q: any) => (isAdmin ? q : q.eq("coach_id", session.user.id));
-  const sinceMidnight = (() => {
-    const d = bangkokNow();
-    d.setUTCHours(0, 0, 0, 0);
-    return new Date(d.getTime() - 7 * 60 * 60 * 1000).toISOString();
-  })();
-
-  const [
-    { count: customerCount },
-    { count: measurementCount },
-    { count: measurementsToday },
-    { count: leadsToday },
-  ] = await Promise.all([
-    coachFilter(admin.from("customers").select("*", { count: "exact", head: true })),
-    isAdmin
-      ? admin.from("measurements").select("*", { count: "exact", head: true })
-      : admin.from("measurements").select("*, customers!inner(coach_id)", { count: "exact", head: true }).eq("customers.coach_id", session.user.id),
-    isAdmin
-      ? admin.from("measurements").select("*", { count: "exact", head: true }).gte("recorded_at", sinceMidnight)
-      : admin.from("measurements").select("*, customers!inner(coach_id)", { count: "exact", head: true }).eq("customers.coach_id", session.user.id).gte("recorded_at", sinceMidnight),
-    isAdmin
-      ? admin.from("healthcheck_leads").select("*", { count: "exact", head: true }).gte("created_at", sinceMidnight)
-      : admin.from("healthcheck_leads").select("*", { count: "exact", head: true }).eq("coach_id", session.user.id).gte("created_at", sinceMidnight),
-  ]);
-
+  const isAdmin   = profile.role === "admin";
+  const statsCoachId = isAdmin ? null : session.user.id;
   const g = greeting();
   const dateLine = thaiDate();
 
@@ -128,26 +103,10 @@ export default async function UPMenu() {
             </div>
           </div>
 
-          {/* Stats glass card */}
-          <div className="relative">
-            <div className="absolute -inset-3 bg-gradient-to-br from-rose-pale/40 via-amber-pale/30 to-wellness-pale/40 blur-2xl" />
-            <div className="relative rounded-3xl border border-white/60 bg-white/60 p-7 backdrop-blur-xl shadow-[0_24px_60px_-20px_rgba(140,76,76,0.18)]">
-              <div className="flex items-center justify-between mb-5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-40 font-bold">Pulse · วันนี้</div>
-                <span className="text-[10px] font-mono text-rose">live</span>
-              </div>
-              <div className="grid grid-cols-2 gap-5">
-                <BigStat label="ลูกค้าทั้งหมด" value={customerCount ?? 0} accent="rose"     />
-                <BigStat label="BCA Records"  value={measurementCount ?? 0} accent="wellness" />
-                <BigStat label="BCA วันนี้"    value={measurementsToday ?? 0} accent="amber"    highlight />
-                <BigStat label="Leads วันนี้"  value={leadsToday ?? 0}        accent="science"  highlight />
-              </div>
-              <div className="mt-5 border-t border-ink-10 pt-4 flex items-center justify-between text-[11px] text-ink-40">
-                <span className="font-thai">บทบาทของคุณ</span>
-                <span className="font-mono font-bold text-ink">{profile.role.toUpperCase()}</span>
-              </div>
-            </div>
-          </div>
+          {/* Stats glass card — streamed via Suspense · cached 60s */}
+          <Suspense fallback={<HubStatsSkeleton />}>
+            <HubStatsCard coachId={statsCoachId} role={profile.role} />
+          </Suspense>
         </div>
       </section>
 
@@ -320,22 +279,6 @@ const accentText = {
   amber:    "text-amber",
   science:  "text-science",
 } as const;
-
-function BigStat({ label, value, accent, highlight }: {
-  label: string; value: number; accent: keyof typeof accentDot; highlight?: boolean;
-}) {
-  return (
-    <div className={`relative rounded-2xl ${highlight ? "bg-white/80 ring-1 ring-ink-5 px-4 py-3" : "px-1 py-1"}`}>
-      <div className="flex items-center gap-1.5">
-        <span className={`h-1.5 w-1.5 rounded-full ${accentDot[accent]}`} />
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-40 font-bold">{label}</span>
-      </div>
-      <div className={`mt-1.5 font-head font-extrabold leading-none tracking-tight ${highlight ? "text-[34px] text-ink" : "text-[28px] text-ink-80"}`}>
-        {value.toLocaleString()}
-      </div>
-    </div>
-  );
-}
 
 /* ──────────────────────────────────────────────────── */
 /* Section header                                       */
