@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FORM_SECTIONS, analyzeForm, type FormKey, type FormSectionData } from "./_data/form-questions";
 import { AnalysisModal } from "./AnalysisModal";
+import { ProfileForm, EMPTY_PROFILE, EMPTY_DISC, type ProfileData, type DiscData } from "./_components/ProfileForm";
+import { AIAnalysisModal } from "./_components/AIAnalysisModal";
+import type { AIAnalysis, CheckformProfile } from "@/lib/checkform/ai-analyze";
 
-const STORAGE_KEY = "upwellness:checkform:draft:v1";
+const STORAGE_KEY = "upwellness:checkform:draft:v2";
 
 type Scores = Partial<Record<FormKey, 1 | 2 | 3>>;
 type Notes  = Partial<Record<FormKey, string>>;
@@ -15,6 +18,8 @@ interface Draft {
   meetingContext: string;
   scores: Scores;
   notes: Notes;
+  profile: ProfileData;
+  disc: DiscData;
   updatedAt: string;
   editingRecordId?: string | null;
 }
@@ -26,6 +31,11 @@ interface CheckformRecord {
   meeting_context: string | null;
   scores: Scores;
   notes: Notes;
+  profile?: ProfileData;
+  disc_primary?: string | null;
+  disc_secondary?: string | null;
+  ai_analysis?: AIAnalysis | null;
+  ai_analyzed_at?: string | null;
   verdict_level: string | null;
   verdict_label: string | null;
   total_score: number;
@@ -38,6 +48,8 @@ const EMPTY_DRAFT: Draft = {
   meetingContext: "",
   scores: {},
   notes: {},
+  profile: EMPTY_PROFILE,
+  disc: EMPTY_DISC,
   updatedAt: "",
   editingRecordId: null,
 };
@@ -96,6 +108,17 @@ export function CheckFormClient() {
   const [recordsExpanded, setRecordsExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // FORM details collapsible
+  const [formDetailsOpen, setFormDetailsOpen] = useState(false);
+
+  // AI analysis state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null);
+  const [aiCached, setAiCached] = useState(false);
+
   // Hydrate from localStorage
   useEffect(() => {
     try {
@@ -150,17 +173,29 @@ export function CheckFormClient() {
       meetingContext: r.meeting_context ?? "",
       scores: r.scores ?? {},
       notes: r.notes ?? {},
+      profile: r.profile ?? EMPTY_PROFILE,
+      disc: {
+        primary: (r.disc_primary as DiscData["primary"]) ?? undefined,
+        secondary: (r.disc_secondary as DiscData["secondary"]) ?? undefined,
+      },
       updatedAt: r.updated_at,
       editingRecordId: r.id,
     });
+    // Preload cached AI analysis if present
+    setAiAnalysis(r.ai_analysis ?? null);
+    setAiAnalyzedAt(r.ai_analyzed_at ?? null);
+    setAiCached(!!r.ai_analysis);
     setRecordsExpanded(false);
-    // Scroll to top so user sees the loaded data
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const startNew = () => {
     if (filledCount > 0 && !confirm("เริ่มใหม่ · ข้อมูลปัจจุบันจะถูกล้าง?")) return;
     setDraft({ ...EMPTY_DRAFT, updatedAt: new Date().toISOString() });
+    setAiAnalysis(null);
+    setAiAnalyzedAt(null);
+    setAiCached(false);
+    setAiError(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
   };
 
@@ -175,6 +210,9 @@ export function CheckFormClient() {
         meeting_context: draft.meetingContext?.trim() || null,
         scores: draft.scores,
         notes: draft.notes,
+        profile: draft.profile,
+        disc_primary: draft.disc.primary ?? null,
+        disc_secondary: draft.disc.secondary ?? null,
         verdict_level: verdict.level,
         verdict_label: verdict.label,
         total_score: total,
@@ -204,13 +242,64 @@ export function CheckFormClient() {
       const res = await fetch(`/api/checkform/records/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "delete failed");
-      // If currently editing this one, clear
       if (draft.editingRecordId === id) {
         setDraft((d) => ({ ...d, editingRecordId: null }));
       }
       await loadRecords();
     } catch (e: any) { alert(e.message); }
   };
+
+  const buildAIProfile = (): CheckformProfile => ({
+    prospectName: draft.prospectName,
+    meetingContext: draft.meetingContext,
+    demographics: draft.profile.demographics,
+    career: draft.profile.career,
+    lifestyle: draft.profile.lifestyle,
+    family: draft.profile.family,
+    disc: draft.disc.primary ? { primary: draft.disc.primary, secondary: draft.disc.secondary, confidence: draft.disc.confidence } : undefined,
+    formScores: draft.scores as { F?: number; O?: number; R?: number; M?: number },
+    formNotes: draft.notes,
+  });
+
+  const analyzeWithAI = async (force = false) => {
+    setAiOpen(true);
+    setAiError(null);
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/checkform/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: buildAIProfile(),
+          recordId: draft.editingRecordId ?? undefined,
+          force,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "analyze failed");
+      setAiAnalysis(json.analysis);
+      setAiAnalyzedAt(json.analyzed_at ?? new Date().toISOString());
+      setAiCached(!!json.cached);
+      // Refresh records list so the cached analysis shows up
+      if (draft.editingRecordId) loadRecords();
+    } catch (e: any) {
+      setAiError(e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const profileFilled = useMemo(() => {
+    const p = draft.profile;
+    let count = 0;
+    if (p.demographics.ageRange)     count++;
+    if (p.career.occupation)         count++;
+    if (p.career.incomeRange)        count++;
+    if (p.lifestyle.healthAwareness) count++;
+    if (p.family.deps)               count++;
+    return count;
+  }, [draft.profile]);
+  const profileReadyForAI = profileFilled >= 3 && draft.prospectName.trim().length > 0;
 
   const verdict = useMemo(() => analyzeForm(draft.scores), [draft.scores]);
   const total = useMemo(
@@ -272,37 +361,132 @@ export function CheckFormClient() {
 
         {/* Hint */}
         <div className="rounded-2xl border border-wellness-pale bg-wellness-ultra px-5 py-4 font-thai text-[13px] leading-relaxed text-wellness-deep">
-          <b>💚 ไม่ต้องรีบ · ฟังก่อน วิเคราะห์ทีหลัง</b>
+          <b>💚 กรอกเฉพาะที่รู้ · ที่เหลือเดาจาก AI ได้</b>
           <br />
-          คำถามตัวอย่างข้างล่างเป็นแค่ <b>ตัวจุดประกาย</b> · ลองชวนคุยอย่างเป็นธรรมชาติ · จด keyword สำคัญใน Notes · พอครบ 4 ด้านค่อยกดวิเคราะห์
+          กรอกอย่างน้อย <b>3 ฟิลด์</b> + ชื่อ → AI วิเคราะห์ให้ได้ว่า <b>เข้าหายังไง / สัดส่วน product:business / dialog / roleplay จำลอง</b>
         </div>
 
-        {/* FORM sections */}
-        {FORM_SECTIONS.map((section) => (
-          <FormSection
-            key={section.key}
-            section={section}
-            score={draft.scores[section.key]}
-            note={draft.notes[section.key] ?? ""}
-            onScore={(v) => setScore(section.key, v)}
-            onNote={(v) => setNote(section.key, v)}
-          />
-        ))}
+        {/* Profile form (new primary input) */}
+        <ProfileForm
+          profile={draft.profile}
+          disc={draft.disc}
+          onProfileChange={(p) => setDraft((d) => ({ ...d, profile: p }))}
+          onDiscChange={(disc) => setDraft((d) => ({ ...d, disc }))}
+        />
 
-        {/* Bottom action */}
-        <div className="rounded-3xl border border-ink-10 bg-gradient-to-br from-warm-white to-rose-ultra p-6 lg:p-7 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-rose font-bold">Final step</div>
-            <div className="mt-1 font-head text-[20px] font-extrabold text-ink">วิเคราะห์ + บันทึกเข้าระบบ</div>
-            <p className="mt-1 font-thai text-[13px] text-ink-60">
-              {draft.editingRecordId ? "อัพเดทบันทึกเดิมไว้เปิดดูภายหลังได้" : "บันทึกเข้า Supabase · กลับมาดูได้ทุกที่"}
-            </p>
+        {/* FORM details (optional · collapsible) */}
+        <div className="rounded-3xl border border-ink-10 bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setFormDetailsOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-4 p-5 lg:p-6 text-left hover:bg-surface/50 transition-colors"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-ultra text-lg ring-1 ring-amber-pale">
+                💬
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="font-head text-[16px] font-bold text-ink">FORM Details · Dialog Guidelines</div>
+                  <span className="rounded-full bg-ink-5 px-2 py-0.5 text-[10px] font-mono font-bold text-ink-40">optional</span>
+                </div>
+                <div className="mt-0.5 font-thai text-[12px] text-ink-60">
+                  สำหรับใช้คุยจริง · มี dialog template + F·O·R·M scoring · ไม่จำเป็นต่อ AI · เปิดเมื่อต้องการ
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {filledCount > 0 && (
+                <span className="font-mono text-[10px] font-bold text-rose">
+                  {filledCount}/4
+                </span>
+              )}
+              <span className={`text-ink-30 text-lg transition-transform ${formDetailsOpen ? "rotate-180" : ""}`}>⌄</span>
+            </div>
+          </button>
+
+          {formDetailsOpen && (
+            <div className="border-t border-ink-10 p-5 lg:p-6 space-y-5">
+              {FORM_SECTIONS.map((section) => (
+                <FormSection
+                  key={section.key}
+                  section={section}
+                  score={draft.scores[section.key]}
+                  note={draft.notes[section.key] ?? ""}
+                  onScore={(v) => setScore(section.key, v)}
+                  onNote={(v) => setNote(section.key, v)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom action — AI primary, basic FORM secondary */}
+        <div className="rounded-3xl border border-rose/20 bg-gradient-to-br from-rose-ultra via-warm-white to-amber-ultra p-6 lg:p-7 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-2">
+                <span className="relative h-2 w-2">
+                  <span className="absolute inset-0 rounded-full bg-rose" />
+                  <span className="absolute inset-0 rounded-full bg-rose animate-ping opacity-70" />
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-rose font-bold">AI Analysis</span>
+              </div>
+              <div className="mt-1 font-head text-[22px] font-extrabold text-ink">วิเคราะห์ด้วย AI</div>
+              <p className="mt-1 max-w-lg font-thai text-[13px] text-ink-60">
+                Gemini วิเคราะห์ profile + DISC → ได้ <b>วิธีเข้าหา</b> · <b>dialog ตัวอย่าง</b> · <b>สัดส่วน product/business</b> · <b>roleplay จำลอง</b>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" size="sm" onClick={reset}>ล้างเริ่มใหม่</Button>
+              <Button
+                variant="rose"
+                onClick={() => analyzeWithAI(false)}
+                disabled={!profileReadyForAI || aiLoading}
+              >
+                {aiLoading
+                  ? "กำลังวิเคราะห์..."
+                  : !draft.prospectName.trim()
+                    ? "ใส่ชื่อก่อน"
+                    : profileFilled < 3
+                      ? `กรอกอีก ${3 - profileFilled} ฟิลด์`
+                      : aiAnalysis
+                        ? "✨ เปิดผลวิเคราะห์"
+                        : "✨ ให้ AI วิเคราะห์"}
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" size="sm" onClick={reset}>ล้างเริ่มใหม่</Button>
-            <Button variant="rose" onClick={() => setShowAnalysis(true)} disabled={filledCount < 4}>
-              {filledCount < 4 ? `กรอกอีก ${4 - filledCount} ด้าน` : "🔍 วิเคราะห์ผล"}
-            </Button>
+
+          {aiAnalysis && !aiLoading && (
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="w-full text-left rounded-2xl border border-rose/30 bg-white px-4 py-3 transition-all hover:border-rose/50 hover:shadow-[0_4px_12px_-6px_rgba(140,76,76,0.15)]"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-ultra text-base">🤖</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-thai text-[13px] font-semibold text-ink">
+                    มีผลวิเคราะห์อยู่แล้ว · <span className="text-rose">คลิกเพื่อเปิดดู</span>
+                  </div>
+                  <div className="mt-0.5 font-mono text-[10px] text-ink-40">
+                    {aiAnalysis.approach.type.toUpperCase()} · product {aiAnalysis.approach.productRatio}% · business {aiAnalysis.approach.businessRatio}%
+                    {aiAnalyzedAt && ` · ${new Date(aiAnalyzedAt).toLocaleString("th-TH")}`}
+                  </div>
+                </div>
+              </div>
+            </button>
+          )}
+
+          <div className="border-t border-ink-10 pt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-thai text-ink-60">
+            <span>หรือใช้ FORM scoring แบบเก่า (ต้องกรอก FORM Details ก่อน)</span>
+            <button
+              onClick={() => setShowAnalysis(true)}
+              disabled={filledCount < 4}
+              className="rounded-full border border-ink-10 bg-white px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              🔍 FORM scoring {filledCount < 4 ? `(${filledCount}/4)` : ""}
+            </button>
           </div>
         </div>
       </div>
@@ -380,6 +564,18 @@ export function CheckFormClient() {
           onClose={() => setShowAnalysis(false)}
         />
       )}
+
+      <AIAnalysisModal
+        open={aiOpen}
+        loading={aiLoading}
+        error={aiError}
+        analysis={aiAnalysis}
+        cached={aiCached}
+        analyzedAt={aiAnalyzedAt}
+        prospectName={draft.prospectName}
+        onReanalyze={() => analyzeWithAI(true)}
+        onClose={() => setAiOpen(false)}
+      />
     </div>
   );
 }

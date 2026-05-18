@@ -41,6 +41,9 @@ export async function POST(req: Request) {
       verdict_level,
       verdict_label,
       total_score,
+      profile,
+      disc_primary,
+      disc_secondary,
     } = body ?? {};
 
     if (!prospect_name || typeof prospect_name !== "string") {
@@ -59,6 +62,9 @@ export async function POST(req: Request) {
         verdict_level: verdict_level ?? null,
         verdict_label: verdict_label ?? null,
         total_score: typeof total_score === "number" ? total_score : 0,
+        profile: profile ?? {},
+        disc_primary: disc_primary ?? null,
+        disc_secondary: disc_secondary ?? null,
       })
       .select()
       .single();

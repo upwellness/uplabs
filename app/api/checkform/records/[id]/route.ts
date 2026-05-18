@@ -38,6 +38,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.verdict_level   !== undefined) update.verdict_level = body.verdict_level;
     if (body.verdict_label   !== undefined) update.verdict_label = body.verdict_label;
     if (body.total_score     !== undefined) update.total_score = body.total_score;
+    if (body.profile         !== undefined) update.profile = body.profile;
+    if (body.disc_primary    !== undefined) update.disc_primary = body.disc_primary;
+    if (body.disc_secondary  !== undefined) update.disc_secondary = body.disc_secondary;
 
     const supa = createClient();
     const { data, error } = await supa
