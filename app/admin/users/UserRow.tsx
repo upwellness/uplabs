@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -25,14 +25,48 @@ export function UserRow({ user }: { user: UserListRow }) {
   const [, start] = useTransition();
   const router = useRouter();
 
+  /**
+   * Optimistic mirror of user.granted_app_slugs · flips instantly on click so
+   * the checkbox shows feedback immediately while the server round-trip + refresh
+   * happens in the background. Re-syncs whenever fresh server props arrive.
+   */
+  const [grants, setGrants] = useState<Set<string>>(() => new Set(user.granted_app_slugs));
+  useEffect(() => {
+    setGrants(new Set(user.granted_app_slugs));
+  }, [user.granted_app_slugs]);
+
   const run = async (key: string, fn: () => Promise<{ error?: string; ok?: boolean; url?: string | null } | void>) => {
     setBusy(key);
     const r = await fn();
     setBusy(null);
     if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
     if (r && "url" in r && r.url) setLinkOut(r.url);
-    // Pull latest server state so prop-driven UI (checkboxes · counts) reflects the save
     router.refresh();
+  };
+
+  const handleGrantToggle = (slug: string, checked: boolean) => {
+    // Flip optimistically — instant visual feedback
+    setGrants((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(slug); else next.delete(slug);
+      return next;
+    });
+    start(async () => {
+      setBusy(`grant-${slug}`);
+      const r = await toggleAppGrant(user.id, slug, checked);
+      setBusy(null);
+      if (r && "error" in r && r.error) {
+        alert(`ผิดพลาด: ${r.error}`);
+        // Revert on server failure
+        setGrants((prev) => {
+          const next = new Set(prev);
+          if (!checked) next.add(slug); else next.delete(slug);
+          return next;
+        });
+        return;
+      }
+      router.refresh();
+    });
   };
 
   return (
@@ -158,7 +192,7 @@ export function UserRow({ user }: { user: UserListRow }) {
                 <div className="grid grid-cols-2 gap-1.5">
                   {APPS.map((app) => {
                     const byRole = app.allowedRoles.includes(user.role);
-                    const granted = user.granted_app_slugs.includes(app.slug);
+                    const granted = grants.has(app.slug);
                     const effective = byRole || granted;
                     return (
                       <label
@@ -174,8 +208,8 @@ export function UserRow({ user }: { user: UserListRow }) {
                         <input
                           type="checkbox"
                           checked={effective}
-                          disabled={busy !== null || byRole}
-                          onChange={(e) => start(() => run(`grant-${app.slug}`, () => toggleAppGrant(user.id, app.slug, e.target.checked)))}
+                          disabled={byRole}
+                          onChange={(e) => handleGrantToggle(app.slug, e.target.checked)}
                           className="accent-rose"
                         />
                         <span className="text-sm">{app.icon}</span>
