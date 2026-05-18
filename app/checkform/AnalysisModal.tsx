@@ -41,15 +41,32 @@ const VERDICT_THEME = {
 } as const;
 
 export function AnalysisModal({
-  draft, verdict, total, onClose,
+  draft, verdict, total, editing, saving, onSave, onClose,
 }: {
   draft: Draft;
   verdict: AnalysisVerdict;
   total: number;
+  editing?: boolean;
+  saving?: boolean;
+  onSave?: () => Promise<{ ok: boolean; id?: string; error?: string }>;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const theme = VERDICT_THEME[verdict.color];
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    setSaveError(null);
+    const r = await onSave();
+    if (r.ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2200);
+    } else {
+      setSaveError(r.error ?? "บันทึกไม่สำเร็จ");
+    }
+  };
 
   const copySummary = async () => {
     const lines = [
@@ -183,14 +200,36 @@ export function AnalysisModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t border-ink-10 bg-surface px-7 py-4">
-          <button
-            onClick={copySummary}
-            className="inline-flex items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink transition-colors"
-          >
-            {copied ? "✓ Copied" : "📋 Copy summary"}
-          </button>
-          <Button variant="rose" onClick={onClose}>กลับไปแก้ / ใช้ต่อ</Button>
+        <div className="border-t border-ink-10 bg-surface px-7 py-4 space-y-2">
+          {saveError && (
+            <div className="rounded-lg bg-status-bg-danger px-3 py-2 text-[12px] text-status-danger">⚠ {saveError}</div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              onClick={copySummary}
+              className="inline-flex items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[12px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink transition-colors"
+            >
+              {copied ? "✓ Copied" : "📋 Copy summary"}
+            </button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>กลับไปแก้</Button>
+              {onSave && (
+                <Button
+                  variant="rose"
+                  onClick={handleSave}
+                  disabled={saving || saved}
+                >
+                  {saving
+                    ? "กำลังบันทึก..."
+                    : saved
+                      ? "✓ บันทึกแล้ว"
+                      : editing
+                        ? "💾 อัพเดทบันทึก"
+                        : "💾 บันทึกเข้าระบบ"}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

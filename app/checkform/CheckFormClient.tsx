@@ -16,6 +16,21 @@ interface Draft {
   scores: Scores;
   notes: Notes;
   updatedAt: string;
+  editingRecordId?: string | null;
+}
+
+interface CheckformRecord {
+  id: string;
+  coach_id: string;
+  prospect_name: string;
+  meeting_context: string | null;
+  scores: Scores;
+  notes: Notes;
+  verdict_level: string | null;
+  verdict_label: string | null;
+  total_score: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -24,6 +39,14 @@ const EMPTY_DRAFT: Draft = {
   scores: {},
   notes: {},
   updatedAt: "",
+  editingRecordId: null,
+};
+
+const LEVEL_THEME: Record<string, { bg: string; text: string; ring: string }> = {
+  strong:     { bg: "bg-wellness-ultra", text: "text-wellness", ring: "ring-wellness-pale" },
+  borderline: { bg: "bg-amber-ultra",    text: "text-amber",    ring: "ring-amber-pale" },
+  warm:       { bg: "bg-amber-ultra",    text: "text-amber",    ring: "ring-amber-pale" },
+  not_ready:  { bg: "bg-rose-ultra",     text: "text-rose",     ring: "ring-rose-pale" },
 };
 
 const ACCENT_BG = {
@@ -67,6 +90,12 @@ export function CheckFormClient() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
 
+  // Records list
+  const [records, setRecords] = useState<CheckformRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsExpanded, setRecordsExpanded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   // Hydrate from localStorage
   useEffect(() => {
     try {
@@ -90,6 +119,18 @@ export function CheckFormClient() {
     return () => clearTimeout(t);
   }, [draft, hydrated]);
 
+  // Load records from API
+  const loadRecords = async () => {
+    setRecordsLoading(true);
+    try {
+      const res = await fetch("/api/checkform/records");
+      const json = await res.json();
+      if (res.ok) setRecords(json.records ?? []);
+    } catch { /* ignore */ }
+    setRecordsLoading(false);
+  };
+  useEffect(() => { loadRecords(); }, []);
+
   const setScore = (key: FormKey, value: 1 | 2 | 3) =>
     setDraft((d) => ({ ...d, scores: { ...d.scores, [key]: d.scores[key] === value ? undefined : value } }));
 
@@ -100,6 +141,75 @@ export function CheckFormClient() {
     if (!confirm("ล้างข้อมูลทั้งหมด · เริ่มใหม่?")) return;
     setDraft(EMPTY_DRAFT);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  };
+
+  const loadFromRecord = (r: CheckformRecord) => {
+    if (draft.prospectName && !confirm(`โหลด '${r.prospect_name}' มาแทน · ข้อมูลปัจจุบันจะถูกแทนที่?`)) return;
+    setDraft({
+      prospectName: r.prospect_name,
+      meetingContext: r.meeting_context ?? "",
+      scores: r.scores ?? {},
+      notes: r.notes ?? {},
+      updatedAt: r.updated_at,
+      editingRecordId: r.id,
+    });
+    setRecordsExpanded(false);
+    // Scroll to top so user sees the loaded data
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const startNew = () => {
+    if (filledCount > 0 && !confirm("เริ่มใหม่ · ข้อมูลปัจจุบันจะถูกล้าง?")) return;
+    setDraft({ ...EMPTY_DRAFT, updatedAt: new Date().toISOString() });
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  };
+
+  const saveRecord = async (): Promise<{ ok: boolean; id?: string; error?: string }> => {
+    if (!draft.prospectName.trim()) {
+      return { ok: false, error: "กรุณากรอกชื่อ prospect ก่อน" };
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        prospect_name: draft.prospectName.trim(),
+        meeting_context: draft.meetingContext?.trim() || null,
+        scores: draft.scores,
+        notes: draft.notes,
+        verdict_level: verdict.level,
+        verdict_label: verdict.label,
+        total_score: total,
+      };
+      const editing = draft.editingRecordId;
+      const url = editing ? `/api/checkform/records/${editing}` : "/api/checkform/records";
+      const method = editing ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "save failed");
+      const id = json.record?.id;
+      setDraft((d) => ({ ...d, editingRecordId: id ?? editing }));
+      await loadRecords();
+      return { ok: true, id };
+    } catch (e: any) {
+      return { ok: false, error: e.message };
+    } finally { setSaving(false); }
+  };
+
+  const deleteRecord = async (id: string, name: string) => {
+    if (!confirm(`ลบบันทึก '${name}'?`)) return;
+    try {
+      const res = await fetch(`/api/checkform/records/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "delete failed");
+      // If currently editing this one, clear
+      if (draft.editingRecordId === id) {
+        setDraft((d) => ({ ...d, editingRecordId: null }));
+      }
+      await loadRecords();
+    } catch (e: any) { alert(e.message); }
   };
 
   const verdict = useMemo(() => analyzeForm(draft.scores), [draft.scores]);
@@ -113,9 +223,31 @@ export function CheckFormClient() {
     <div className="grid lg:grid-cols-[1fr_320px] gap-6 lg:gap-8 mt-8">
       {/* ── Main column ────────────────────────────── */}
       <div className="space-y-6">
+        {/* Records list */}
+        {(records.length > 0 || recordsLoading) && (
+          <RecordsPanel
+            records={records}
+            loading={recordsLoading}
+            expanded={recordsExpanded}
+            setExpanded={setRecordsExpanded}
+            editingId={draft.editingRecordId ?? null}
+            onLoad={loadFromRecord}
+            onDelete={deleteRecord}
+            onStartNew={startNew}
+          />
+        )}
+
         {/* Prospect info */}
-        <div className="rounded-3xl border border-ink-10 bg-white p-6 lg:p-7">
-          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-40 font-bold mb-3">Prospect</div>
+        <div className={`rounded-3xl border bg-white p-6 lg:p-7 ${draft.editingRecordId ? "border-rose/30 ring-1 ring-rose/10" : "border-ink-10"}`}>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-40 font-bold">Prospect</div>
+            {draft.editingRecordId && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-ultra px-2.5 py-1 text-[10px] font-bold text-rose">
+                ✏️ กำลังแก้บันทึกเดิม
+                <button onClick={startNew} className="ml-1 text-rose underline-offset-2 hover:underline">เริ่มใหม่</button>
+              </span>
+            )}
+          </div>
           <div className="grid md:grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-60">ชื่อที่จะวิเคราะห์</span>
@@ -161,10 +293,12 @@ export function CheckFormClient() {
         <div className="rounded-3xl border border-ink-10 bg-gradient-to-br from-warm-white to-rose-ultra p-6 lg:p-7 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-rose font-bold">Final step</div>
-            <div className="mt-1 font-head text-[20px] font-extrabold text-ink">วิเคราะห์ผล + คำแนะนำต่อ</div>
-            <p className="mt-1 font-thai text-[13px] text-ink-60">กรอกครบทั้ง 4 ด้านแล้วกดดูได้เลย · ดูได้หลายครั้ง</p>
+            <div className="mt-1 font-head text-[20px] font-extrabold text-ink">วิเคราะห์ + บันทึกเข้าระบบ</div>
+            <p className="mt-1 font-thai text-[13px] text-ink-60">
+              {draft.editingRecordId ? "อัพเดทบันทึกเดิมไว้เปิดดูภายหลังได้" : "บันทึกเข้า Supabase · กลับมาดูได้ทุกที่"}
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" onClick={reset}>ล้างเริ่มใหม่</Button>
             <Button variant="rose" onClick={() => setShowAnalysis(true)} disabled={filledCount < 4}>
               {filledCount < 4 ? `กรอกอีก ${4 - filledCount} ด้าน` : "🔍 วิเคราะห์ผล"}
@@ -240,8 +374,129 @@ export function CheckFormClient() {
           draft={draft}
           verdict={verdict}
           total={total}
+          editing={!!draft.editingRecordId}
+          saving={saving}
+          onSave={saveRecord}
           onClose={() => setShowAnalysis(false)}
         />
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────── */
+/* Records panel — list of saved checkform records       */
+/* ──────────────────────────────────────────────────── */
+
+function RecordsPanel({
+  records, loading, expanded, setExpanded, editingId, onLoad, onDelete, onStartNew,
+}: {
+  records: CheckformRecord[];
+  loading: boolean;
+  expanded: boolean;
+  setExpanded: (v: boolean) => void;
+  editingId: string | null;
+  onLoad: (r: CheckformRecord) => void;
+  onDelete: (id: string, name: string) => void;
+  onStartNew: () => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-ink-10 bg-white overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between gap-4 p-5 lg:p-6 text-left hover:bg-surface/50 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-ultra text-lg ring-1 ring-rose-pale">
+            📋
+          </span>
+          <div>
+            <div className="font-head text-[16px] font-bold text-ink">บันทึกของคุณ</div>
+            <div className="mt-0.5 font-thai text-[12px] text-ink-60">
+              {loading ? "กำลังโหลด..." : `${records.length} prospect · เก็บไว้ใน Supabase · เปิดดูจากที่ไหนก็ได้`}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {records.length > 0 && (
+            <span className="font-mono text-[11px] text-ink-40">
+              {records.length}
+            </span>
+          )}
+          <span className={`text-ink-30 text-lg transition-transform ${expanded ? "rotate-180" : ""}`}>⌄</span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-ink-10 px-5 lg:px-6 py-5 space-y-2">
+          {loading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-16 rounded-xl bg-ink-5 animate-pulse" />
+              ))}
+            </div>
+          ) : records.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-ink-10 px-4 py-6 text-center font-thai text-[12px] text-ink-40">
+              ยังไม่มีบันทึก · วิเคราะห์ครั้งแรกแล้วกด "บันทึกเข้าระบบ"
+            </div>
+          ) : (
+            <>
+              {records.map((r) => {
+                const theme = r.verdict_level ? LEVEL_THEME[r.verdict_level] ?? LEVEL_THEME.warm : LEVEL_THEME.warm;
+                const isEditing = editingId === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    className={`group rounded-2xl border bg-white px-4 py-3 transition-all ${isEditing ? "border-rose/40 ring-1 ring-rose/20" : "border-ink-10 hover:border-ink-20"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onLoad(r)}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left"
+                      >
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.bg} ${theme.text} ring-1 ${theme.ring} font-head font-extrabold text-[14px]`}>
+                          {r.total_score}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-thai text-[14px] font-bold text-ink truncate">{r.prospect_name}</span>
+                            {isEditing && <span className="text-[10px] font-mono font-bold text-rose">EDITING</span>}
+                          </div>
+                          <div className="mt-0.5 font-mono text-[10px] text-ink-40 truncate">
+                            {r.verdict_label ?? "—"}
+                            {r.meeting_context ? ` · ${r.meeting_context}` : ""}
+                          </div>
+                        </div>
+                        <div className="hidden md:block text-right shrink-0">
+                          <div className="font-mono text-[10px] text-ink-40">{new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</div>
+                          <div className="font-mono text-[9px] text-ink-30">{new Date(r.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(r.id, r.prospect_name)}
+                        title="ลบบันทึก"
+                        className="shrink-0 rounded-lg border border-ink-10 bg-white px-2 py-1.5 text-[11px] text-ink-40 opacity-0 transition-all group-hover:opacity-100 hover:border-status-danger/30 hover:text-status-danger hover:bg-status-bg-danger/50"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={onStartNew}
+                  className="text-[11px] font-mono font-bold text-rose hover:underline"
+                >
+                  + วิเคราะห์คนใหม่
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

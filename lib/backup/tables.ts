@@ -36,6 +36,7 @@ export const TABLES: TableInfo[] = [
 
   // Health Check / Lead capture
   { name: "healthcheck_leads",   label: "Health Check Leads",  group: "leads", description: "Public quiz submissions · risk scores · contact info" },
+  { name: "checkform_records",   label: "Check FORM Records",  group: "leads", description: "F·O·R·M qualification records · scores + notes + verdict · per coach" },
 
   // NutriScan
   { name: "nutriscan_scans",     label: "NutriScan Scans",     group: "nutriscan", description: "AI food analysis · macros · glucose impact" },
