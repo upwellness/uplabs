@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 
@@ -8,15 +7,18 @@ import { getSession } from "@/lib/auth/session";
  * Customer list with cross-app stats (BCA count · CGM linked · Pulse connected · leads).
  * Admin sees all · coach sees own.
  * Cached 60s per coachId via "dashboard" tag — invalidated by customer/measurement/lead mutations.
+ *
+ * IMPORTANT: uses createAdminClient inside unstable_cache because cookies() (used by
+ * the session-aware createClient) is not accessible inside cached functions.
+ * Authorization is enforced OUTSIDE the cache in GET (session check + coach_id arg).
  */
 
 const fetchCustomersList = unstable_cache(
   async (coachId: string | null) => {
-    const supa = createClient();
     const admin = createAdminClient();
     const isAdmin = coachId === null;
 
-    let custQuery = supa.from("customers")
+    let custQuery = admin.from("customers")
       .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
       .order("name");
     if (!isAdmin) custQuery = custQuery.eq("coach_id", coachId);
