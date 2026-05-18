@@ -105,7 +105,8 @@ export function CheckFormClient() {
   // Records list
   const [records, setRecords] = useState<CheckformRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(true);
-  const [recordsExpanded, setRecordsExpanded] = useState(false);
+  const [recordsExpanded, setRecordsExpanded] = useState(true);    // auto-expand by default
+  const [recordsError, setRecordsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // FORM details collapsible
@@ -145,11 +146,20 @@ export function CheckFormClient() {
   // Load records from API
   const loadRecords = async () => {
     setRecordsLoading(true);
+    setRecordsError(null);
     try {
       const res = await fetch("/api/checkform/records");
       const json = await res.json();
-      if (res.ok) setRecords(json.records ?? []);
-    } catch { /* ignore */ }
+      if (!res.ok) {
+        setRecordsError(json.error ?? `HTTP ${res.status}`);
+        setRecords([]);
+      } else {
+        setRecords(json.records ?? []);
+      }
+    } catch (e: any) {
+      setRecordsError(e.message ?? "เครือข่ายผิดพลาด");
+      setRecords([]);
+    }
     setRecordsLoading(false);
   };
   useEffect(() => { loadRecords(); }, []);
@@ -312,19 +322,20 @@ export function CheckFormClient() {
     <div className="grid lg:grid-cols-[1fr_320px] gap-6 lg:gap-8 mt-8">
       {/* ── Main column ────────────────────────────── */}
       <div className="space-y-6">
-        {/* Records list */}
-        {(records.length > 0 || recordsLoading) && (
-          <RecordsPanel
-            records={records}
-            loading={recordsLoading}
-            expanded={recordsExpanded}
-            setExpanded={setRecordsExpanded}
-            editingId={draft.editingRecordId ?? null}
-            onLoad={loadFromRecord}
-            onDelete={deleteRecord}
-            onStartNew={startNew}
-          />
-        )}
+        {/* Records list — always shown */}
+        <RecordsPanel
+          records={records}
+          loading={recordsLoading}
+          error={recordsError}
+          expanded={recordsExpanded}
+          setExpanded={setRecordsExpanded}
+          editingId={draft.editingRecordId ?? null}
+          onLoad={loadFromRecord}
+          onDelete={deleteRecord}
+          onStartNew={startNew}
+          onReload={loadRecords}
+        />
+
 
         {/* Prospect info */}
         <div className={`rounded-3xl border bg-white p-6 lg:p-7 ${draft.editingRecordId ? "border-rose/30 ring-1 ring-rose/10" : "border-ink-10"}`}>
@@ -585,17 +596,20 @@ export function CheckFormClient() {
 /* ──────────────────────────────────────────────────── */
 
 function RecordsPanel({
-  records, loading, expanded, setExpanded, editingId, onLoad, onDelete, onStartNew,
+  records, loading, error, expanded, setExpanded, editingId, onLoad, onDelete, onStartNew, onReload,
 }: {
   records: CheckformRecord[];
   loading: boolean;
+  error: string | null;
   expanded: boolean;
   setExpanded: (v: boolean) => void;
   editingId: string | null;
   onLoad: (r: CheckformRecord) => void;
   onDelete: (id: string, name: string) => void;
   onStartNew: () => void;
+  onReload: () => void;
 }) {
+  const hasRecords = records.length > 0;
   return (
     <div className="rounded-3xl border border-ink-10 bg-white overflow-hidden">
       <button
@@ -608,15 +622,21 @@ function RecordsPanel({
             📋
           </span>
           <div>
-            <div className="font-head text-[16px] font-bold text-ink">บันทึกของคุณ</div>
+            <div className="font-head text-[16px] font-bold text-ink">รายชื่อ prospect ที่เคยวิเคราะห์</div>
             <div className="mt-0.5 font-thai text-[12px] text-ink-60">
-              {loading ? "กำลังโหลด..." : `${records.length} prospect · เก็บไว้ใน Supabase · เปิดดูจากที่ไหนก็ได้`}
+              {loading
+                ? "กำลังโหลด..."
+                : error
+                  ? <span className="text-status-danger">⚠ {error}</span>
+                  : hasRecords
+                    ? `${records.length} คน · คลิกที่แถวเพื่อเรียกมาดู/แก้`
+                    : "ยังไม่มีบันทึก · กรอกแล้วกด 'บันทึก' จะอยู่ตรงนี้"}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {records.length > 0 && (
-            <span className="font-mono text-[11px] text-ink-40">
+          {hasRecords && (
+            <span className="rounded-full bg-rose px-2 py-0.5 text-[11px] font-bold text-white">
               {records.length}
             </span>
           )}
@@ -632,9 +652,24 @@ function RecordsPanel({
                 <div key={i} className="h-16 rounded-xl bg-ink-5 animate-pulse" />
               ))}
             </div>
+          ) : error ? (
+            <div className="rounded-xl border border-status-bg-danger bg-status-bg-danger/40 px-4 py-4 text-center">
+              <div className="font-thai text-[13px] font-semibold text-status-danger">โหลดรายชื่อไม่สำเร็จ</div>
+              <div className="mt-1 font-mono text-[10px] text-ink-50 break-words">{error}</div>
+              <button
+                onClick={onReload}
+                className="mt-3 rounded-full border border-ink-10 bg-white px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink"
+              >
+                🔄 ลองใหม่
+              </button>
+            </div>
           ) : records.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-ink-10 px-4 py-6 text-center font-thai text-[12px] text-ink-40">
-              ยังไม่มีบันทึก · วิเคราะห์ครั้งแรกแล้วกด "บันทึกเข้าระบบ"
+            <div className="rounded-xl border border-dashed border-ink-10 px-4 py-8 text-center">
+              <div className="text-3xl">📋</div>
+              <div className="mt-3 font-head text-[14px] font-bold text-ink">ยังไม่มีบันทึกที่นี่</div>
+              <p className="mt-1 max-w-sm mx-auto font-thai text-[12px] text-ink-50">
+                กรอก profile + วิเคราะห์ AI ครั้งแรก → ผลจะเก็บลง Supabase · กลับมาเปิดดูได้
+              </p>
             </div>
           ) : (
             <>
