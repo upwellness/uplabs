@@ -112,6 +112,19 @@ export function CheckFormClient() {
   // FORM details collapsible
   const [formDetailsOpen, setFormDetailsOpen] = useState(false);
 
+  // Explicit save toast (different from auto-save localStorage toast)
+  const [dbSavedToast, setDbSavedToast] = useState<string | null>(null);
+
+  const saveOnly = async () => {
+    const r = await saveRecord();
+    if (r.ok) {
+      setDbSavedToast(draft.editingRecordId ? "✓ อัพเดทแล้ว" : "✓ บันทึกแล้ว");
+      setTimeout(() => setDbSavedToast(null), 2200);
+    } else {
+      alert(r.error ?? "บันทึกไม่สำเร็จ");
+    }
+  };
+
   // AI analysis state
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -276,12 +289,22 @@ export function CheckFormClient() {
     setAiError(null);
     setAiLoading(true);
     try {
+      // Auto-save the record first so the AI result has somewhere to live (cache hit next time)
+      let recordId = draft.editingRecordId ?? null;
+      if (!recordId) {
+        const saved = await saveRecord();
+        if (!saved.ok) {
+          throw new Error(saved.error ?? "บันทึกก่อนวิเคราะห์ไม่สำเร็จ");
+        }
+        recordId = saved.id ?? null;
+      }
+
       const res = await fetch("/api/checkform/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profile: buildAIProfile(),
-          recordId: draft.editingRecordId ?? undefined,
+          recordId: recordId ?? undefined,
           force,
         }),
       });
@@ -290,8 +313,7 @@ export function CheckFormClient() {
       setAiAnalysis(json.analysis);
       setAiAnalyzedAt(json.analyzed_at ?? new Date().toISOString());
       setAiCached(!!json.cached);
-      // Refresh records list so the cached analysis shows up
-      if (draft.editingRecordId) loadRecords();
+      loadRecords();
     } catch (e: any) {
       setAiError(e.message);
     } finally {
@@ -448,8 +470,17 @@ export function CheckFormClient() {
                 Gemini วิเคราะห์ profile + DISC → ได้ <b>วิธีเข้าหา</b> · <b>dialog ตัวอย่าง</b> · <b>สัดส่วน product/business</b> · <b>roleplay จำลอง</b>
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="ghost" size="sm" onClick={reset}>ล้างเริ่มใหม่</Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={reset}>ล้าง</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={saveOnly}
+                disabled={!draft.prospectName.trim() || saving}
+                title="บันทึกเก็บไว้ใน Supabase · ไม่ต้องรอ AI"
+              >
+                {saving ? "..." : draft.editingRecordId ? "💾 อัพเดท" : "💾 บันทึก"}
+              </Button>
               <Button
                 variant="rose"
                 onClick={() => analyzeWithAI(false)}
@@ -463,9 +494,14 @@ export function CheckFormClient() {
                       ? `กรอกอีก ${3 - profileFilled} ฟิลด์`
                       : aiAnalysis
                         ? "✨ เปิดผลวิเคราะห์"
-                        : "✨ ให้ AI วิเคราะห์"}
+                        : "✨ บันทึก + วิเคราะห์ AI"}
               </Button>
             </div>
+            {dbSavedToast && (
+              <span className="ml-auto rounded-full bg-wellness px-3 py-1 text-[11px] font-bold text-white animate-pulse">
+                {dbSavedToast}
+              </span>
+            )}
           </div>
 
           {aiAnalysis && !aiLoading && (
