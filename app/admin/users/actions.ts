@@ -5,6 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
 
+export interface ManagedCustomer {
+  id: string;
+  name: string;
+}
+
 export interface UserListRow {
   id: string;
   email: string | null;
@@ -15,6 +20,7 @@ export interface UserListRow {
   created_at: string;
   last_sign_in_at: string | null;
   granted_app_slugs: string[];
+  managed_customers: ManagedCustomer[];
 }
 
 function siteUrl() {
@@ -29,9 +35,10 @@ export async function listUsers(): Promise<UserListRow[]> {
   const { data: authList, error: aErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (aErr) throw aErr;
 
-  const [{ data: profiles }, { data: grants }] = await Promise.all([
+  const [{ data: profiles }, { data: grants }, { data: customers }] = await Promise.all([
     admin.from("profiles").select("id, email, display_name, role, abo_number, phone"),
     admin.from("user_app_grants").select("user_id, app_slug"),
+    admin.from("customers").select("id, name, coach_id").not("coach_id", "is", null).order("name"),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -40,6 +47,13 @@ export async function listUsers(): Promise<UserListRow[]> {
     const arr = grantsMap.get(g.user_id) ?? [];
     arr.push(g.app_slug);
     grantsMap.set(g.user_id, arr);
+  }
+  const customersByCoach = new Map<string, ManagedCustomer[]>();
+  for (const c of customers ?? []) {
+    if (!c.coach_id) continue;
+    const arr = customersByCoach.get(c.coach_id) ?? [];
+    arr.push({ id: c.id, name: c.name });
+    customersByCoach.set(c.coach_id, arr);
   }
 
   return authList.users.map((u) => {
@@ -54,6 +68,7 @@ export async function listUsers(): Promise<UserListRow[]> {
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       granted_app_slugs: grantsMap.get(u.id) ?? [],
+      managed_customers: customersByCoach.get(u.id) ?? [],
     };
   }).sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
 }

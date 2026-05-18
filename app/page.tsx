@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { APPS, appsByAudience, type AppMeta } from "@/lib/apps-registry";
+
+type AppWithAccess = AppMeta & { allowed: boolean };
 import { canAccessApp } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { Logo } from "@/components/ui/Logo";
@@ -38,12 +40,14 @@ export default async function UPMenu() {
 
   const { profile, grantedAppSlugs } = session;
   const canSee = (app: AppMeta) => canAccessApp(profile.role, app.allowedRoles, grantedAppSlugs, app.slug);
+  const tagApps = (apps: AppMeta[]): AppWithAccess[] => apps.map((a) => ({ ...a, allowed: canSee(a) }));
 
-  const customerApps = appsByAudience("customer").filter(canSee);
-  const businessApps = appsByAudience("business").filter(canSee);
-  const internalApps = appsByAudience("internal").filter(canSee);
-  const contentApps  = appsByAudience("content").filter(canSee);
-  const visibleCount = customerApps.length + businessApps.length + internalApps.length + contentApps.length;
+  const customerApps = tagApps(appsByAudience("customer"));
+  const businessApps = tagApps(appsByAudience("business"));
+  const internalApps = tagApps(appsByAudience("internal"));
+  const contentApps  = tagApps(appsByAudience("content"));
+  const allowedCount = [customerApps, businessApps, internalApps, contentApps]
+    .reduce((sum, list) => sum + list.filter((a) => a.allowed).length, 0);
 
   const isAdmin   = profile.role === "admin";
   const statsCoachId = isAdmin ? null : session.user.id;
@@ -91,7 +95,7 @@ export default async function UPMenu() {
             </h1>
             <p className="mt-7 max-w-xl font-thai text-[16px] leading-[1.7] text-ink-60">
               Science-based · Longevity-first · เครื่องมือสำหรับนักธุรกิจสุขภาพมืออาชีพ —
-              เปิด {visibleCount} apps พร้อมใช้งาน
+              เปิด {allowedCount}/{APPS.length} apps พร้อมใช้งาน
             </p>
 
             {/* Quick actions */}
@@ -175,7 +179,7 @@ export default async function UPMenu() {
         </section>
       )}
 
-      {visibleCount === 0 && (
+      {allowedCount === 0 && (
         <section className="mx-auto max-w-content px-10 py-32 text-center">
           <div className="font-head text-2xl font-bold text-ink mb-3">ยังไม่มี app ที่เปิดให้คุณใช้งาน</div>
           <p className="font-thai text-sm text-ink-60">โปรดติดต่อ admin เพื่อขอสิทธิ์การใช้งาน</p>
@@ -204,7 +208,7 @@ export default async function UPMenu() {
               <ul className="space-y-2 text-sm text-white/50">
                 <li>v2.0 · 2026</li>
                 <li>{APPS.length} applications</li>
-                <li>{visibleCount} เปิดอยู่</li>
+                <li>{allowedCount} เปิดอยู่</li>
               </ul>
             </div>
             <div>
@@ -307,12 +311,12 @@ function SectionHeader({ number, label, title, description, dot, accent }: {
 /* Bento grid — featured + tiles                        */
 /* ──────────────────────────────────────────────────── */
 
-function BentoGrid({ apps }: { apps: AppMeta[] }) {
-  // Prefer "customers" as the hero card, else the first live business app
-  const liveApps = apps.filter((a) => a.status !== "soon");
+function BentoGrid({ apps }: { apps: AppWithAccess[] }) {
+  // Hero must be an app the user can actually open — fall back to first allowed live, then first app.
+  const liveAllowed = apps.filter((a) => a.allowed && a.status !== "soon");
   const hero =
-    liveApps.find((a) => a.slug === "customers")
-    ?? liveApps[0]
+    liveAllowed.find((a) => a.slug === "customers")
+    ?? liveAllowed[0]
     ?? apps[0];
   const rest = apps.filter((a) => a.slug !== hero?.slug);
 
@@ -326,7 +330,6 @@ function BentoGrid({ apps }: { apps: AppMeta[] }) {
           key={app.slug}
           app={app}
           className={
-            // First three after the hero stack: 5 / 5 / 5 in different rows of the 12-col grid
             i === 0 ? "lg:col-span-5" :
             i === 1 ? "lg:col-span-5" :
             i === 2 ? "lg:col-span-4" :
@@ -340,19 +343,35 @@ function BentoGrid({ apps }: { apps: AppMeta[] }) {
   );
 }
 
-function BentoFeatured({ app, className }: { app: AppMeta; className?: string }) {
-  const disabled = app.status === "soon";
+function LockBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-ink/85 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+      🔒 ไม่มีสิทธิ์
+    </span>
+  );
+}
+
+function BentoFeatured({ app, className }: { app: AppWithAccess; className?: string }) {
+  const blocked = !app.allowed || app.status === "soon";
+  const lock = !app.allowed;
   const inner = (
-    <div className={`group relative h-full overflow-hidden rounded-3xl border border-ink-10 bg-white p-7 lg:p-9 transition-all duration-300 ${disabled ? "opacity-60" : "hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(140,76,76,0.28)] hover:border-rose/30"}`}>
-      {/* Decorative gradient corner */}
+    <div className={`group relative h-full overflow-hidden rounded-3xl border border-ink-10 bg-white p-7 lg:p-9 transition-all duration-300 ${
+      lock
+        ? "opacity-50 grayscale cursor-not-allowed"
+        : app.status === "soon"
+          ? "opacity-60"
+          : "hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(140,76,76,0.28)] hover:border-rose/30"
+    }`}>
       <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-br from-rose-pale/70 via-amber-pale/40 to-transparent blur-2xl transition-opacity duration-500 group-hover:opacity-100 opacity-80" />
-      <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-rose via-amber to-wellness opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {!blocked && <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-rose via-amber to-wellness opacity-0 transition-opacity duration-300 group-hover:opacity-100" />}
 
       <div className="relative flex flex-col h-full">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-            ⭐ Featured
-          </span>
+          {lock ? <LockBadge /> : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+              ⭐ Featured
+            </span>
+          )}
           <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-ink-40">{statusLabel(app.status)}</span>
         </div>
 
@@ -364,46 +383,64 @@ function BentoFeatured({ app, className }: { app: AppMeta; className?: string })
         <p className="mt-3 max-w-md font-thai text-[14px] lg:text-[15px] leading-[1.7] text-ink-60">{app.description}</p>
 
         <div className="mt-auto pt-8 flex items-center justify-between">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-rose">เปิด app</span>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-40 transition-all duration-300 group-hover:border-rose group-hover:bg-rose group-hover:text-white group-hover:translate-x-1">
-            →
+          <span className="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-rose">
+            {lock ? "ติดต่อ admin เพื่อขอสิทธิ์" : "เปิด app"}
+          </span>
+          <div className={`flex h-10 w-10 items-center justify-center rounded-full border bg-white text-ink-40 transition-all duration-300 ${
+            blocked ? "border-ink-10" : "border-ink-10 group-hover:border-rose group-hover:bg-rose group-hover:text-white group-hover:translate-x-1"
+          }`}>
+            {lock ? "🔒" : "→"}
           </div>
         </div>
       </div>
     </div>
   );
 
-  return disabled ? <div className={className}>{inner}</div> : <Link href={app.href as any} className={className}>{inner}</Link>;
+  return blocked
+    ? <div className={className} title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
+    : <Link href={app.href as any} className={className}>{inner}</Link>;
 }
 
-function BentoTile({ app, className }: { app: AppMeta; className?: string }) {
-  const disabled = app.status === "soon";
+function BentoTile({ app, className }: { app: AppWithAccess; className?: string }) {
+  const blocked = !app.allowed || app.status === "soon";
+  const lock = !app.allowed;
   const inner = (
-    <div className={`group relative h-full overflow-hidden rounded-2xl border border-ink-10 bg-white p-6 transition-all duration-200 ${disabled ? "opacity-60" : "hover:-translate-y-0.5 hover:border-rose/40 hover:shadow-[0_16px_36px_-18px_rgba(140,76,76,0.22)]"}`}>
-      <div className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-rose via-amber to-wellness opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+    <div className={`group relative h-full overflow-hidden rounded-2xl border border-ink-10 bg-white p-6 transition-all duration-200 ${
+      lock
+        ? "opacity-50 grayscale cursor-not-allowed"
+        : app.status === "soon"
+          ? "opacity-60"
+          : "hover:-translate-y-0.5 hover:border-rose/40 hover:shadow-[0_16px_36px_-18px_rgba(140,76,76,0.22)]"
+    }`}>
+      {!blocked && <div className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-rose via-amber to-wellness opacity-0 transition-opacity duration-300 group-hover:opacity-100" />}
       <div className="flex items-start justify-between">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-ultra text-xl ring-1 ring-rose-pale/60 transition-all duration-300 group-hover:scale-105">
           {app.icon}
         </div>
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-40 font-bold">{statusLabel(app.status)}</span>
+        {lock ? <LockBadge /> : (
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-40 font-bold">{statusLabel(app.status)}</span>
+        )}
       </div>
       <h3 className="mt-5 font-head text-[18px] font-bold tracking-tight text-ink">{app.name}</h3>
       <p className="mt-1.5 font-thai text-[13px] leading-[1.6] text-ink-60 line-clamp-2">{app.description}</p>
-      <div className="mt-5 flex items-center gap-1 font-mono text-[11px] font-bold text-rose">
-        เปิด
-        <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+      <div className={`mt-5 flex items-center gap-1 font-mono text-[11px] font-bold ${lock ? "text-ink-40" : "text-rose"}`}>
+        {lock ? "🔒 ขอสิทธิ์" : "เปิด"}
+        {!lock && <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>}
       </div>
     </div>
   );
-  return disabled ? <div className={className}>{inner}</div> : <Link href={app.href as any} className={className}>{inner}</Link>;
+  return blocked
+    ? <div className={className} title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
+    : <Link href={app.href as any} className={className}>{inner}</Link>;
 }
 
 /* ──────────────────────────────────────────────────── */
 /* Compact card (customer + internal sections)          */
 /* ──────────────────────────────────────────────────── */
 
-function CompactCard({ app, accent }: { app: AppMeta; accent: keyof typeof accentDot }) {
-  const disabled = app.status === "soon";
+function CompactCard({ app, accent }: { app: AppWithAccess; accent: keyof typeof accentDot }) {
+  const blocked = !app.allowed || app.status === "soon";
+  const lock = !app.allowed;
   const bgMap = {
     rose:     "bg-rose-ultra",
     wellness: "bg-wellness-ultra",
@@ -412,39 +449,64 @@ function CompactCard({ app, accent }: { app: AppMeta; accent: keyof typeof accen
   } as const;
 
   const card = (
-    <div className={`group relative h-full overflow-hidden rounded-2xl border border-ink-10 bg-white p-5 transition-all duration-200 ${disabled ? "opacity-60" : "hover:-translate-y-0.5 hover:border-ink-20 hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.12)]"}`}>
-      <div className={`absolute top-0 left-0 h-0.5 w-full ${accentDot[accent]} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+    <div className={`group relative h-full overflow-hidden rounded-2xl border border-ink-10 bg-white p-5 transition-all duration-200 ${
+      lock
+        ? "opacity-50 grayscale cursor-not-allowed"
+        : app.status === "soon"
+          ? "opacity-60"
+          : "hover:-translate-y-0.5 hover:border-ink-20 hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.12)]"
+    }`}>
+      {!blocked && <div className={`absolute top-0 left-0 h-0.5 w-full ${accentDot[accent]} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />}
       <div className="flex items-center gap-3">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bgMap[accent]} text-xl`}>
           {app.icon}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-head text-[15px] font-bold tracking-tight text-ink truncate">{app.name}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-head text-[15px] font-bold tracking-tight text-ink truncate">{app.name}</h3>
+            {lock && <LockBadge />}
+          </div>
           <p className="mt-0.5 font-thai text-[12px] leading-[1.5] text-ink-60 line-clamp-1">{app.description}</p>
         </div>
-        <span className={`font-mono text-[10px] font-bold ${accentText[accent]} transition-transform group-hover:translate-x-0.5`}>
-          {app.status === "soon" ? "Soon" : "→"}
+        <span className={`font-mono text-[10px] font-bold ${lock ? "text-ink-30" : accentText[accent]} transition-transform group-hover:translate-x-0.5`}>
+          {lock ? "🔒" : app.status === "soon" ? "Soon" : "→"}
         </span>
       </div>
     </div>
   );
 
-  return disabled ? <div className="h-full">{card}</div> : <Link href={app.href as any} className="h-full block">{card}</Link>;
+  return blocked
+    ? <div className="h-full" title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{card}</div>
+    : <Link href={app.href as any} className="h-full block">{card}</Link>;
 }
 
-function ContentCard({ app }: { app: AppMeta }) {
-  const disabled = app.status === "soon";
+function ContentCard({ app }: { app: AppWithAccess }) {
+  const blocked = !app.allowed || app.status === "soon";
+  const lock = !app.allowed;
   const inner = (
-    <div className={`group flex items-center gap-4 rounded-2xl bg-white p-4 transition-all duration-200 ${disabled ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-14px_rgba(0,0,0,0.12)]"}`}>
+    <div className={`group flex items-center gap-4 rounded-2xl bg-white p-4 transition-all duration-200 ${
+      lock
+        ? "opacity-50 grayscale cursor-not-allowed"
+        : app.status === "soon"
+          ? "opacity-60"
+          : "hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-14px_rgba(0,0,0,0.12)]"
+    }`}>
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-wellness-ultra text-xl ring-1 ring-wellness-pale">{app.icon}</div>
       <div className="flex-1 min-w-0">
-        <div className="font-head text-sm font-bold text-ink truncate">{app.name}</div>
+        <div className="flex items-center gap-1.5">
+          <div className="font-head text-sm font-bold text-ink truncate">{app.name}</div>
+          {lock && <LockBadge />}
+        </div>
         <div className="font-thai text-xs text-ink-60 line-clamp-1">{app.description}</div>
       </div>
-      <span className="text-ink-20 transition-transform group-hover:translate-x-0.5">{app.status === "soon" ? "Soon" : "›"}</span>
+      <span className="text-ink-20 transition-transform group-hover:translate-x-0.5">
+        {lock ? "🔒" : app.status === "soon" ? "Soon" : "›"}
+      </span>
     </div>
   );
-  return disabled ? <div>{inner}</div> : <Link href={app.href as any}>{inner}</Link>;
+  return blocked
+    ? <div title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
+    : <Link href={app.href as any}>{inner}</Link>;
 }
 
 function statusLabel(s: AppMeta["status"]): string {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ROLES, ROLE_LABEL_TH, ROLE_COLOR, type Role } from "@/lib/auth/roles";
 import { APPS } from "@/lib/apps-registry";
@@ -21,13 +23,16 @@ export function UserRow({ user }: { user: UserListRow }) {
   const [aboEdit,   setAboEdit]   = useState(user.abo_number ?? "");
   const [phoneEdit, setPhoneEdit] = useState(user.phone ?? "");
   const [, start] = useTransition();
+  const router = useRouter();
 
   const run = async (key: string, fn: () => Promise<{ error?: string; ok?: boolean; url?: string | null } | void>) => {
     setBusy(key);
     const r = await fn();
     setBusy(null);
-    if (r && "error" in r && r.error) alert(`ผิดพลาด: ${r.error}`);
+    if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
     if (r && "url" in r && r.url) setLinkOut(r.url);
+    // Pull latest server state so prop-driven UI (checkboxes · counts) reflects the save
+    router.refresh();
   };
 
   return (
@@ -58,7 +63,12 @@ export function UserRow({ user }: { user: UserListRow }) {
         </td>
         <td className="px-6 py-3">
           <div className="font-mono text-[11px] text-ink-60">
-            {user.granted_app_slugs.length} explicit grant{user.granted_app_slugs.length !== 1 ? "s" : ""}
+            {user.granted_app_slugs.length} grant{user.granted_app_slugs.length !== 1 ? "s" : ""}
+            {user.managed_customers.length > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-rose-ultra px-1.5 py-0.5 text-[10px] font-bold text-rose">
+                👥 {user.managed_customers.length}
+              </span>
+            )}
           </div>
         </td>
         <td className="px-6 py-3 font-mono text-[11px] text-ink-60">
@@ -153,11 +163,17 @@ export function UserRow({ user }: { user: UserListRow }) {
                     return (
                       <label
                         key={app.slug}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] cursor-pointer ${effective ? "bg-status-bg-optimal" : "bg-ink-5"}`}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] transition-colors ${
+                          byRole
+                            ? "bg-status-bg-optimal cursor-not-allowed"
+                            : granted
+                              ? "bg-rose-ultra cursor-pointer ring-1 ring-inset ring-rose/30"
+                              : "bg-ink-5 cursor-pointer hover:bg-ink-10"
+                        }`}
                       >
                         <input
                           type="checkbox"
-                          checked={granted}
+                          checked={effective}
                           disabled={busy !== null || byRole}
                           onChange={(e) => start(() => run(`grant-${app.slug}`, () => toggleAppGrant(user.id, app.slug, e.target.checked)))}
                           className="accent-rose"
@@ -171,6 +187,52 @@ export function UserRow({ user }: { user: UserListRow }) {
                   })}
                 </div>
               </div>
+            </div>
+
+            {/* ── Managed Customers ── */}
+            <div className="mt-6 rounded-2xl border border-ink-10 bg-white p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">Managed Customers</div>
+                  <p className="mt-1 font-thai text-[12px] text-ink-60">
+                    ลูกค้าที่ user คนนี้ดูแลอยู่ ({user.managed_customers.length})
+                  </p>
+                </div>
+                {user.managed_customers.length > 8 && (
+                  <Link href="/customers" className="font-mono text-[11px] font-bold text-rose hover:underline">
+                    ดูทั้งหมดใน /customers →
+                  </Link>
+                )}
+              </div>
+              {user.managed_customers.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-ink-10 px-4 py-6 text-center font-thai text-[12px] text-ink-40">
+                  ยังไม่มีลูกค้าที่ดูแล
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
+                  {user.managed_customers.slice(0, 12).map((c) => {
+                    const initials = c.name.replace(/^(คุณ|นาย|นาง|น\.ส\.)\s?/, "").slice(0, 2).toUpperCase();
+                    return (
+                      <Link
+                        key={c.id}
+                        href={`/customers/${c.id}`}
+                        className="group flex items-center gap-2 rounded-lg border border-ink-10 bg-white px-2.5 py-2 transition-all hover:border-rose/40 hover:bg-rose-ultra/40"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose text-[10px] font-bold text-white">
+                          {initials}
+                        </span>
+                        <span className="font-thai text-[12px] font-semibold text-ink truncate flex-1">{c.name}</span>
+                        <span className="text-ink-20 text-[10px] transition-transform group-hover:translate-x-0.5 group-hover:text-rose">›</span>
+                      </Link>
+                    );
+                  })}
+                  {user.managed_customers.length > 12 && (
+                    <div className="flex items-center justify-center rounded-lg border border-dashed border-ink-10 px-2 py-2 font-mono text-[11px] text-ink-40">
+                      +{user.managed_customers.length - 12} more
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </td>
         </tr>
