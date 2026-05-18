@@ -20,7 +20,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="rounded-full bg-amber-pale px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-amber">Admin</span>
           </div>
           <nav className="flex items-center gap-1 text-sm">
-            <Link href="/admin/users" className="rounded-full px-3 py-1.5 font-medium text-ink-60 hover:bg-ink-5 hover:text-ink">Users</Link>
+            <Link href="/admin/users"  className="rounded-full px-3 py-1.5 font-medium text-ink-60 hover:bg-ink-5 hover:text-ink">Users</Link>
+            <Link href="/admin/backup" className="rounded-full px-3 py-1.5 font-medium text-ink-60 hover:bg-ink-5 hover:text-ink">Backup / Restore</Link>
             <UserMenu profile={session.profile} />
           </nav>
         </div>
