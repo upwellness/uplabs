@@ -31,7 +31,7 @@ export const APPS: AppMeta[] = [
   { slug: "nutriscan",    name: "NutriScan AI",    description: "AI วิเคราะห์โภชนาการจากรูปภาพ/ข้อความ · macros + glucose impact + Nutrilite SKU",                     icon: "🥗", audience: "business", href: "/nutriscan",    status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "foodlog",      name: "Food Log",        description: "บันทึกอาหารรายวัน · ดู C:P:F % พลังงาน · ของตัวเองหรือลูกค้า",                                                  icon: "📅", audience: "business", href: "/nutriscan/log", status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "designer",     name: "Program Designer",description: "ออกแบบ Full Course เฉพาะบุคคล · wizard 5 step · คำนวณ unit + PV + cashback · save HD image",                icon: "🎨", audience: "business", href: "/designer",     status: "live", allowedRoles: ["abo", "admin"] },
-  { slug: "checkform",    name: "Check Form",      description: "Form ประเมิน lead ใหม่อย่างมีระบบ",                icon: "📋", audience: "business", href: "/checkform",    status: "soon", allowedRoles: ["abo", "admin"] },
+  { slug: "checkform",    name: "Check FORM",      description: "วิเคราะห์ prospect ด้วย F·O·R·M · มี dialog แนะนำ + คะแนน + next action",  icon: "📋", audience: "business", href: "/checkform",    status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "prospect",     name: "Prospect",        description: "Lead intelligence + FORM scoring",                  icon: "🎯", audience: "business", href: "/prospect",     status: "soon", allowedRoles: ["abo", "admin"] },
 
   // ── Internal ──
