@@ -8,7 +8,16 @@ do $$
 declare
   v_customer_id uuid;
   v_test_id     uuid;
+  v_coach_id    uuid;
 begin
+  -- ─── Step 0: Resolve coach (default = admin) ─────────────────────
+  select id into v_coach_id
+    from auth.users where email = 'ckawin1184@gmail.com' limit 1;
+
+  if v_coach_id is null then
+    raise exception 'Coach not found · update email or seed an admin first';
+  end if;
+
   -- ─── Step 1: Create or find customer ─────────────────────────────
   select id into v_customer_id
     from public.customers
@@ -16,9 +25,8 @@ begin
    limit 1;
 
   if v_customer_id is null then
-    insert into public.customers (name, gender, notes)
-    values ('พิมพ์ปวีณ์ นิลสุพรรณ', 'female',
-            'IgG Food Sensitivity (N Health) · 26 foods flagged · 21 eliminate + 5 reduce · Compiled 2026-05-17')
+    insert into public.customers (name, gender, coach_id)
+    values ('พิมพ์ปวีณ์ นิลสุพรรณ', 'female', v_coach_id)
     returning id into v_customer_id;
     raise notice 'Created customer พิมพ์ปวีณ์ id=%', v_customer_id;
   else
@@ -32,10 +40,11 @@ begin
      and tested_at = '2026-05-17'::date;
 
   insert into public.customer_allergy_tests (
-    customer_id, test_type, test_lab, test_name, panel_size, tested_at, notes
+    customer_id, test_type, test_lab, test_name, panel_size, tested_at, notes, created_by
   ) values (
     v_customer_id, 'IgG', 'N Health', 'Food Sensitivity Report', 220, '2026-05-17',
-    'Image-based · ELIMINATE list (≥30 score · 3-6 months) + REDUCE list (25-29 · max 1×/week)'
+    'Image-based · ELIMINATE list (≥30 score · 3-6 months) + REDUCE list (25-29 · max 1×/week)',
+    v_coach_id
   ) returning id into v_test_id;
 
   -- ─── Step 3: Insert 26 food allergen findings ────────────────────

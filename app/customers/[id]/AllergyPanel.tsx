@@ -10,6 +10,8 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface AllergyTest {
   id:        string;
@@ -60,11 +62,23 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; icon: string; lab
 };
 
 export function AllergyPanel({ customerId }: { customerId: string }) {
+  const router = useRouter();
   const [tests,     setTests]     = useState<AllergyTest[]>([]);
   const [allergens, setAllergens] = useState<FoodAllergen[]>([]);
   const [safety,    setSafety]    = useState<SupplementSafety[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [tab,       setTab]       = useState<"food" | "supplement">("supplement");
+
+  const deleteTest = async (testId: string) => {
+    if (!confirm("ลบ test นี้และ allergens ทั้งหมดที่ผูกกับมัน?")) return;
+    const r = await fetch(`/api/customers/${customerId}/allergies/tests/${testId}`, { method: "DELETE" });
+    if (!r.ok) { alert("ลบไม่สำเร็จ"); return; }
+    router.refresh();
+    // also reload local state
+    setTests(tests.filter(t => t.id !== testId));
+    setAllergens(allergens.filter(a => true /* will refresh */));
+    location.reload();
+  };
 
   useEffect(() => {
     fetch(`/api/customers/${customerId}/allergies`)
@@ -86,6 +100,10 @@ export function AllergyPanel({ customerId }: { customerId: string }) {
       <div className="rounded-2xl border border-dashed border-ink-10 bg-surface p-6 text-center">
         <div className="text-2xl">🧪</div>
         <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มีผลตรวจ allergy / food sensitivity</p>
+        <Link href={`/customers/${customerId}/allergies/new`}
+          className="mt-3 inline-block rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white">
+          + เพิ่มผลตรวจ
+        </Link>
       </div>
     );
   }
@@ -104,17 +122,33 @@ export function AllergyPanel({ customerId }: { customerId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Test summary */}
+      {/* Test summary + actions */}
       {tests[0] && (
         <div className="rounded-xl bg-ink/5 px-4 py-3 text-[12px] font-mono text-ink-60">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="font-bold text-ink">{tests[0].test_type}</span>
-            <span>· {tests[0].test_lab}</span>
-            <span>· {tests[0].test_name}</span>
-            {tests[0].panel_size && <span>· {tests[0].panel_size} foods</span>}
-            <span>· {new Date(tests[0].tested_at).toLocaleDateString("th-TH")}</span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="font-bold text-ink">{tests[0].test_type}</span>
+                <span>· {tests[0].test_lab}</span>
+                <span>· {tests[0].test_name}</span>
+                {tests[0].panel_size && <span>· {tests[0].panel_size} foods</span>}
+                <span>· {new Date(tests[0].tested_at).toLocaleDateString("th-TH")}</span>
+              </div>
+              {tests[0].notes && <div className="mt-1 font-thai text-[11px]">{tests[0].notes}</div>}
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <Link href={`/customers/${customerId}/allergies/new`}
+                className="rounded-md border border-ink-10 bg-white px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-ink-20"
+                title="เพิ่ม test ใหม่">
+                + Test
+              </Link>
+              <button onClick={() => deleteTest(tests[0].id)}
+                className="rounded-md border border-ink-10 bg-white px-2 py-1 text-[11px] text-ink-40 hover:text-red-600 hover:border-red-300"
+                title="ลบ test ล่าสุด">
+                🗑️
+              </button>
+            </div>
           </div>
-          {tests[0].notes && <div className="mt-1 font-thai text-[11px]">{tests[0].notes}</div>}
         </div>
       )}
 
