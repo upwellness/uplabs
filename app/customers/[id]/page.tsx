@@ -8,6 +8,7 @@ import { CustomerEditor } from "./CustomerEditor";
 import { WearableLinkPanel } from "./WearableLinkPanel";
 import { LatestLabsCard } from "./LatestLabsCard";
 import { LabTrendCharts } from "./LabTrendCharts";
+import { AllergyPanel } from "./AllergyPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,11 @@ export default async function CustomerProfilePage({ params }: { params: { id: st
         {/* Lab Trends — chart per metric over time */}
         <Section title="📈 ผลเลือดย้อนหลัง · กราฟแนวโน้ม" subtitle="เลือกหมวดเพื่อดูแต่ละค่าตามเวลา · monotone smooth · มี reference range">
           <LabTrendCharts customerId={params.id} />
+        </Section>
+
+        {/* Allergy / Food Sensitivity */}
+        <Section title="🧪 Allergy · Food Sensitivity" subtitle="IgG/IgE test results · supplement safety mapping">
+          <AllergyPanel customerId={params.id} />
         </Section>
 
         {/* Cross-app quick access */}
