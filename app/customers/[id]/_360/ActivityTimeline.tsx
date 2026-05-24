@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Clock, Inbox } from "lucide-react";
 
 interface TimelineEvent {
   type: string;
@@ -50,16 +51,20 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
     <section className="liquid liquid-shine rounded-3xl p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="font-head text-[16px] font-extrabold tracking-tight text-ink">⏱ ไทม์ไลน์ 90 วัน</h2>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-ink-40 mt-0.5">เรียงจากใหม่ → เก่า</p>
+          <h2 className="font-head text-[16px] font-extrabold tracking-tight text-ink inline-flex items-center gap-1.5">
+            <Clock size={15} strokeWidth={2.25} className="text-rose" aria-hidden="true" /> ไทม์ไลน์ 90 วัน
+          </h2>
+          <p className="font-mono text-[10.5px] uppercase tracking-wider text-ink-60 mt-0.5">เรียงจากใหม่ → เก่า</p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="radiogroup" aria-label="กรองตามประเภท">
           {FILTER_OPTIONS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide transition-all duration-300 ${
+              role="radio"
+              aria-checked={filter === f.key}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2 ${
                 filter === f.key
                   ? "bg-ink text-white shadow-md"
-                  : "bg-white/50 backdrop-blur-md text-ink-60 hover:bg-white/80"
+                  : "bg-white/70 text-ink-60 hover:bg-white border border-ink/8"
               }`}>
               {f.label}
             </button>
@@ -69,7 +74,7 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
 
       {filtered.length === 0 ? (
         <div className="liquid rounded-2xl p-8 text-center border-dashed">
-          <div className="text-2xl">📭</div>
+          <Inbox size={26} strokeWidth={1.75} className="mx-auto text-ink-40" aria-hidden="true" />
           <p className="mt-2 font-thai text-[12px] text-ink-60">
             {filter === "all"
               ? "ยังไม่มีความเคลื่อนไหวใน 90 วัน · ลองทักทายเพื่อเริ่มต้น"

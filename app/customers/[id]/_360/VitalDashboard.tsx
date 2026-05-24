@@ -57,11 +57,12 @@ function valStatus(metric: string, value: number | null | undefined): { color: s
 function bodyAgeStatus(bodyAge: number | null, chronoAge: number | null): { color: string; label2: string } {
   if (bodyAge == null || chronoAge == null) return { color: "#5C5A56", label2: "—" };
   const diff = bodyAge - chronoAge;
-  if (diff <= -5) return { color: "#15803D", label2: `−${Math.abs(diff)}` };
-  if (diff <= -2) return { color: "#4D7C0F", label2: `−${Math.abs(diff)}` };
-  if (diff <=  2) return { color: "#A16207", label2: `${diff >= 0 ? "+" : ""}${diff}` };
-  if (diff <=  5) return { color: "#C2410C", label2: `+${diff}` };
-  return { color: "#B91C1C", label2: `+${diff}` };
+  // Label format: "−5 ปี" / "+3 ปี" relative to chrono age (clearer than ± symbols)
+  if (diff <= -5) return { color: "#15803D", label2: `อ่อนกว่า ${Math.abs(diff)} ปี` };
+  if (diff <= -2) return { color: "#4D7C0F", label2: `อ่อนกว่า ${Math.abs(diff)} ปี` };
+  if (diff <=  2) return { color: "#A16207", label2: diff === 0 ? "ตรงตามอายุ" : `${diff > 0 ? "แก่กว่า" : "อ่อนกว่า"} ${Math.abs(diff)} ปี` };
+  if (diff <=  5) return { color: "#C2410C", label2: `แก่กว่า ${diff} ปี` };
+  return { color: "#B91C1C", label2: `แก่กว่า ${diff} ปี` };
 }
 
 function scoreColor(s: number | null): string {
