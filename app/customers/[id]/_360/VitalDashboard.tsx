@@ -30,20 +30,20 @@ function valStatus(metric: string, value: number | null | undefined): { color: s
   if (value == null) return { color: "#8B8884", label2: "—" };
   switch (metric) {
     case "hba1c":
-      if (value < 5.7) return { color: "#16A34A", label2: "Normal" };
-      if (value <= 6.4) return { color: "#CA8A04", label2: "Pre-DM" };
-      return { color: "#DC2626", label2: "DM" };
+      if (value < 5.7) return { color: "#16A34A", label2: "ปกติ" };
+      if (value <= 6.4) return { color: "#CA8A04", label2: "เริ่มสูง" };
+      return { color: "#DC2626", label2: "สูง" };
     case "ldl":
-      if (value < 100) return { color: "#16A34A", label2: "Optimal" };
-      if (value <= 130) return { color: "#65A30D", label2: "Near-opt" };
-      if (value <= 160) return { color: "#CA8A04", label2: "Borderline" };
-      return { color: "#DC2626", label2: "High" };
+      if (value < 100) return { color: "#16A34A", label2: "ดี" };
+      if (value <= 130) return { color: "#65A30D", label2: "เกือบดี" };
+      if (value <= 160) return { color: "#CA8A04", label2: "เริ่มสูง" };
+      return { color: "#DC2626", label2: "สูง" };
     case "visceral":
-      if (value <= 2) return { color: "#16A34A", label2: "ดี" };
+      if (value <= 2) return { color: "#16A34A", label2: "ดีมาก" };
       if (value <= 5) return { color: "#65A30D", label2: "ปกติ" };
-      if (value <= 9) return { color: "#CA8A04", label2: "สูง" };
+      if (value <= 9) return { color: "#CA8A04", label2: "เริ่มสูง" };
       if (value <= 15) return { color: "#EA580C", label2: "สูงมาก" };
-      return { color: "#DC2626", label2: "อันตราย" };
+      return { color: "#DC2626", label2: "ต้องดูแลด่วน" };
     default:
       return { color: "#5C5A56", label2: "" };
   }
@@ -94,9 +94,9 @@ export function VitalDashboard({ score, labVals, bcaLatest, chronoAge }: VitalDa
               <span className="font-mono text-sm text-ink-40">/ 100</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <ScorePill label="BCA"     value={score.bca}     />
-              <ScorePill label="Lab"     value={score.lab}     />
-              <ScorePill label="Recency" value={score.recency} />
+              <ScorePill label="BCA"        value={score.bca}     />
+              <ScorePill label="Lab"        value={score.lab}     />
+              <ScorePill label="กิจกรรม"   value={score.recency} />
             </div>
           </div>
 
@@ -119,13 +119,22 @@ export function VitalDashboard({ score, labVals, bcaLatest, chronoAge }: VitalDa
           </div>
         </div>
 
-        {/* Formula caveat */}
-        <p className="relative mt-3 font-mono text-[9px] text-ink-40">
-          Formula: BCA 40 + Lab 40 + Recency 20
-          {!score.sources.bca && <span className="text-orange-600"> · ⚠ no BCA</span>}
-          {!score.sources.lab && <span className="text-orange-600"> · ⚠ no Lab</span>}
-          {!score.sources.recency && <span className="text-orange-600"> · ⚠ no recency</span>}
-        </p>
+        {/* Score caveat · warm Caregiver tone */}
+        {(!score.sources.bca || !score.sources.lab || !score.sources.recency) ? (
+          <p className="relative mt-3 font-thai text-[11px] text-ink-60 leading-snug">
+            คะแนนนี้ยังไม่สมบูรณ์ · ยังไม่มีข้อมูล
+            {!score.sources.bca && <span className="text-orange-600"> BCA</span>}
+            {!score.sources.bca && (!score.sources.lab || !score.sources.recency) && <span>,</span>}
+            {!score.sources.lab && <span className="text-orange-600"> Lab</span>}
+            {!score.sources.lab && !score.sources.recency && <span>,</span>}
+            {!score.sources.recency && <span className="text-orange-600"> กิจกรรมล่าสุด</span>}
+            <span> · เพิ่มเข้าไปแล้วจะแม่นขึ้นค่ะ</span>
+          </p>
+        ) : (
+          <p className="relative mt-3 font-mono text-[10px] text-ink-40">
+            จากค่า BCA + ค่าเลือด + ความสม่ำเสมอของกิจกรรม
+          </p>
+        )}
       </div>
 
       {/* KPI Grid · liquid glass tiles */}
@@ -134,7 +143,7 @@ export function VitalDashboard({ score, labVals, bcaLatest, chronoAge }: VitalDa
         <MetricCard label="LDL" value={labVals.ldl} unit="mg/dL" {...valStatus("ldl", labVals.ldl)} />
         <MetricCard label="FBS" value={labVals.fbs} unit="mg/dL"
           color={labVals.fbs != null ? (labVals.fbs > 126 ? "#DC2626" : labVals.fbs > 99 ? "#CA8A04" : "#16A34A") : "#8B8884"}
-          label2={labVals.fbs != null ? (labVals.fbs > 126 ? "DM" : labVals.fbs > 99 ? "Pre-DM" : "Normal") : "—"} />
+          label2={labVals.fbs != null ? (labVals.fbs > 126 ? "สูง" : labVals.fbs > 99 ? "เริ่มสูง" : "ปกติ") : "—"} />
         <MetricCard label="Visceral" value={bcaLatest?.visceral} unit="lv" {...valStatus("visceral", bcaLatest?.visceral)} />
         <MetricCard label="น้ำหนัก" value={bcaLatest?.weight} unit="kg" color="#1F1E1B" label2="" />
         <MetricCard label="Body Age" value={bcaLatest?.body_age} unit="yr" {...bodyAgeStatus(bcaLatest?.body_age ?? null, chronoAge)} />

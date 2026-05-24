@@ -43,16 +43,16 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
 
   return (
     <section className="liquid liquid-shine rounded-3xl p-5">
-      <h2 className="font-head text-[15px] font-extrabold tracking-tight text-ink mb-1">⚡ Smart Insights</h2>
+      <h2 className="font-head text-[15px] font-extrabold tracking-tight text-ink mb-1">⚡ สิ่งที่น่าสังเกต</h2>
       <p className="font-mono text-[10px] uppercase tracking-wider text-ink-40 mb-4">
-        {total > 0 ? `${total} items detected` : "ทุกอย่างปกติ"}
+        {total > 0 ? `พบ ${total} เรื่องน่าสนใจ` : "ทุกอย่างดูดีค่ะ"}
       </p>
 
       {total === 0 ? (
         <div className="liquid-info rounded-2xl p-6 text-center">
           <div className="text-2xl">✨</div>
           <p className="mt-2 font-thai text-[12px]" style={{ color: SEV_TEXT.info }}>
-            ไม่มี alert / trend / action ที่ต้องสนใจ
+            ทุกอย่างดูดีค่ะ ไม่มีสัญญาณที่ต้องกังวลตอนนี้
           </p>
         </div>
       ) : (
@@ -60,7 +60,7 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
           {insights.alerts.length > 0 && (
             <div>
               <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink-60">
-                🚨 Alerts <span className="font-bold text-red-700">{insights.alerts.length}</span>
+                🚨 จุดที่ควรดู <span className="font-bold text-red-700">{insights.alerts.length}</span>
               </div>
               <div className="space-y-2">
                 {insights.alerts.map(ins => <InsightCard key={ins.id} ins={ins} />)}
@@ -71,7 +71,7 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
           {insights.trends.length > 0 && (
             <div>
               <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink-60">
-                📈 Trends <span className="font-bold">{insights.trends.length}</span>
+                📈 แนวโน้ม <span className="font-bold">{insights.trends.length}</span>
               </div>
               <div className="space-y-2">
                 {insights.trends.map(ins => <InsightCard key={ins.id} ins={ins} />)}
@@ -82,7 +82,7 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
           {insights.actions.length > 0 && (
             <div>
               <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink-60">
-                🎯 Next Best Action <span className="font-bold">{insights.actions.length}</span>
+                🎯 สิ่งที่ควรทำต่อ <span className="font-bold">{insights.actions.length}</span>
               </div>
               <div className="space-y-2">
                 {insights.actions.map(ins => <InsightCard key={ins.id} ins={ins} />)}

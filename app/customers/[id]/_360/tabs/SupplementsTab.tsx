@@ -15,10 +15,10 @@ interface SafetyEntry {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; icon: string; label: string }> = {
-  safe:        { bg: "liquid-info",     text: "#14532D", icon: "✅", label: "Approved Stack" },
-  caution:     { bg: "liquid-watch",    text: "#92400E", icon: "🟡", label: "ใช้ระวัง" },
-  reduce_freq: { bg: "liquid-watch",    text: "#92400E", icon: "🟠", label: "ลดความถี่" },
-  avoid:       { bg: "liquid-critical", text: "#991B1B", icon: "🔴", label: "หลีกเลี่ยง" },
+  safe:        { bg: "liquid-info",     text: "#14532D", icon: "✅", label: "ใช้ได้ตามปกติ" },
+  caution:     { bg: "liquid-watch",    text: "#92400E", icon: "🟡", label: "ใช้อย่างระวัง" },
+  reduce_freq: { bg: "liquid-watch",    text: "#92400E", icon: "🟠", label: "ลดความถี่ลง" },
+  avoid:       { bg: "liquid-critical", text: "#991B1B", icon: "🔴", label: "ควรหลีกเลี่ยง" },
 };
 
 export function SupplementsTab({ customerId }: { customerId: string }) {
@@ -39,10 +39,10 @@ export function SupplementsTab({ customerId }: { customerId: string }) {
     return (
       <div className="liquid rounded-2xl p-8 text-center border-dashed">
         <div className="text-2xl">💊</div>
-        <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มี supplement mapping</p>
-        <p className="mt-1 font-mono text-[10px] text-ink-40">เพิ่ม allergy test → ระบบจะ generate stack ตามผล</p>
+        <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มีรายการ supplement ที่จับคู่ไว้</p>
+        <p className="mt-1 font-thai text-[11px] text-ink-60">เพิ่มผล allergy test แล้วระบบจะแนะนำตัวที่เหมาะกับคนไข้ให้ค่ะ</p>
         <Link href={`/customers/${customerId}/allergies/new`} className="mt-3 inline-block rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white">
-          + เพิ่ม Allergy Test
+          + เพิ่มผล Allergy
         </Link>
       </div>
     );
@@ -58,10 +58,10 @@ export function SupplementsTab({ customerId }: { customerId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 text-[11px] font-mono">
-        <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5">✅ Safe {grouped.safe.length}</span>
-        <span className="rounded-full bg-amber-100 text-amber-700 px-2.5 py-0.5">🟡 Caution {grouped.caution.length}</span>
-        <span className="rounded-full bg-orange-100 text-orange-700 px-2.5 py-0.5">🟠 Reduce {grouped.reduce_freq.length}</span>
-        <span className="rounded-full bg-red-100 text-red-700 px-2.5 py-0.5">🔴 Avoid {grouped.avoid.length}</span>
+        <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5">✅ ใช้ได้ {grouped.safe.length}</span>
+        <span className="rounded-full bg-amber-100 text-amber-700 px-2.5 py-0.5">🟡 ระวัง {grouped.caution.length}</span>
+        <span className="rounded-full bg-orange-100 text-orange-700 px-2.5 py-0.5">🟠 ลดความถี่ {grouped.reduce_freq.length}</span>
+        <span className="rounded-full bg-red-100 text-red-700 px-2.5 py-0.5">🔴 หลีกเลี่ยง {grouped.avoid.length}</span>
       </div>
 
       {(["safe", "caution", "reduce_freq", "avoid"] as const).map(status => {

@@ -39,7 +39,8 @@ export function BodyTab({ customerId }: { customerId: string }) {
     return (
       <div className="liquid rounded-2xl p-8 text-center border-dashed">
         <div className="text-2xl">📊</div>
-        <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มี BCA · ชั่งเครื่อง Omron แล้วบันทึก</p>
+        <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มีผล BCA ของคนไข้คนนี้</p>
+        <p className="mt-1 font-thai text-[11px] text-ink-60">ชั่งเครื่อง Omron แล้วบันทึกได้ที่หน้า BCA</p>
         <Link href="/bca" className="mt-3 inline-block rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white">
           → ไปหน้า BCA
         </Link>

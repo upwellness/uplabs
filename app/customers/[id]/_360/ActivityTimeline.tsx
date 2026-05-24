@@ -12,8 +12,8 @@ interface TimelineEvent {
 
 const FILTER_OPTIONS = [
   { key: "all",     label: "ทั้งหมด" },
-  { key: "health",  label: "Health Data" },
-  { key: "comm",    label: "Communication" },
+  { key: "health",  label: "ข้อมูลสุขภาพ" },
+  { key: "comm",    label: "การติดต่อ" },
 ] as const;
 
 type FilterKey = typeof FILTER_OPTIONS[number]["key"];
@@ -50,8 +50,8 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
     <section className="liquid liquid-shine rounded-3xl p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="font-head text-[16px] font-extrabold tracking-tight text-ink">⏱ Activity Timeline</h2>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-ink-40 mt-0.5">90 days</p>
+          <h2 className="font-head text-[16px] font-extrabold tracking-tight text-ink">⏱ ไทม์ไลน์ 90 วัน</h2>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-ink-40 mt-0.5">เรียงจากใหม่ → เก่า</p>
         </div>
         <div className="flex gap-1">
           {FILTER_OPTIONS.map(f => (
@@ -70,7 +70,11 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
       {filtered.length === 0 ? (
         <div className="liquid rounded-2xl p-8 text-center border-dashed">
           <div className="text-2xl">📭</div>
-          <p className="mt-2 font-thai text-[12px] text-ink-40">ไม่มี activity ใน 90 วัน · {filter !== "all" ? "ลองเปลี่ยน filter" : ""}</p>
+          <p className="mt-2 font-thai text-[12px] text-ink-60">
+            {filter === "all"
+              ? "ยังไม่มีความเคลื่อนไหวใน 90 วัน · ลองทักทายเพื่อเริ่มต้น"
+              : "ไม่มีรายการในหมวดนี้ · ลองดูหมวดอื่นได้ค่ะ"}
+          </p>
         </div>
       ) : (
         <ul className="space-y-3 relative">

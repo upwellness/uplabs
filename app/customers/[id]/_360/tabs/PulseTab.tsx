@@ -30,7 +30,7 @@ export function PulseTab({
       {intake && (
         <div className="liquid rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-thai text-[14px] font-bold text-ink">📋 Latest Intake</h3>
+            <h3 className="font-thai text-[14px] font-bold text-ink">📋 แบบสอบถามล่าสุด</h3>
             <span className="font-mono text-[10px] text-ink-40">
               {new Date(intake.submitted_at).toLocaleDateString("th-TH")}
             </span>
@@ -50,15 +50,15 @@ export function PulseTab({
 
       <div className="liquid rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-thai text-[14px] font-bold text-ink">📱 Pulse Assessments</h3>
+          <h3 className="font-thai text-[14px] font-bold text-ink">📱 ผลประเมิน Pulse</h3>
           <span className="font-mono text-[10px] text-ink-40">{assessments.length} รายการ</span>
         </div>
 
         {assessments.length === 0 ? (
           <div className="liquid rounded-xl p-6 text-center border-dashed">
-            <p className="font-thai text-[12px] text-ink-60">ยังไม่มี Pulse assessment</p>
+            <p className="font-thai text-[12px] text-ink-60">ยังไม่มีผลประเมิน Pulse · ส่งให้คนไข้ทำได้ที่หน้า Pulse</p>
             <Link href="/pulse" className="mt-3 inline-block rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white">
-              → ไป Pulse
+              → ไปหน้า Pulse
             </Link>
           </div>
         ) : (
@@ -69,7 +69,7 @@ export function PulseTab({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="font-thai text-[13px] font-semibold text-ink">
-                        {a.blocked ? "⚕️ Blocked" : a.sent_at ? "✅ Sent" : "📝 Draft"}
+                        {a.blocked ? "⚕️ ติด Red Flag" : a.sent_at ? "✅ ส่งให้คนไข้แล้ว" : "📝 ฉบับร่าง"}
                       </div>
                       <div className="font-mono text-[10px] text-ink-40">
                         {new Date(a.created_at).toLocaleDateString("th-TH")}

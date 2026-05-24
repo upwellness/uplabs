@@ -49,7 +49,7 @@ export function NotesTab({ customerId }: { customerId: string }) {
   };
 
   const remove = async (noteId: string) => {
-    if (!confirm("ลบ note นี้?")) return;
+    if (!confirm("ต้องการลบบันทึกนี้ใช่ไหมคะ?")) return;
     await fetch(`/api/customers/${customerId}/notes?noteId=${noteId}`, { method: "DELETE" });
     load();
   };
@@ -61,7 +61,7 @@ export function NotesTab({ customerId }: { customerId: string }) {
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="บันทึก coach note · นัดต่อ ติดตาม ข้อสังเกต..."
+          placeholder="บันทึกสำหรับ session ต่อไป · นัดติดตาม · ข้อสังเกตของคนไข้ ..."
           rows={3}
           className="w-full bg-white/50 backdrop-blur-md border border-white/70 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose/30 focus:bg-white/85 transition resize-y"
         />
@@ -75,7 +75,7 @@ export function NotesTab({ customerId }: { customerId: string }) {
             disabled={submitting || !draft.trim()}
             className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {submitting ? "กำลังบันทึก..." : "+ Add Note"}
+            {submitting ? "กำลังบันทึก..." : "+ เพิ่มบันทึก"}
           </button>
         </div>
       </div>
@@ -86,8 +86,8 @@ export function NotesTab({ customerId }: { customerId: string }) {
       ) : notes.length === 0 ? (
         <div className="liquid rounded-2xl p-8 text-center border-dashed">
           <div className="text-2xl">📝</div>
-          <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มี coach note</p>
-          <p className="mt-1 font-mono text-[10px] text-ink-40">เพิ่ม note ด้านบนได้เลย · เก็บไว้สำหรับ session ต่อไป</p>
+          <p className="mt-2 font-thai text-[13px] text-ink-60">ยังไม่มีบันทึกของคนไข้คนนี้</p>
+          <p className="mt-1 font-thai text-[11px] text-ink-60">เริ่มจดสิ่งที่อยากจำไว้ได้เลยค่ะ · ไม่ว่าจะเป็นข้อสังเกต อาการ หรือสิ่งที่นัดติดตาม</p>
         </div>
       ) : (
         <ul className="space-y-2">

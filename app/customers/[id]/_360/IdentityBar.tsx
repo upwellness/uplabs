@@ -81,7 +81,7 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
                 </>
               )}
             </div>
-            <div className="mt-1 font-mono text-[10px] text-ink-40 italic">
+            <div className="mt-1 font-thai text-[11px] text-ink-60 italic leading-snug">
               {status.reason}
             </div>
           </div>
@@ -89,13 +89,13 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
           {/* Recency chips · glass mini-cards */}
           <div className="flex flex-wrap gap-1.5">
             <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              📊 {lapseLabel(meta.bcaLapseDays, "BCA")}
+              📊 {lapseLabel(meta.bcaLapseDays, "BCA ล่าสุด")}
             </span>
             <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              🧾 {lapseLabel(meta.labLapseDays, "Lab")}
+              🧾 {lapseLabel(meta.labLapseDays, "Lab ล่าสุด")}
             </span>
             <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              💬 {lapseLabel(meta.orderLapseDays, "Touch")}
+              💬 {lapseLabel(meta.orderLapseDays, "ทักล่าสุด")}
             </span>
           </div>
         </div>
@@ -105,7 +105,7 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
           {phone && (
             <a href={`tel:${phone}`}
               className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-rose transition-all hover:shadow-md">
-              📞 Call
+              📞 โทร
             </a>
           )}
           {customer.line_id ? (
@@ -123,7 +123,7 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
           )}
           <Link href={`/customers/${customer.id}/records/new`}
             className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white/85 transition-all">
-            ➕ Record
+            ➕ บันทึก
           </Link>
           <Link href={`/bca`}
             className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white/85 transition-all">
@@ -136,7 +136,7 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
           <Link href={`/customers/${customer.id}?legacy=1`}
             className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-ink/8 backdrop-blur-md px-3 py-1.5 text-[11px] font-mono text-ink-60 hover:bg-ink/15 transition-all"
             title="Switch to legacy view">
-            ⤴ Legacy
+            ⤴ มุมมองเดิม
           </Link>
         </div>
       </div>
