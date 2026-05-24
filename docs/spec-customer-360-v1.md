@@ -1,6 +1,6 @@
 # Spec · Customer 360 View · v1
 
-> **Status:** Draft · pending owner decisions (Q1-Q5)
+> **Status:** ✅ Decisions locked (Q1-Q5 answered 24/5/26) · Phase 1 in dev
 > **Author:** UP Wellness Team
 > **Date:** 24 พ.ค. 2569
 > **Target:** UPLABS (Next.js · Supabase)
@@ -258,15 +258,66 @@ Replace existing scattered sections with tabbed interface:
 
 ---
 
-## 11 · Decision Required (Owner Checklist Before Dev)
+## 11 · Decisions (locked 24/5/26)
 
-- [ ] **Q1 · Health Score formula** — propose: BCA 30% · Lab 30% · Adherence 25% · Recency 15% · OK?
-- [ ] **Q2 · Alert thresholds** — pin ตัวอย่างค่าวิกฤติ (HbA1c > 7? · Visceral > 15? · etc.)
-- [ ] **Q3 · Phone/LINE** — confirm tap-to-call + `line://` deep link พอ
-- [ ] **Q8 · PDPA** — approve การแสดง phone ในหน้านี้
-- [ ] **Q9 · Distributor access** — confirm ใช้ RLS เดิม
+- [x] **Q1 · Health Score formula** = **BCA 40% · Lab 40% · Recency 20%** (Adherence ตัดออก · เพิ่มภายหลังเมื่อมี supplement adherence tracking)
+- [x] **Q2 · Alert thresholds** = **Conservative** — แจ้งเยอะตอนแรก ค่อยปรับลด
+  - HbA1c > 6.5% → 🔴 Critical (diabetes range)
+  - HbA1c 5.7-6.4% → 🟡 Watch (pre-diabetes)
+  - FBS > 126 mg/dL → 🔴 Critical
+  - LDL > 160 mg/dL → 🔴 Critical
+  - LDL 130-160 → 🟡 Watch
+  - Visceral Fat > 15 → 🔴 Critical
+  - Visceral Fat 10-15 → 🟡 Watch
+  - ALT/AST > 2× upper limit → 🔴 Critical
+  - BCA หยุด > 60 วัน → 🟡 Watch
+  - ออเดอร์หยุด > 90 วัน → 🟠 At Risk (lapse signal)
+  - Lab abnormal ≥3 consecutive → 🟡 Watch trend
+- [x] **Q3+4 · Phone/LINE** = **Tap-to-call + line:// deep link** (no API integration)
+  - Call: `tel:{phone}`
+  - LINE: `https://line.me/R/ti/p/{userid}` หรือ search by phone
+- [x] **Q8+9 · Privacy & Access** = **RLS เดิม · แสดง phone ปกติ** (อยู่ใน profile เดิมอยู่แล้ว · PDPA: phone จัดเป็น "necessary for service" tier)
 
-ถ้า OK ทั้ง 5 → ลุย Phase 1 ได้ภายในสัปดาห์นี้
+## 12 · Implementation Notes (Decisions → Code)
+
+### Health Score Formula
+
+```
+score = (BCA_score × 0.4) + (Lab_score × 0.4) + (Recency_score × 0.2)
+
+BCA_score (0-100):
+  visceral 1-2 = 100 · 3-5 = 80 · 6-9 = 60 · 10-15 = 35 · 16+ = 10
+  body_fat % vs age/gender norm = 0-100 linear
+  body_age - chrono_age: <-5 = 100 · -5..-2 = 85 · -2..+2 = 70 · +2..+5 = 50 · >+5 = 25
+  weight = avg(visceral, fat, body_age)
+
+Lab_score (0-100):
+  HbA1c <5.7 = 100 · 5.7-6.4 = 60 · 6.5-7.5 = 35 · >7.5 = 15
+  LDL <100 = 100 · 100-130 = 80 · 130-160 = 50 · >160 = 25
+  TG <150 = 100 · 150-200 = 70 · 200-300 = 40 · >300 = 20
+  HDL >60 = 100 · 50-60 = 80 · 40-50 = 60 · <40 = 35
+  ALT/AST ≤ULN = 100 · 1-2× = 60 · >2× = 25
+  weight = avg of available metrics (skip null)
+
+Recency_score (0-100):
+  BCA last < 30d = 100 · 30-60 = 80 · 60-90 = 60 · 90-180 = 35 · 180+ = 15
+  Lab last < 90d = 100 · 90-180 = 80 · 180-365 = 50 · 365+ = 25
+  Order last < 30d = 100 · 30-60 = 85 · 60-90 = 65 · 90-180 = 40 · 180+ = 20
+  weight = avg(BCA_recency, Lab_recency, Order_recency)
+```
+
+### Status Badge Logic (derive from data · 6 states)
+
+```
+🔴 Critical  → any "Critical" alert active
+🟠 At Risk   → order_lapse_days > 90 AND not in active program
+🟡 In Program → has active program flag (UP Labs or Full Course running)
+🌙 Lapsed    → no activity 180+ days
+⚪ New       → created < 30 days AND records.count < 3
+🟢 Healthy   → none of above + score >= 75
+```
+
+Precedence: Critical > At Risk > In Program > Lapsed > New > Healthy
 
 ---
 

@@ -9,10 +9,17 @@ import { WearableLinkPanel } from "./WearableLinkPanel";
 import { LatestLabsCard } from "./LatestLabsCard";
 import { LabTrendCharts } from "./LabTrendCharts";
 import { AllergyPanel } from "./AllergyPanel";
+import { Customer360 } from "./Customer360";
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomerProfilePage({ params }: { params: { id: string } }) {
+export default async function CustomerProfilePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { legacy?: string };
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -23,6 +30,17 @@ export default async function CustomerProfilePage({ params }: { params: { id: st
 
   const isAdmin = session.profile.role === "admin";
   if (!isAdmin && customer.coach_id !== session.user.id) redirect("/customers");
+
+  // ─── Customer 360 view (default · new) ───
+  if (searchParams.legacy !== "1") {
+    return (
+      <main className="min-h-screen bg-surface">
+        <Customer360 customerId={params.id} />
+      </main>
+    );
+  }
+
+  // ─── Legacy view (fallback · ?legacy=1) ───
 
   // Parallel fetch all related data
   const [
