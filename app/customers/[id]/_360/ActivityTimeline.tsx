@@ -47,7 +47,7 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
   }, [events, filter]);
 
   return (
-    <section className="rounded-3xl border border-ink-10 bg-white p-6">
+    <section className="liquid liquid-shine rounded-3xl p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="font-head text-[16px] font-extrabold tracking-tight text-ink">⏱ Activity Timeline</h2>
@@ -56,10 +56,10 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
         <div className="flex gap-1">
           {FILTER_OPTIONS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide transition-all duration-300 ${
                 filter === f.key
-                  ? "bg-ink text-white"
-                  : "bg-surface text-ink-60 hover:bg-ink-10"
+                  ? "bg-ink text-white shadow-md"
+                  : "bg-white/50 backdrop-blur-md text-ink-60 hover:bg-white/80"
               }`}>
               {f.label}
             </button>
@@ -68,20 +68,20 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-ink-10 bg-surface p-8 text-center">
+        <div className="liquid rounded-2xl p-8 text-center border-dashed">
           <div className="text-2xl">📭</div>
           <p className="mt-2 font-thai text-[12px] text-ink-40">ไม่มี activity ใน 90 วัน · {filter !== "all" ? "ลองเปลี่ยน filter" : ""}</p>
         </div>
       ) : (
         <ul className="space-y-3 relative">
-          <div className="absolute left-[15px] top-2 bottom-2 w-px bg-ink-10" aria-hidden="true" />
+          <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-rose/30 via-ink/15 to-transparent" aria-hidden="true" />
           {filtered.map((e, i) => {
             const Content = (
               <div className="flex gap-4 items-start">
-                <div className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white border border-ink-10 text-sm">
+                <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md border border-white/70 text-base shadow-sm">
                   {e.icon}
                 </div>
-                <div className="min-w-0 flex-1 pt-1">
+                <div className="min-w-0 flex-1 pt-2">
                   <div className="font-thai text-[13px] text-ink leading-snug">{e.title}</div>
                   <div className="font-mono text-[10px] text-ink-40 mt-0.5">
                     {fmtDateThai(e.date)} · {relativeDays(e.date)}
@@ -90,7 +90,7 @@ export function ActivityTimeline({ events }: { events: TimelineEvent[] }) {
               </div>
             );
             return e.href ? (
-              <li key={i}><a href={e.href} className="block hover:opacity-80 transition">{Content}</a></li>
+              <li key={i}><a href={e.href} className="block hover:translate-x-0.5 transition-transform">{Content}</a></li>
             ) : (
               <li key={i}>{Content}</li>
             );

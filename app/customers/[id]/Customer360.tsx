@@ -62,22 +62,28 @@ export function Customer360({ customerId }: { customerId: string }) {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-content px-6 py-10 space-y-4">
-        <div className="h-24 animate-pulse rounded-3xl bg-surface" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="h-40 animate-pulse rounded-3xl bg-surface" />
-            <div className="h-60 animate-pulse rounded-3xl bg-surface" />
+      <>
+        <div className="aurora-bg"><div className="aurora-orb-3" /></div>
+        <div className="mx-auto max-w-content px-6 py-10 space-y-4">
+          <div className="h-24 animate-pulse rounded-3xl liquid" />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-40 animate-pulse rounded-3xl liquid" />
+              <div className="h-60 animate-pulse rounded-3xl liquid" />
+            </div>
+            <div className="h-60 animate-pulse rounded-3xl liquid" />
           </div>
-          <div className="h-60 animate-pulse rounded-3xl bg-surface" />
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      {/* Zone 1 · Identity Bar (sticky) */}
+      {/* Aurora background — fixed · z-index -1 */}
+      <div className="aurora-bg"><div className="aurora-orb-3" /></div>
+
+      {/* Zone 1 · Identity Bar (sticky · frosted glass) */}
       <IdentityBar customer={data.customer} status={data.status} meta={data.meta} />
 
       <div className="mx-auto max-w-content px-6 py-6 space-y-6">
@@ -103,9 +109,9 @@ export function Customer360({ customerId }: { customerId: string }) {
           </div>
         </div>
 
-        {/* Zone 5 · Detail Tabs */}
-        <section className="rounded-3xl border border-ink-10 bg-white p-6">
-          <div className="mb-4 flex flex-wrap gap-2 border-b border-ink-10 pb-3">
+        {/* Zone 5 · Detail Tabs · liquid glass shell */}
+        <section className="liquid liquid-shine rounded-3xl p-6">
+          <div className="mb-4 flex flex-wrap gap-2 border-b border-ink/8 pb-3">
             <TabButton active={tab === "labs"} onClick={() => setTab("labs")}>📊 Labs Latest</TabButton>
             <TabButton active={tab === "trends"} onClick={() => setTab("trends")}>📈 Lab Trends</TabButton>
             <TabButton active={tab === "allergy"} onClick={() => setTab("allergy")}>🧪 Allergy</TabButton>
@@ -124,10 +130,10 @@ export function Customer360({ customerId }: { customerId: string }) {
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick}
-      className={`rounded-full px-4 py-1.5 text-[12px] font-semibold transition ${
+      className={`rounded-full px-4 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-300 ${
         active
-          ? "bg-ink text-white"
-          : "bg-surface text-ink-60 hover:bg-ink-10"
+          ? "bg-ink text-white shadow-md"
+          : "bg-white/40 text-ink-60 hover:bg-white/70 backdrop-blur-md"
       }`}>
       {children}
     </button>

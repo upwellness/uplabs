@@ -30,3 +30,149 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ═══ Liquid Glass System ═══════════════════════════════ */
+
+:root {
+  --liquid-rose-rgb:  140, 76, 76;
+  --liquid-green-rgb: 57, 103, 85;
+  --liquid-gold-rgb:  184, 150, 90;
+  --liquid-cream-rgb: 245, 240, 235;
+}
+
+/* Aurora background — used on pages that want premium ambient feel */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: -1;
+  background: linear-gradient(180deg, #FAF6F1 0%, #F2EDE8 60%, #F5F0EB 100%);
+  pointer-events: none;
+}
+.aurora-bg::before,
+.aurora-bg::after,
+.aurora-bg .aurora-orb-3 {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  will-change: transform;
+}
+.aurora-bg::before {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(var(--liquid-rose-rgb), 0.40), transparent 65%);
+  top: -200px; left: -100px;
+  opacity: 0.55;
+  animation: liquid-float-1 22s ease-in-out infinite;
+}
+.aurora-bg::after {
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(var(--liquid-green-rgb), 0.35), transparent 65%);
+  bottom: -200px; right: -100px;
+  opacity: 0.55;
+  animation: liquid-float-2 28s ease-in-out infinite;
+}
+.aurora-bg .aurora-orb-3 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(var(--liquid-gold-rgb), 0.30), transparent 65%);
+  top: 40%; left: 50%; transform: translateX(-50%);
+  opacity: 0.5;
+  animation: liquid-float-3 24s ease-in-out infinite;
+}
+@keyframes liquid-float-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(80px, 60px); }
+}
+@keyframes liquid-float-2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-80px, -60px); }
+}
+@keyframes liquid-float-3 {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-35%) translateY(40px); }
+}
+
+/* Core glass surfaces */
+.liquid {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 8px 32px rgba(31, 30, 27, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(31, 30, 27, 0.04);
+}
+.liquid-hover {
+  transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.liquid-hover:hover {
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 40px rgba(31, 30, 27, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Frosted sticky header */
+.liquid-header {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(31, 30, 27, 0.06);
+}
+
+/* Tinted glass — for alerts */
+.liquid-critical {
+  background: rgba(254, 226, 226, 0.6);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.08);
+}
+.liquid-watch {
+  background: rgba(254, 243, 199, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(202, 138, 4, 0.18);
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.08);
+}
+.liquid-info {
+  background: rgba(220, 252, 231, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.08);
+}
+
+/* Reflective highlight ribbon */
+.liquid-shine {
+  position: relative;
+  overflow: hidden;
+}
+.liquid-shine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Glow accent — for Health Score, Critical badges */
+.liquid-glow-rose  { box-shadow: 0 0 24px rgba(var(--liquid-rose-rgb), 0.2); }
+.liquid-glow-green { box-shadow: 0 0 24px rgba(var(--liquid-green-rgb), 0.2); }
+.liquid-glow-gold  { box-shadow: 0 0 24px rgba(var(--liquid-gold-rgb), 0.25); }
+
+/* Print: collapse glass to plain white */
+@media print {
+  .aurora-bg { display: none; }
+  .liquid, .liquid-header, .liquid-critical, .liquid-watch, .liquid-info {
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #E5E2DD !important;
+    box-shadow: none !important;
+  }
+}

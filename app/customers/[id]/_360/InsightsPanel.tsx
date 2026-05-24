@@ -2,28 +2,34 @@
 
 import type { InsightResult, Insight, Severity } from "@/lib/customers/insight-rules";
 
-const SEV_STYLE: Record<Severity, { bg: string; text: string; border: string }> = {
-  critical: { bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5" },
-  watch:    { bg: "#FEF3C7", text: "#92400E", border: "#FCD34D" },
-  info:     { bg: "#DCFCE7", text: "#14532D", border: "#86EFAC" },
+const SEV_CLASS: Record<Severity, string> = {
+  critical: "liquid-critical",
+  watch:    "liquid-watch",
+  info:     "liquid-info",
+};
+const SEV_TEXT: Record<Severity, string> = {
+  critical: "#991B1B",
+  watch:    "#92400E",
+  info:     "#14532D",
 };
 
 function InsightCard({ ins }: { ins: Insight }) {
-  const s = SEV_STYLE[ins.severity];
+  const cls = SEV_CLASS[ins.severity];
+  const txt = SEV_TEXT[ins.severity];
   return (
-    <div className="rounded-2xl border p-3" style={{ background: s.bg, borderColor: s.border }}>
-      <div className="font-thai text-[13px] font-semibold leading-snug" style={{ color: s.text }}>
+    <div className={`${cls} rounded-2xl p-3 transition-all hover:translate-x-0.5`}>
+      <div className="font-thai text-[13px] font-semibold leading-snug" style={{ color: txt }}>
         {ins.title}
       </div>
-      {ins.detail && <p className="mt-1 text-[11px] leading-snug" style={{ color: s.text, opacity: 0.85 }}>{ins.detail}</p>}
-      {ins.metric && <div className="mt-1 font-mono text-[9px] uppercase tracking-wider opacity-60" style={{ color: s.text }}>{ins.metric}</div>}
+      {ins.detail && <p className="mt-1 text-[11px] leading-snug" style={{ color: txt, opacity: 0.85 }}>{ins.detail}</p>}
+      {ins.metric && <div className="mt-1 font-mono text-[9px] uppercase tracking-wider opacity-60" style={{ color: txt }}>{ins.metric}</div>}
       {ins.action && (
         ins.href ? (
-          <a href={ins.href} className="mt-2 inline-block rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-white transition" style={{ color: s.text }}>
+          <a href={ins.href} className="mt-2 inline-block rounded-full bg-white/70 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-white/95 transition" style={{ color: txt }}>
             {ins.action} →
           </a>
         ) : (
-          <span className="mt-2 inline-block rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: s.text }}>
+          <span className="mt-2 inline-block rounded-full bg-white/70 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: txt }}>
             {ins.action}
           </span>
         )
@@ -36,16 +42,18 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
   const total = insights.alerts.length + insights.trends.length + insights.actions.length;
 
   return (
-    <section className="rounded-3xl border border-ink-10 bg-white p-5">
+    <section className="liquid liquid-shine rounded-3xl p-5">
       <h2 className="font-head text-[15px] font-extrabold tracking-tight text-ink mb-1">⚡ Smart Insights</h2>
       <p className="font-mono text-[10px] uppercase tracking-wider text-ink-40 mb-4">
         {total > 0 ? `${total} items detected` : "ทุกอย่างปกติ"}
       </p>
 
       {total === 0 ? (
-        <div className="rounded-2xl border border-dashed border-ink-10 bg-surface p-6 text-center">
+        <div className="liquid-info rounded-2xl p-6 text-center">
           <div className="text-2xl">✨</div>
-          <p className="mt-2 font-thai text-[12px] text-ink-40">ไม่มี alert / trend / action ที่ต้องสนใจ</p>
+          <p className="mt-2 font-thai text-[12px]" style={{ color: SEV_TEXT.info }}>
+            ไม่มี alert / trend / action ที่ต้องสนใจ
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

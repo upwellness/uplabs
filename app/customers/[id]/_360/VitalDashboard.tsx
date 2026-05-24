@@ -72,83 +72,108 @@ export function VitalDashboard({ score, labVals, bcaLatest, chronoAge }: VitalDa
   const scoreCol = scoreColor(score.total);
 
   return (
-    <section className="space-y-4">
-      {/* Health Score */}
-      <div className="rounded-3xl border border-ink-10 bg-white p-6">
-        <div className="flex items-start justify-between gap-4">
+    <section className="space-y-3">
+      {/* Health Score · hero glass card with glow */}
+      <div className="liquid liquid-shine rounded-3xl p-6 relative overflow-hidden">
+        {/* Soft glow behind score */}
+        <div
+          className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${scoreCol}30, transparent 70%)`,
+            filter: "blur(40px)",
+          }}
+        />
+
+        <div className="relative flex items-start justify-between gap-4">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-40">Health Score</div>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="font-head text-[44px] font-extrabold leading-none" style={{ color: scoreCol }}>
+              <span className="font-head text-[52px] font-extrabold leading-none tracking-tight" style={{ color: scoreCol }}>
                 {score.total ?? "—"}
               </span>
               <span className="font-mono text-sm text-ink-40">/ 100</span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-mono text-ink-60">
-              <span>BCA <span className="font-bold" style={{ color: scoreColor(score.bca) }}>{score.bca ?? "—"}</span></span>
-              <span>Lab <span className="font-bold" style={{ color: scoreColor(score.lab) }}>{score.lab ?? "—"}</span></span>
-              <span>Recency <span className="font-bold" style={{ color: scoreColor(score.recency) }}>{score.recency ?? "—"}</span></span>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ScorePill label="BCA"     value={score.bca}     />
+              <ScorePill label="Lab"     value={score.lab}     />
+              <ScorePill label="Recency" value={score.recency} />
             </div>
           </div>
 
-          {/* Progress arc */}
-          <div className="relative h-24 w-24 flex-shrink-0">
+          {/* Progress arc · larger + glow */}
+          <div className="relative h-28 w-28 flex-shrink-0">
             <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
-              <circle cx="40" cy="40" r="32" stroke="#E5E2DD" strokeWidth="8" fill="none" />
-              <circle cx="40" cy="40" r="32" stroke={scoreCol} strokeWidth="8" fill="none"
+              <defs>
+                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={scoreCol} stopOpacity="0.6" />
+                  <stop offset="100%" stopColor={scoreCol} stopOpacity="1" />
+                </linearGradient>
+              </defs>
+              <circle cx="40" cy="40" r="32" stroke="rgba(31,30,27,0.08)" strokeWidth="8" fill="none" />
+              <circle cx="40" cy="40" r="32" stroke="url(#scoreGradient)" strokeWidth="8" fill="none"
                 strokeDasharray={`${(score.total ?? 0) * 2.01} 201`}
                 strokeLinecap="round"
-                style={{ transition: "stroke-dasharray 600ms ease" }}
+                style={{ transition: "stroke-dasharray 800ms ease", filter: `drop-shadow(0 0 6px ${scoreCol}80)` }}
               />
             </svg>
           </div>
         </div>
 
         {/* Formula caveat */}
-        <p className="mt-3 font-mono text-[9px] text-ink-40">
-          Formula: BCA 40 + Lab 40 + Recency 20 ·
-          {!score.sources.bca && " ⚠ no BCA"}
-          {!score.sources.lab && " ⚠ no Lab"}
-          {!score.sources.recency && " ⚠ no recency"}
+        <p className="relative mt-3 font-mono text-[9px] text-ink-40">
+          Formula: BCA 40 + Lab 40 + Recency 20
+          {!score.sources.bca && <span className="text-orange-600"> · ⚠ no BCA</span>}
+          {!score.sources.lab && <span className="text-orange-600"> · ⚠ no Lab</span>}
+          {!score.sources.recency && <span className="text-orange-600"> · ⚠ no recency</span>}
         </p>
       </div>
 
-      {/* KPI Grid */}
+      {/* KPI Grid · liquid glass tiles */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        {/* HbA1c */}
         <MetricCard label="HbA1c" value={labVals.hba1c} unit="%" {...valStatus("hba1c", labVals.hba1c)} />
-        {/* LDL */}
         <MetricCard label="LDL" value={labVals.ldl} unit="mg/dL" {...valStatus("ldl", labVals.ldl)} />
-        {/* FBS */}
         <MetricCard label="FBS" value={labVals.fbs} unit="mg/dL"
           color={labVals.fbs != null ? (labVals.fbs > 126 ? "#DC2626" : labVals.fbs > 99 ? "#CA8A04" : "#16A34A") : "#8B8884"}
           label2={labVals.fbs != null ? (labVals.fbs > 126 ? "DM" : labVals.fbs > 99 ? "Pre-DM" : "Normal") : "—"} />
-        {/* Visceral */}
         <MetricCard label="Visceral" value={bcaLatest?.visceral} unit="lv" {...valStatus("visceral", bcaLatest?.visceral)} />
-        {/* Weight */}
         <MetricCard label="น้ำหนัก" value={bcaLatest?.weight} unit="kg" color="#1F1E1B" label2="" />
-        {/* Body Age */}
         <MetricCard label="Body Age" value={bcaLatest?.body_age} unit="yr" {...bodyAgeStatus(bcaLatest?.body_age ?? null, chronoAge)} />
       </div>
     </section>
   );
 }
 
+function ScorePill({ label, value }: { label: string; value: number | null }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/50 backdrop-blur-md border border-white/60 px-2.5 py-1 font-mono text-[10px]">
+      <span className="text-ink-40">{label}</span>
+      <span className="font-bold" style={{ color: scoreColor(value) }}>{value ?? "—"}</span>
+    </span>
+  );
+}
+
 function MetricCard({ label, value, unit, color, label2 }: { label: string; value: number | null | undefined; unit: string; color: string; label2: string; }) {
   return (
-    <div className="rounded-2xl border border-ink-10 bg-white p-3">
-      <div className="font-mono text-[9px] uppercase tracking-widest text-ink-40">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-head text-[22px] font-extrabold leading-none" style={{ color }}>
-          {value ?? "—"}
-        </span>
-        <span className="text-[10px] text-ink-40">{unit}</span>
-      </div>
-      {label2 && (
-        <div className="mt-1 font-mono text-[9px] font-bold uppercase tracking-wider" style={{ color }}>
-          {label2}
+    <div className="liquid liquid-hover rounded-2xl p-3 relative overflow-hidden group">
+      {/* Subtle color tint on hover */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `linear-gradient(135deg, ${color}10, transparent)` }}
+      />
+      <div className="relative">
+        <div className="font-mono text-[9px] uppercase tracking-widest text-ink-40">{label}</div>
+        <div className="mt-1 flex items-baseline gap-1">
+          <span className="font-head text-[24px] font-extrabold leading-none" style={{ color }}>
+            {value ?? "—"}
+          </span>
+          <span className="text-[10px] text-ink-40">{unit}</span>
         </div>
-      )}
+        {label2 && (
+          <div className="mt-1 font-mono text-[9px] font-bold uppercase tracking-wider" style={{ color }}>
+            {label2}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
