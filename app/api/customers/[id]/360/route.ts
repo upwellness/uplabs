@@ -56,6 +56,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       { count: pulseCount },
       { data: latestPulse },
       { data: latestIntake },
+      { data: assessmentsList },
     ] = await Promise.all([
       admin.from("measurements").select("*").eq("customer_id", params.id).order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
       admin.from("measurements").select("recorded_at, weight, fat_pct, muscle_pct, visceral, body_age").eq("customer_id", params.id).order("recorded_at", { ascending: false }).limit(12),
@@ -73,6 +74,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       admin.from("pulse_assessments").select("*", { count: "exact", head: true }).eq("customer_id", params.id),
       admin.from("pulse_assessments").select("id, status, blocked, share_token, sent_at, created_at, ai_output").eq("customer_id", params.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       admin.from("pulse_intakes").select("submitted_at, goal, budget_range").eq("customer_id", params.id).not("submitted_at", "is", null).order("submitted_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("pulse_assessments").select("id, status, blocked, share_token, sent_at, created_at, ai_output").eq("customer_id", params.id).order("created_at", { ascending: false }).limit(10),
     ]);
 
     // ─── Derive latest values per lab metric ───
@@ -213,6 +215,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       allergyTests: allergyTests ?? [],
       timeline,
       meta: { bcaLapseDays, labLapseDays, orderLapseDays, lastTouch },
+      // Tab data
+      cgmProfiles: customer.cgm_profile_names ?? [],
+      pulseAssessments: assessmentsList ?? [],
+      pulseIntake: latestIntake ?? null,
     });
   } catch (err: any) {
     console.error("[360] error", err);

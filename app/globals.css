@@ -176,3 +176,29 @@ body {
     box-shadow: none !important;
   }
 }
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-bg::before,
+  .aurora-bg::after,
+  .aurora-bg .aurora-orb-3 {
+    animation: none !important;
+  }
+  .liquid-hover {
+    transition: none !important;
+  }
+  .liquid-hover:hover {
+    transform: none !important;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Force browser to clip backdrop-blur to rounded corners (Safari fix) */
+.liquid, .liquid-header, .liquid-critical, .liquid-watch, .liquid-info {
+  isolation: isolate;
+}

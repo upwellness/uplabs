@@ -16,6 +16,11 @@ import { IdentityBar } from "./_360/IdentityBar";
 import { VitalDashboard } from "./_360/VitalDashboard";
 import { ActivityTimeline } from "./_360/ActivityTimeline";
 import { InsightsPanel } from "./_360/InsightsPanel";
+import { BodyTab } from "./_360/tabs/BodyTab";
+import { CgmTab } from "./_360/tabs/CgmTab";
+import { PulseTab } from "./_360/tabs/PulseTab";
+import { SupplementsTab } from "./_360/tabs/SupplementsTab";
+import { NotesTab } from "./_360/tabs/NotesTab";
 import { LatestLabsCard } from "./LatestLabsCard";
 import { LabTrendCharts } from "./LabTrendCharts";
 import { AllergyPanel } from "./AllergyPanel";
@@ -32,12 +37,17 @@ interface Customer360Data {
   allergyTests: any[];
   timeline: any[];
   meta: any;
+  cgmProfiles: string[];
+  pulseAssessments: any[];
+  pulseIntake: any;
 }
+
+type TabKey = "body" | "labs" | "trends" | "allergy" | "cgm" | "supplements" | "pulse" | "notes";
 
 export function Customer360({ customerId }: { customerId: string }) {
   const [data, setData] = useState<Customer360Data | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"body" | "labs" | "allergy" | "trends">("labs");
+  const [tab, setTab] = useState<TabKey>("body");
 
   useEffect(() => {
     fetch(`/api/customers/${customerId}/360`)
@@ -109,17 +119,28 @@ export function Customer360({ customerId }: { customerId: string }) {
           </div>
         </div>
 
-        {/* Zone 5 · Detail Tabs · liquid glass shell */}
-        <section className="liquid liquid-shine rounded-3xl p-6">
-          <div className="mb-4 flex flex-wrap gap-2 border-b border-ink/8 pb-3">
-            <TabButton active={tab === "labs"} onClick={() => setTab("labs")}>📊 Labs Latest</TabButton>
-            <TabButton active={tab === "trends"} onClick={() => setTab("trends")}>📈 Lab Trends</TabButton>
-            <TabButton active={tab === "allergy"} onClick={() => setTab("allergy")}>🧪 Allergy</TabButton>
+        {/* Zone 5 · Detail Tabs · liquid glass shell · 8 tabs */}
+        <section className="liquid liquid-shine rounded-3xl p-6" aria-labelledby="detail-tabs-heading">
+          <h2 id="detail-tabs-heading" className="sr-only">รายละเอียดเพิ่มเติม</h2>
+          <div className="mb-4 flex flex-wrap gap-2 border-b border-ink/8 pb-3" role="tablist" aria-label="Customer detail sections">
+            <TabButton active={tab === "body"}        onClick={() => setTab("body")}>📊 Body</TabButton>
+            <TabButton active={tab === "labs"}        onClick={() => setTab("labs")}>🧾 Labs</TabButton>
+            <TabButton active={tab === "trends"}      onClick={() => setTab("trends")}>📈 Trends</TabButton>
+            <TabButton active={tab === "allergy"}     onClick={() => setTab("allergy")}>🧪 Allergy</TabButton>
+            <TabButton active={tab === "cgm"}         onClick={() => setTab("cgm")}>📡 CGM</TabButton>
+            <TabButton active={tab === "supplements"} onClick={() => setTab("supplements")}>💊 Supplements</TabButton>
+            <TabButton active={tab === "pulse"}       onClick={() => setTab("pulse")}>📱 Pulse</TabButton>
+            <TabButton active={tab === "notes"}       onClick={() => setTab("notes")}>📝 Notes</TabButton>
           </div>
 
-          {tab === "labs" && <LatestLabsCard customerId={customerId} />}
-          {tab === "trends" && <LabTrendCharts customerId={customerId} />}
-          {tab === "allergy" && <AllergyPanel customerId={customerId} />}
+          {tab === "body"        && <BodyTab customerId={customerId} />}
+          {tab === "labs"        && <LatestLabsCard customerId={customerId} />}
+          {tab === "trends"      && <LabTrendCharts customerId={customerId} />}
+          {tab === "allergy"     && <AllergyPanel customerId={customerId} />}
+          {tab === "cgm"         && <CgmTab customerId={customerId} profiles={data.cgmProfiles} />}
+          {tab === "supplements" && <SupplementsTab customerId={customerId} />}
+          {tab === "pulse"       && <PulseTab assessments={data.pulseAssessments} intake={data.pulseIntake} />}
+          {tab === "notes"       && <NotesTab customerId={customerId} />}
         </section>
 
       </div>
@@ -129,8 +150,12 @@ export function Customer360({ customerId }: { customerId: string }) {
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick}
-      className={`rounded-full px-4 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-300 ${
+    <button
+      onClick={onClick}
+      role="tab"
+      aria-selected={active}
+      type="button"
+      className={`rounded-full px-4 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose/40 focus:ring-offset-2 ${
         active
           ? "bg-ink text-white shadow-md"
           : "bg-white/40 text-ink-60 hover:bg-white/70 backdrop-blur-md"
