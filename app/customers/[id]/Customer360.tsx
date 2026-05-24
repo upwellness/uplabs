@@ -11,7 +11,8 @@
  *   Zone 5: DetailTabs (Phase 2 · reusing existing components below)
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Activity, FlaskConical, TrendingUp, Sparkles, Wifi, Pill, Smartphone, NotebookPen, type LucideIcon } from "lucide-react";
 import { IdentityBar } from "./_360/IdentityBar";
 import { VitalDashboard } from "./_360/VitalDashboard";
 import { ActivityTimeline } from "./_360/ActivityTimeline";
@@ -73,7 +74,7 @@ export function Customer360({ customerId }: { customerId: string }) {
   if (!data) {
     return (
       <>
-        <div className="aurora-bg"><div className="aurora-orb-3" /></div>
+        <div className="aurora-bg" aria-hidden="true"><div className="aurora-orb-3" /></div>
         <div className="mx-auto max-w-content px-6 py-10 space-y-4">
           <div className="h-24 animate-pulse rounded-3xl liquid" />
           <div className="grid gap-4 lg:grid-cols-3">
@@ -90,8 +91,8 @@ export function Customer360({ customerId }: { customerId: string }) {
 
   return (
     <>
-      {/* Aurora background — fixed · z-index -1 */}
-      <div className="aurora-bg"><div className="aurora-orb-3" /></div>
+      {/* Aurora background — fixed · z-index -1 · decorative only */}
+      <div className="aurora-bg" aria-hidden="true"><div className="aurora-orb-3" /></div>
 
       {/* Zone 1 · Identity Bar (sticky · frosted glass) */}
       <IdentityBar customer={data.customer} status={data.status} meta={data.meta} />
@@ -119,48 +120,104 @@ export function Customer360({ customerId }: { customerId: string }) {
           </div>
         </div>
 
-        {/* Zone 5 · Detail Tabs · liquid glass shell · 8 tabs */}
-        <section className="liquid liquid-shine rounded-3xl p-6" aria-labelledby="detail-tabs-heading">
-          <h2 id="detail-tabs-heading" className="sr-only">รายละเอียดเพิ่มเติม</h2>
-          <div className="mb-4 flex flex-wrap gap-2 border-b border-ink/8 pb-3" role="tablist" aria-label="Customer detail sections">
-            <TabButton active={tab === "body"}        onClick={() => setTab("body")}>📊 Body</TabButton>
-            <TabButton active={tab === "labs"}        onClick={() => setTab("labs")}>🧾 Labs</TabButton>
-            <TabButton active={tab === "trends"}      onClick={() => setTab("trends")}>📈 Trends</TabButton>
-            <TabButton active={tab === "allergy"}     onClick={() => setTab("allergy")}>🧪 Allergy</TabButton>
-            <TabButton active={tab === "cgm"}         onClick={() => setTab("cgm")}>📡 CGM</TabButton>
-            <TabButton active={tab === "supplements"} onClick={() => setTab("supplements")}>💊 Supplements</TabButton>
-            <TabButton active={tab === "pulse"}       onClick={() => setTab("pulse")}>📱 Pulse</TabButton>
-            <TabButton active={tab === "notes"}       onClick={() => setTab("notes")}>📝 Notes</TabButton>
-          </div>
-
-          {tab === "body"        && <BodyTab customerId={customerId} />}
-          {tab === "labs"        && <LatestLabsCard customerId={customerId} />}
-          {tab === "trends"      && <LabTrendCharts customerId={customerId} />}
-          {tab === "allergy"     && <AllergyPanel customerId={customerId} />}
-          {tab === "cgm"         && <CgmTab customerId={customerId} profiles={data.cgmProfiles} />}
-          {tab === "supplements" && <SupplementsTab customerId={customerId} />}
-          {tab === "pulse"       && <PulseTab assessments={data.pulseAssessments} intake={data.pulseIntake} />}
-          {tab === "notes"       && <NotesTab customerId={customerId} />}
-        </section>
+        {/* Zone 5 · Detail Tabs · liquid glass shell · 8 tabs · ARIA tablist */}
+        <DetailTabs
+          tab={tab}
+          setTab={setTab}
+          customerId={customerId}
+          data={data}
+        />
 
       </div>
     </>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+/* ─── Detail Tabs · ARIA-compliant tablist + arrow-key nav ─── */
+
+const TAB_DEFS: Array<{ key: TabKey; label: string; Icon: LucideIcon }> = [
+  { key: "body",        label: "Body",         Icon: Activity },
+  { key: "labs",        label: "Labs",         Icon: FlaskConical },
+  { key: "trends",      label: "Trends",       Icon: TrendingUp },
+  { key: "allergy",     label: "Allergy",      Icon: Sparkles },
+  { key: "cgm",         label: "CGM",          Icon: Wifi },
+  { key: "supplements", label: "Supplements",  Icon: Pill },
+  { key: "pulse",       label: "Pulse",        Icon: Smartphone },
+  { key: "notes",       label: "Notes",        Icon: NotebookPen },
+];
+
+function DetailTabs({
+  tab, setTab, customerId, data,
+}: {
+  tab: TabKey;
+  setTab: (t: TabKey) => void;
+  customerId: string;
+  data: Customer360Data;
+}) {
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    let next = idx;
+    if (e.key === "ArrowRight") next = (idx + 1) % TAB_DEFS.length;
+    if (e.key === "ArrowLeft")  next = (idx - 1 + TAB_DEFS.length) % TAB_DEFS.length;
+    if (e.key === "Home")       next = 0;
+    if (e.key === "End")        next = TAB_DEFS.length - 1;
+    setTab(TAB_DEFS[next].key);
+    tabRefs.current[next]?.focus();
+  };
+
   return (
-    <button
-      onClick={onClick}
-      role="tab"
-      aria-selected={active}
-      type="button"
-      className={`rounded-full px-4 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose/40 focus:ring-offset-2 ${
-        active
-          ? "bg-ink text-white shadow-md"
-          : "bg-white/40 text-ink-60 hover:bg-white/70 backdrop-blur-md"
-      }`}>
-      {children}
-    </button>
+    <section className="liquid liquid-shine rounded-3xl p-6" aria-labelledby="detail-tabs-heading">
+      <h2 id="detail-tabs-heading" className="sr-only">รายละเอียดเพิ่มเติม</h2>
+      <div
+        className="mb-4 flex flex-wrap gap-2 border-b border-ink/8 pb-3"
+        role="tablist"
+        aria-label="รายละเอียด customer · ใช้ปุ่มลูกศรซ้าย-ขวาเพื่อเปลี่ยน tab"
+      >
+        {TAB_DEFS.map((t, i) => {
+          const active = tab === t.key;
+          const Icon = t.Icon;
+          return (
+            <button
+              key={t.key}
+              ref={(el) => { tabRefs.current[i] = el; }}
+              role="tab"
+              id={`tab-${t.key}`}
+              aria-selected={active}
+              aria-controls={`tabpanel-${t.key}`}
+              tabIndex={active ? 0 : -1}
+              type="button"
+              onClick={() => setTab(t.key)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2 ${
+                active
+                  ? "bg-ink text-white shadow-md"
+                  : "bg-white/60 text-ink-60 hover:bg-white/90 border border-ink/8"
+              }`}
+            >
+              <Icon size={14} strokeWidth={2.25} aria-hidden="true" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        role="tabpanel"
+        id={`tabpanel-${tab}`}
+        aria-labelledby={`tab-${tab}`}
+        tabIndex={0}
+      >
+        {tab === "body"        && <BodyTab customerId={customerId} />}
+        {tab === "labs"        && <LatestLabsCard customerId={customerId} />}
+        {tab === "trends"      && <LabTrendCharts customerId={customerId} />}
+        {tab === "allergy"     && <AllergyPanel customerId={customerId} />}
+        {tab === "cgm"         && <CgmTab customerId={customerId} profiles={data.cgmProfiles} />}
+        {tab === "supplements" && <SupplementsTab customerId={customerId} />}
+        {tab === "pulse"       && <PulseTab assessments={data.pulseAssessments} intake={data.pulseIntake} />}
+        {tab === "notes"       && <NotesTab customerId={customerId} />}
+      </div>
+    </section>
   );
 }

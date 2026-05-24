@@ -198,6 +198,53 @@ body {
   }
 }
 
+/* Respect users who prefer reduced transparency (macOS Accessibility · WCAG 2.2 AA) */
+@media (prefers-reduced-transparency: reduce) {
+  .aurora-bg::before,
+  .aurora-bg::after,
+  .aurora-bg .aurora-orb-3 {
+    display: none;
+  }
+  .liquid, .liquid-header {
+    background: #FFFFFF !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #E5E2DD !important;
+  }
+  .liquid-critical {
+    background: #FEE2E2 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #FCA5A5 !important;
+  }
+  .liquid-watch {
+    background: #FEF3C7 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #FCD34D !important;
+  }
+  .liquid-info {
+    background: #DCFCE7 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #86EFAC !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .liquid, .liquid-header {
+    background: #FFFFFF !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 2px solid #1F1E1B !important;
+  }
+  *:focus-visible {
+    outline-width: 3px !important;
+    outline-color: #1F1E1B !important;
+  }
+}
+
 /* Force browser to clip backdrop-blur to rounded corners (Safari fix) */
 .liquid, .liquid-header, .liquid-critical, .liquid-watch, .liquid-info {
   isolation: isolate;

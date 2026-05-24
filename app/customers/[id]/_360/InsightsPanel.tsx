@@ -91,6 +91,12 @@ export function InsightsPanel({ insights }: { insights: InsightResult }) {
           )}
         </div>
       )}
+
+      {/* Medical disclaimer · TPM scope-of-practice safeguard */}
+      <p className="mt-5 pt-4 border-t border-ink/8 font-thai text-[10.5px] text-ink-60 leading-relaxed">
+        ⚖️ ข้อมูลในกล่องนี้ใช้สำหรับ <strong>wellness coaching</strong> เท่านั้น ·
+        ไม่ใช่การวินิจฉัยทางการแพทย์ · ค่าผิดปกติทุกครั้ง <strong>ควรปรึกษาแพทย์</strong> เพื่อยืนยัน
+      </p>
     </section>
   );
 }

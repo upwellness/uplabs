@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Phone, MessageCircle, PlusCircle, Activity, FlaskConical, ArrowUpRight, LineChart, Pill } from "lucide-react";
 import type { StatusResult } from "@/lib/customers/status-classifier";
 
 interface IdentityBarProps {
@@ -86,16 +87,19 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
             </div>
           </div>
 
-          {/* Recency chips · glass mini-cards */}
+          {/* Recency chips · flat (not nested glass) */}
           <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              📊 {lapseLabel(meta.bcaLapseDays, "BCA ล่าสุด")}
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 font-mono text-[10.5px] text-ink-60 border border-ink/8">
+              <Activity size={11} strokeWidth={2.25} aria-hidden="true" />
+              {lapseLabel(meta.bcaLapseDays, "BCA")}
             </span>
-            <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              🧾 {lapseLabel(meta.labLapseDays, "Lab ล่าสุด")}
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 font-mono text-[10.5px] text-ink-60 border border-ink/8">
+              <FlaskConical size={11} strokeWidth={2.25} aria-hidden="true" />
+              {lapseLabel(meta.labLapseDays, "Lab")}
             </span>
-            <span className="rounded-full bg-white/50 backdrop-blur-md px-2.5 py-1 font-mono text-[10px] text-ink-60 border border-white/60">
-              💬 {lapseLabel(meta.orderLapseDays, "ทักล่าสุด")}
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 font-mono text-[10.5px] text-ink-60 border border-ink/8">
+              <MessageCircle size={11} strokeWidth={2.25} aria-hidden="true" />
+              {lapseLabel(meta.orderLapseDays, "ทัก")}
             </span>
           </div>
         </div>
@@ -103,40 +107,37 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
         {/* Action bar */}
         <div className="mt-3 flex flex-wrap gap-2">
           {phone && (
-            <a href={`tel:${phone}`}
-              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-rose transition-all hover:shadow-md">
-              📞 โทร
+            <a href={`tel:${phone}`} aria-label={`โทรหา ${customer.name}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-rose transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+              <Phone size={14} strokeWidth={2.25} aria-hidden="true" /> โทร
             </a>
           )}
-          {customer.line_id ? (
-            <a href={`https://line.me/R/ti/p/${encodeURIComponent(customer.line_id)}`} target="_blank" rel="noopener"
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white hover:opacity-90 transition-all hover:shadow-md"
+          {(customer.line_id || phone) && (
+            <a
+              href={customer.line_id ? `https://line.me/R/ti/p/${encodeURIComponent(customer.line_id)}` : `https://line.me/R/ti/p/~${phone}`}
+              target="_blank" rel="noopener"
+              aria-label="ส่งข้อความผ่าน LINE"
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white hover:opacity-90 transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{ background: "#06C755" }}>
-              𝐋 LINE
-            </a>
-          ) : phone && (
-            <a href={`https://line.me/R/ti/p/~${phone}`} target="_blank" rel="noopener"
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white hover:opacity-90 transition-all hover:shadow-md"
-              style={{ background: "#06C755" }}>
-              𝐋 LINE
+              <MessageCircle size={14} strokeWidth={2.25} aria-hidden="true" /> LINE
             </a>
           )}
           <Link href={`/customers/${customer.id}/records/new`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white/85 transition-all">
-            ➕ บันทึก
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-ink/8 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+            <PlusCircle size={14} strokeWidth={2.25} aria-hidden="true" /> เพิ่มผลตรวจ
           </Link>
           <Link href={`/bca`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white/85 transition-all">
-            📊 BCA
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-ink/8 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+            <LineChart size={14} strokeWidth={2.25} aria-hidden="true" /> BCA
           </Link>
           <Link href={`/customers/${customer.id}/allergies/new`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white/85 transition-all">
-            🧪 Allergy
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-ink/8 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+            <Pill size={14} strokeWidth={2.25} aria-hidden="true" /> Allergy
           </Link>
           <Link href={`/customers/${customer.id}?legacy=1`}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-ink/8 backdrop-blur-md px-3 py-1.5 text-[11px] font-mono text-ink-60 hover:bg-ink/15 transition-all"
+            className="ml-auto inline-flex items-center gap-1 rounded-full bg-ink/8 px-3 py-1.5 text-[11px] font-mono text-ink-60 hover:bg-ink/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
             title="Switch to legacy view">
-            ⤴ มุมมองเดิม
+            <ArrowUpRight size={12} strokeWidth={2.25} aria-hidden="true" /> มุมมองเดิม
           </Link>
         </div>
       </div>

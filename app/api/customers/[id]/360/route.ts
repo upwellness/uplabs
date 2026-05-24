@@ -130,6 +130,36 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       recency: { bca_days: bcaLapseDays, lab_days: labLapseDays, order_days: orderLapseDays },
     });
 
+    // ─── Score delta vs previous BCA (if exists) ───
+    let scoreDelta: number | null = null;
+    let scoreDeltaReason: string | null = null;
+    if (bcaHistory && bcaHistory.length >= 2) {
+      const prev = bcaHistory[1]; // [0]=latest, [1]=previous
+      const prevScore = healthScore({
+        bca: { visceral: prev.visceral, fat_pct: prev.fat_pct, body_age: prev.body_age, chrono_age: chronoAge, gender: customer.gender },
+        lab: labVals,  // lab unchanged · best proxy
+        recency: { bca_days: bcaLapseDays, lab_days: labLapseDays, order_days: orderLapseDays },
+      });
+      if (score.total != null && prevScore.total != null) {
+        scoreDelta = score.total - prevScore.total;
+        // Determine main driver of change
+        if (bcaLatest && prev) {
+          const visceralChange = (bcaLatest.visceral ?? 0) - (prev.visceral ?? 0);
+          const weightChange   = (bcaLatest.weight ?? 0)   - (prev.weight ?? 0);
+          const fatChange      = (bcaLatest.fat_pct ?? 0)  - (prev.fat_pct ?? 0);
+          if (Math.abs(visceralChange) >= 1) {
+            scoreDeltaReason = `Visceral ${visceralChange < 0 ? "ลด" : "เพิ่ม"} ${Math.abs(visceralChange)} ระดับ`;
+          } else if (Math.abs(weightChange) >= 1) {
+            scoreDeltaReason = `น้ำหนัก ${weightChange < 0 ? "ลด" : "เพิ่ม"} ${Math.abs(weightChange).toFixed(1)} kg`;
+          } else if (Math.abs(fatChange) >= 0.5) {
+            scoreDeltaReason = `Fat% ${fatChange < 0 ? "ลด" : "เพิ่ม"} ${Math.abs(fatChange).toFixed(1)}%`;
+          } else {
+            scoreDeltaReason = "การเปลี่ยนแปลงเล็กน้อย";
+          }
+        }
+      }
+    }
+
     // ─── Insights ───
     const weightHistory = (bcaHistory ?? []).map(b => b.weight).filter((w): w is number => w != null).reverse().slice(-3);
     const visceralHistory = (bcaHistory ?? []).map(b => b.visceral).filter((v): v is number => v != null).reverse().slice(-3);
@@ -203,9 +233,17 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
     timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // ─── PDPA Audit Log · fire-and-forget ───
+    // Log every 360 view · do not block response on logging failure
+    admin.from("customer_view_log").insert({
+      customer_id: params.id,
+      viewer_id:   session.user.id,
+      source:      "360",
+    }).then(() => {}, () => { /* swallow log errors */ });
+
     return NextResponse.json({
       customer: { ...customer, chrono_age: chronoAge },
-      score,
+      score: { ...score, delta: scoreDelta, deltaReason: scoreDeltaReason },
       status,
       insights,
       labVals,

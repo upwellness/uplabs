@@ -58,22 +58,34 @@ export function NotesTab({ customerId }: { customerId: string }) {
     <div className="space-y-4">
       {/* Composer */}
       <div className="liquid rounded-2xl p-4">
+        <label htmlFor="coach-note-body" className="sr-only">
+          เขียน coach note ใหม่
+        </label>
         <textarea
+          id="coach-note-body"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
+          }}
           placeholder="บันทึกสำหรับ session ต่อไป · นัดติดตาม · ข้อสังเกตของคนไข้ ..."
           rows={3}
-          className="w-full bg-white/50 backdrop-blur-md border border-white/70 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose/30 focus:bg-white/85 transition resize-y"
+          className="w-full bg-white/50 backdrop-blur-md border border-white/70 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-rose focus:bg-white/85 transition resize-y"
         />
-        {error && <div className="mt-2 text-[11px] text-red-600">⚠️ {error}</div>}
+        {error && (
+          <div role="alert" aria-live="polite" className="mt-2 text-[12px] text-red-700 font-semibold">
+            ⚠️ {error}
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-mono text-[10px] text-ink-40">
-            {draft.length > 0 && `${draft.length} ตัวอักษร`}
+          <span className="font-mono text-[11px] text-ink-60">
+            {draft.length > 0 ? `${draft.length} ตัวอักษร · กด ⌘+Enter ส่ง` : ""}
           </span>
           <button
             onClick={submit}
             disabled={submitting || !draft.trim()}
-            className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose disabled:opacity-50 disabled:cursor-not-allowed transition"
+            aria-busy={submitting}
+            className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose disabled:opacity-50 disabled:cursor-not-allowed transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
           >
             {submitting ? "กำลังบันทึก..." : "+ เพิ่มบันทึก"}
           </button>
@@ -101,8 +113,11 @@ export function NotesTab({ customerId }: { customerId: string }) {
                     {new Date(n.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
                   </div>
                 </div>
-                <button onClick={() => remove(n.id)} title="ลบ"
-                  className="text-ink-40 hover:text-red-600 text-sm flex-shrink-0">🗑</button>
+                <button
+                  onClick={() => remove(n.id)}
+                  aria-label="ลบบันทึกนี้"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-ink-40 hover:text-red-600 hover:bg-red-50 text-base flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                >🗑</button>
               </div>
             </li>
           ))}
