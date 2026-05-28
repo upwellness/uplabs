@@ -22,6 +22,7 @@ export const APPS: AppMeta[] = [
   // ── Customer (lead-facing · ส่งให้ prospect ได้) ──
   { slug: "healthcheck",  name: "Health Check",    description: "ประเมินสุขภาพ + Lead Capture · ส่งลิงก์ให้คน · เก็บ lead อัตโนมัติ",  icon: "🏥", audience: "customer", href: "/healthcheck",  status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "metaflexquiz", name: "MetaFlex Quiz",   description: "วัด Metabolic Flexibility · Lead capture · share ลิงก์ให้คน",  icon: "🔥", audience: "customer", href: "/healthcheck?quiz=metaflex", status: "live", allowedRoles: ["abo", "admin"] },
+  { slug: "cards",        name: "Nutrilite Cards", description: "45 SKUs · ดู spec + target + opener · กด ⬇ SAVE ดาวน์โหลดการ์ดเป็นรูปส่งลูกค้าทาง LINE ได้ทันที", icon: "📇", audience: "customer", href: "https://personal-eight-taupe.vercel.app/nutrilite_marketing_cards.html", status: "live", allowedRoles: ["abo", "admin"] },
 
   // ── Business ──
   { slug: "customers",    name: "Customer Profiles",description: "จัดการลูกค้า · link BCA + CGM + Wearable · master profile",    icon: "👥", audience: "business", href: "/customers",   status: "live", allowedRoles: ["abo", "admin"] },

@@ -398,7 +398,9 @@ function BentoFeatured({ app, className }: { app: AppWithAccess; className?: str
 
   return blocked
     ? <div className={className} title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
-    : <Link href={app.href as any} className={className}>{inner}</Link>;
+    : app.href.startsWith("http")
+      ? <a href={app.href} target="_blank" rel="noopener noreferrer" className={className}>{inner}</a>
+      : <Link href={app.href as any} className={className}>{inner}</Link>;
 }
 
 function BentoTile({ app, className }: { app: AppWithAccess; className?: string }) {
@@ -431,7 +433,9 @@ function BentoTile({ app, className }: { app: AppWithAccess; className?: string 
   );
   return blocked
     ? <div className={className} title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
-    : <Link href={app.href as any} className={className}>{inner}</Link>;
+    : app.href.startsWith("http")
+      ? <a href={app.href} target="_blank" rel="noopener noreferrer" className={className}>{inner}</a>
+      : <Link href={app.href as any} className={className}>{inner}</Link>;
 }
 
 /* ──────────────────────────────────────────────────── */
@@ -477,7 +481,9 @@ function CompactCard({ app, accent }: { app: AppWithAccess; accent: keyof typeof
 
   return blocked
     ? <div className="h-full" title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{card}</div>
-    : <Link href={app.href as any} className="h-full block">{card}</Link>;
+    : app.href.startsWith("http")
+      ? <a href={app.href} target="_blank" rel="noopener noreferrer" className="h-full block">{card}</a>
+      : <Link href={app.href as any} className="h-full block">{card}</Link>;
 }
 
 function ContentCard({ app }: { app: AppWithAccess }) {
@@ -506,7 +512,9 @@ function ContentCard({ app }: { app: AppWithAccess }) {
   );
   return blocked
     ? <div title={lock ? "ไม่มีสิทธิ์ใช้งาน" : undefined}>{inner}</div>
-    : <Link href={app.href as any}>{inner}</Link>;
+    : app.href.startsWith("http")
+      ? <a href={app.href} target="_blank" rel="noopener noreferrer">{inner}</a>
+      : <Link href={app.href as any}>{inner}</Link>;
 }
 
 function statusLabel(s: AppMeta["status"]): string {
