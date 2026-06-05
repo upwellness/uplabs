@@ -755,30 +755,30 @@ function RecordsPanel({
                 return (
                   <div
                     key={r.id}
-                    className={`group rounded-2xl border bg-white px-4 py-3 transition-all ${isEditing ? "border-rose/40 ring-1 ring-rose/20" : "border-ink-10 hover:border-ink-20"}`}
+                    className={`group rounded-2xl border bg-white px-4 py-3 transition-all overflow-hidden ${isEditing ? "border-rose/40 ring-1 ring-rose/20" : "border-ink-10 hover:border-ink-20"}`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full">
                       <button
                         type="button"
                         onClick={() => onLoad(r)}
-                        className="flex flex-1 min-w-0 items-center gap-3 text-left"
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left overflow-hidden"
                       >
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.bg} ${theme.text} ring-1 ${theme.ring} font-head font-extrabold text-[14px]`}>
                           {r.total_score}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-thai text-[14px] font-bold text-ink truncate">{r.prospect_name}</span>
-                            {isEditing && <span className="text-[10px] font-mono font-bold text-rose">EDITING</span>}
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-thai text-[14px] font-bold text-ink truncate min-w-0">{r.prospect_name}</span>
+                            {isEditing && <span className="shrink-0 text-[10px] font-mono font-bold text-rose">EDITING</span>}
                           </div>
-                          <div className="mt-0.5 font-mono text-[10px] text-ink-40 truncate">
+                          <div className="mt-0.5 font-mono text-[10px] text-ink-40 line-clamp-1 break-all">
                             {r.verdict_label ?? "—"}
                             {r.meeting_context ? ` · ${r.meeting_context}` : ""}
                           </div>
                         </div>
                         <div className="hidden md:block text-right shrink-0">
-                          <div className="font-mono text-[10px] text-ink-40">{new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</div>
-                          <div className="font-mono text-[9px] text-ink-30">{new Date(r.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</div>
+                          <div className="font-mono text-[10px] text-ink-40 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</div>
+                          <div className="font-mono text-[9px] text-ink-30 whitespace-nowrap">{new Date(r.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</div>
                         </div>
                       </button>
                       <button
