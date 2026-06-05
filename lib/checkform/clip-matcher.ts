@@ -88,27 +88,22 @@ export interface ClipRecommendations {
 
 /**
  * Build a slim clip list for the prompt (drop fields the model doesn't need).
+ * Aggressively trimmed to keep prompt small + reduce Gemini latency
+ * (avoids Vercel function timeout on Hobby tier).
  */
 function trimClipsForPrompt(clips: StpClip[]) {
   return clips.map((c) => ({
     id: c.id,
-    speaker_name: c.speaker.nickname || c.speaker.name,
-    achievement_level: c.speaker.achievement_level,
+    speaker: `${c.speaker.nickname || c.speaker.name} (${c.speaker.achievement_level})`,
     age_range: c.speaker.age_range,
     previous_career: c.speaker.previous_career,
-    archetypes: c.speaker.archetypes,
-    summary: c.content.summary,
-    topics: c.content.topics,
-    themes: c.content.themes,
+    summary: c.content.summary.slice(0, 250),
     pain_addressed: c.content.pain_addressed,
     objections_addressed: c.content.objections_addressed,
-    evidence_types_shown: c.content.evidence_types_shown,
     mood_tone: c.signals.mood_tone,
     appeal_style: c.signals.appeal_style,
-    complexity_level: c.signals.complexity_level,
     demographic_signals: c.signals.demographic_signals,
     trust_score: c.trust_score,
-    duration_min: c.duration_min,
   }));
 }
 
@@ -168,7 +163,7 @@ ${JSON.stringify(trimmedClips, null, 2)}
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 3072,
+          maxOutputTokens: 1800, // 1-3 matches · ~200-300 tokens each + reasoning
           responseMimeType: "application/json",
           thinkingConfig: { thinkingBudget: 0 },
         },

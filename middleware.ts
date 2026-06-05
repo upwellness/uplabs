@@ -64,6 +64,15 @@ export async function middleware(req: NextRequest) {
     }
 
     if (!user && !isPublic(path)) {
+      // For API routes, return 401 JSON instead of redirecting to /login.
+      // Browser fetch follows 307 redirect → receives login page HTML
+      // → client JSON.parse fails with "Unexpected token '<'".
+      if (path.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "unauthenticated", redirect: "/login" },
+          { status: 401 },
+        );
+      }
       const u = req.nextUrl.clone();
       u.pathname = "/login";
       u.searchParams.set("next", path);
@@ -75,6 +84,13 @@ export async function middleware(req: NextRequest) {
     console.error("[middleware] auth check failed:", err);
     // Allow public paths through; rewrite the rest to a friendly health page.
     if (isPublic(req.nextUrl.pathname)) return NextResponse.next();
+    // API routes should get JSON error, not HTML page.
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "middleware_auth_check_failed" },
+        { status: 500 },
+      );
+    }
     const redirect = req.nextUrl.clone();
     redirect.pathname = "/setup";
     return NextResponse.rewrite(redirect);

@@ -321,8 +321,27 @@ export function CheckFormClient() {
           force: opts.force === true,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "recommend-clips failed");
+
+      // Read response as text first so we can detect non-JSON responses
+      // (HTML error pages from middleware redirect, Vercel timeout, etc.)
+      const raw = await res.text();
+      let json: any;
+      if (raw.trim().startsWith("<")) {
+        // HTML response (login page, error page, etc.)
+        if (res.status === 401 || raw.includes("login")) {
+          throw new Error("Session หมดอายุ · กรุณา refresh และ login ใหม่");
+        }
+        if (res.status === 504 || res.status === 408) {
+          throw new Error("Gemini ใช้เวลานานเกินไป (timeout) · ลองใหม่อีกครั้ง");
+        }
+        throw new Error(`Server ตอบ HTML แทน JSON (HTTP ${res.status}) · ดู Vercel logs`);
+      }
+      try {
+        json = JSON.parse(raw);
+      } catch {
+        throw new Error(`Response parse ไม่ได้: ${raw.slice(0, 120)}`);
+      }
+      if (!res.ok) throw new Error(json.error ?? `recommend-clips failed (HTTP ${res.status})`);
       setClipRecs(json.recommendations);
       setClipGeneratedAt(json.generated_at ?? new Date().toISOString());
       setClipCached(!!json.cached);
@@ -364,8 +383,24 @@ export function CheckFormClient() {
           force,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "analyze failed");
+      // Robust parsing — handle HTML responses (auth redirect, timeout, etc.)
+      const raw = await res.text();
+      let json: any;
+      if (raw.trim().startsWith("<")) {
+        if (res.status === 401 || raw.includes("login")) {
+          throw new Error("Session หมดอายุ · กรุณา refresh และ login ใหม่");
+        }
+        if (res.status === 504 || res.status === 408) {
+          throw new Error("Gemini ใช้เวลานานเกินไป (timeout) · ลองใหม่อีกครั้ง");
+        }
+        throw new Error(`Server ตอบ HTML แทน JSON (HTTP ${res.status})`);
+      }
+      try {
+        json = JSON.parse(raw);
+      } catch {
+        throw new Error(`Response parse ไม่ได้: ${raw.slice(0, 120)}`);
+      }
+      if (!res.ok) throw new Error(json.error ?? `analyze failed (HTTP ${res.status})`);
       setAiAnalysis(json.analysis);
       setAiAnalyzedAt(json.analyzed_at ?? new Date().toISOString());
       setAiCached(!!json.cached);
