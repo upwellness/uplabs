@@ -7,6 +7,7 @@ import { AnalysisModal } from "./AnalysisModal";
 import { ProfileForm, EMPTY_PROFILE, EMPTY_DISC, type ProfileData, type DiscData } from "./_components/ProfileForm";
 import { AIAnalysisModal } from "./_components/AIAnalysisModal";
 import type { AIAnalysis, CheckformProfile } from "@/lib/checkform/ai-analyze";
+import type { ClipRecommendations } from "@/lib/checkform/clip-matcher";
 
 const STORAGE_KEY = "upwellness:checkform:draft:v2";
 
@@ -132,6 +133,11 @@ export function CheckFormClient() {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null);
   const [aiCached, setAiCached] = useState(false);
+
+  // STP clip recommendation state (auto-fires after AI analysis succeeds)
+  const [clipRecs, setClipRecs] = useState<ClipRecommendations | null>(null);
+  const [clipLoading, setClipLoading] = useState(false);
+  const [clipError, setClipError] = useState<string | null>(null);
 
   // Hydrate from localStorage
   useEffect(() => {
@@ -284,10 +290,36 @@ export function CheckFormClient() {
     formNotes: draft.notes,
   });
 
+  const recommendClips = async (analysisForClips: AIAnalysis | null) => {
+    setClipError(null);
+    setClipLoading(true);
+    setClipRecs(null);
+    try {
+      const res = await fetch("/api/checkform/recommend-clips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: buildAIProfile(),
+          analysis: analysisForClips ?? undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "recommend-clips failed");
+      setClipRecs(json.recommendations);
+    } catch (e: any) {
+      setClipError(e.message);
+    } finally {
+      setClipLoading(false);
+    }
+  };
+
   const analyzeWithAI = async (force = false) => {
     setAiOpen(true);
     setAiError(null);
     setAiLoading(true);
+    // Reset clip state on fresh analyze
+    setClipRecs(null);
+    setClipError(null);
     try {
       // Auto-save the record first so the AI result has somewhere to live (cache hit next time)
       let recordId = draft.editingRecordId ?? null;
@@ -314,6 +346,10 @@ export function CheckFormClient() {
       setAiAnalyzedAt(json.analyzed_at ?? new Date().toISOString());
       setAiCached(!!json.cached);
       loadRecords();
+
+      // Fire-and-forget · STP clip recommendation after AI analysis succeeds
+      // (Don't await · don't block modal · render once ready)
+      void recommendClips(json.analysis);
     } catch (e: any) {
       setAiError(e.message);
     } finally {
@@ -622,6 +658,10 @@ export function CheckFormClient() {
         prospectName={draft.prospectName}
         onReanalyze={() => analyzeWithAI(true)}
         onClose={() => setAiOpen(false)}
+        clipRecs={clipRecs}
+        clipLoading={clipLoading}
+        clipError={clipError}
+        onRecommendClips={() => recommendClips(aiAnalysis)}
       />
     </div>
   );

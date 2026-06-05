@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { AIAnalysis } from "@/lib/checkform/ai-analyze";
+import type { ClipRecommendations, ClipMatch } from "@/lib/checkform/clip-matcher";
+import { findClipById } from "../_data/stp-clips";
 
 interface Props {
   open: boolean;
@@ -14,10 +16,16 @@ interface Props {
   prospectName?: string;
   onReanalyze?: () => void;
   onClose: () => void;
+  // STP clip recommendations (optional · loads after AI analysis succeeds)
+  clipRecs?: ClipRecommendations | null;
+  clipLoading?: boolean;
+  clipError?: string | null;
+  onRecommendClips?: () => void;
 }
 
 export function AIAnalysisModal({
   open, loading, error, analysis, cached, analyzedAt, prospectName, onReanalyze, onClose,
+  clipRecs, clipLoading, clipError, onRecommendClips,
 }: Props) {
   if (!open) return null;
 
@@ -67,7 +75,13 @@ export function AIAnalysisModal({
         ) : error ? (
           <ErrorPanel error={error} onClose={onClose} />
         ) : analysis ? (
-          <AnalysisBody analysis={analysis} />
+          <AnalysisBody
+            analysis={analysis}
+            clipRecs={clipRecs ?? null}
+            clipLoading={!!clipLoading}
+            clipError={clipError ?? null}
+            onRecommendClips={onRecommendClips}
+          />
         ) : null}
 
         {/* Footer */}
@@ -123,7 +137,19 @@ function ErrorPanel({ error, onClose }: { error: string; onClose: () => void }) 
   );
 }
 
-function AnalysisBody({ analysis }: { analysis: AIAnalysis }) {
+function AnalysisBody({
+  analysis,
+  clipRecs,
+  clipLoading,
+  clipError,
+  onRecommendClips,
+}: {
+  analysis: AIAnalysis;
+  clipRecs: ClipRecommendations | null;
+  clipLoading: boolean;
+  clipError: string | null;
+  onRecommendClips?: () => void;
+}) {
   const approachTheme =
     analysis.approach.type === "product" ? { bg: "bg-wellness-ultra", text: "text-wellness", ring: "ring-wellness-pale" } :
     analysis.approach.type === "business" ? { bg: "bg-rose-ultra", text: "text-rose", ring: "ring-rose-pale" } :
@@ -230,6 +256,239 @@ function AnalysisBody({ analysis }: { analysis: AIAnalysis }) {
           </ul>
         </section>
       )}
+
+      {/* ── STP Clip Recommendations ─────────────────────────── */}
+      <ClipRecommendationsSection
+        recs={clipRecs}
+        loading={clipLoading}
+        error={clipError}
+        onRefresh={onRecommendClips}
+      />
+    </div>
+  );
+}
+
+function ClipRecommendationsSection({
+  recs, loading, error, onRefresh,
+}: {
+  recs: ClipRecommendations | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh?: () => void;
+}) {
+  if (!loading && !error && !recs) return null;
+  return (
+    <section className="rounded-3xl border border-wellness-pale bg-gradient-to-br from-wellness-ultra/40 via-warm-white to-amber-ultra/30 p-5">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-wellness-deep font-bold">
+            🎬 คลิปแนะนำให้ฟัง
+          </span>
+          {recs && (
+            <span className="font-mono text-[9px] text-ink-40">
+              · STP Matcher · {recs.matches.length}/{recs.total_clips_evaluated} clips
+            </span>
+          )}
+        </div>
+        {onRefresh && !loading && (
+          <button
+            onClick={onRefresh}
+            className="font-mono text-[10px] text-ink-50 hover:text-ink-80 underline-offset-2 hover:underline"
+            title="วิเคราะห์ใหม่"
+          >
+            🔄 reanalyze
+          </button>
+        )}
+      </div>
+
+      {loading && <ClipLoading />}
+      {error && (
+        <div className="rounded-xl bg-status-bg-danger/40 px-4 py-3 font-mono text-[11px] text-status-danger break-words">
+          ⚠ {error}
+        </div>
+      )}
+      {recs && !loading && !error && (
+        <>
+          {recs.matches.length === 0 ? (
+            <div className="rounded-xl bg-white/70 px-4 py-3 font-thai text-[12px] text-ink-60">
+              ยังไม่มีคลิปที่ match กับ profile นี้แรงพอ ({recs.total_clips_evaluated} clips evaluated · skip {recs.skipped_low_resonance_count})
+            </div>
+          ) : (
+            <>
+              {recs.reasoning_summary && (
+                <p className="mb-3 font-thai text-[12px] leading-relaxed text-ink-60 italic">
+                  💭 {recs.reasoning_summary}
+                </p>
+              )}
+              <div className="space-y-3">
+                {recs.matches.map((m) => (
+                  <ClipCard key={m.clip_id} match={m} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function ClipLoading() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} className="rounded-2xl bg-white/70 p-4 animate-pulse">
+          <div className="flex gap-3">
+            <div className="h-20 w-32 shrink-0 rounded-lg bg-ink-5" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-3/4 rounded bg-ink-5" />
+              <div className="h-3 w-1/2 rounded bg-ink-5" />
+              <div className="h-3 w-5/6 rounded bg-ink-5" />
+            </div>
+          </div>
+        </div>
+      ))}
+      <p className="font-mono text-[10px] text-ink-40 text-center">~5-10 วินาที · กำลังจับคู่คลิป...</p>
+    </div>
+  );
+}
+
+function ClipCard({ match }: { match: ClipMatch }) {
+  const clip = findClipById(match.clip_id);
+  const [copied, setCopied] = useState<"share" | "followup" | null>(null);
+
+  if (!clip) {
+    // Defensive: matcher returned an unknown clip_id (already filtered server-side, but stay safe)
+    return (
+      <div className="rounded-xl bg-status-bg-warning/40 px-4 py-3 font-mono text-[11px] text-status-warning">
+        ⚠ clip_id ไม่พบ: {match.clip_id}
+      </div>
+    );
+  }
+
+  const copy = async (kind: "share" | "followup", text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 1500);
+    } catch { /* ignore */ }
+  };
+
+  const thumb = `https://i.ytimg.com/vi/${clip.youtube_id}/mqdefault.jpg`;
+  const confidencePct = Math.round(match.confidence * 100);
+  const confColor =
+    match.confidence >= 0.8 ? "text-wellness" :
+    match.confidence >= 0.6 ? "text-amber" :
+    "text-ink-50";
+
+  return (
+    <div className="rounded-2xl border border-ink-10 bg-white overflow-hidden shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)]">
+      {/* Top: thumbnail + meta */}
+      <div className="flex gap-3 p-4">
+        <a
+          href={clip.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative shrink-0 block"
+          aria-label={`เปิด YouTube: ${clip.title}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumb}
+            alt={clip.title}
+            className="h-20 w-32 rounded-lg object-cover ring-1 ring-ink-10"
+            loading="lazy"
+          />
+          <span className="absolute inset-0 flex items-center justify-center text-white text-2xl opacity-90 group-hover:opacity-100">
+            ▶
+          </span>
+          {clip.duration_min && (
+            <span className="absolute bottom-1 right-1 rounded bg-ink/80 px-1 py-0.5 font-mono text-[9px] font-bold text-white">
+              {clip.duration_min}m
+            </span>
+          )}
+        </a>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-thai text-[14px] font-bold text-ink leading-tight line-clamp-2">
+              {clip.title}
+            </h3>
+            <span className={`shrink-0 font-mono text-[11px] font-bold ${confColor}`}>{confidencePct}%</span>
+          </div>
+          <p className="mt-1 font-thai text-[11px] text-ink-60 line-clamp-1">
+            {clip.speaker.nickname || clip.speaker.name} ·{" "}
+            <span className="font-mono uppercase text-[9px] text-ink-40">{clip.speaker.achievement_level.replace(/_/g, " ")}</span>
+          </p>
+          <a
+            href={clip.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block font-mono text-[10px] text-rose hover:underline underline-offset-2"
+          >
+            youtu.be/{clip.youtube_id} ↗
+          </a>
+        </div>
+      </div>
+
+      {/* Why this clip */}
+      <div className="border-t border-ink-5 px-4 py-3 bg-surface/40">
+        <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-wellness-deep font-bold mb-1">
+          💡 ทำไมคลิปนี้
+        </div>
+        <p className="font-thai text-[12px] leading-relaxed text-ink-80">{match.why_this_clip}</p>
+        {match.key_signals_aligned && match.key_signals_aligned.length > 0 && (
+          <ul className="mt-2 space-y-0.5">
+            {match.key_signals_aligned.map((s, i) => (
+              <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-50 pl-3 relative">
+                <span className="absolute left-0 text-wellness">·</span>{s}
+              </li>
+            ))}
+          </ul>
+        )}
+        {match.potential_concerns && match.potential_concerns.length > 0 && (
+          <div className="mt-2 rounded-lg bg-status-bg-warning/40 px-3 py-1.5">
+            <span className="font-mono text-[9px] uppercase font-bold text-status-warning">⚠ concerns</span>
+            <ul className="mt-1 space-y-0.5">
+              {match.potential_concerns.map((c, i) => (
+                <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-60">· {c}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Share message · copy-ready */}
+      <div className="border-t border-ink-5 px-4 py-3 bg-rose-ultra/30">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-rose font-bold">
+            💬 ข้อความส่ง · DM/LINE
+          </span>
+          <button
+            onClick={() => copy("share", `${match.share_message_th}\n\n${clip.url}`)}
+            className={`font-mono text-[10px] font-bold transition-colors ${copied === "share" ? "text-wellness" : "text-rose hover:text-rose-deep"}`}
+          >
+            {copied === "share" ? "✓ copied" : "📋 copy"}
+          </button>
+        </div>
+        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic">"{match.share_message_th}"</p>
+      </div>
+
+      {/* Follow-up question */}
+      <div className="border-t border-ink-5 px-4 py-3 bg-amber-ultra/30">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-amber font-bold">
+            🎯 ถามต่อหลังดูจบ
+          </span>
+          <button
+            onClick={() => copy("followup", match.follow_up_question_th)}
+            className={`font-mono text-[10px] font-bold transition-colors ${copied === "followup" ? "text-wellness" : "text-amber hover:text-rose-deep"}`}
+          >
+            {copied === "followup" ? "✓ copied" : "📋 copy"}
+          </button>
+        </div>
+        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic">"{match.follow_up_question_th}"</p>
+      </div>
     </div>
   );
 }
