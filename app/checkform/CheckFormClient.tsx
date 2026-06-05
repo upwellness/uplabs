@@ -37,6 +37,8 @@ interface CheckformRecord {
   disc_secondary?: string | null;
   ai_analysis?: AIAnalysis | null;
   ai_analyzed_at?: string | null;
+  clip_recommendations?: ClipRecommendations | null;
+  clip_generated_at?: string | null;
   verdict_level: string | null;
   verdict_label: string | null;
   total_score: number;
@@ -138,6 +140,8 @@ export function CheckFormClient() {
   const [clipRecs, setClipRecs] = useState<ClipRecommendations | null>(null);
   const [clipLoading, setClipLoading] = useState(false);
   const [clipError, setClipError] = useState<string | null>(null);
+  const [clipGeneratedAt, setClipGeneratedAt] = useState<string | null>(null);
+  const [clipCached, setClipCached] = useState(false);
 
   // Hydrate from localStorage
   useEffect(() => {
@@ -214,6 +218,11 @@ export function CheckFormClient() {
     setAiAnalysis(r.ai_analysis ?? null);
     setAiAnalyzedAt(r.ai_analyzed_at ?? null);
     setAiCached(!!r.ai_analysis);
+    // Preload cached clip recommendations if present
+    setClipRecs(r.clip_recommendations ?? null);
+    setClipGeneratedAt(r.clip_generated_at ?? null);
+    setClipCached(!!r.clip_recommendations);
+    setClipError(null);
     setRecordsExpanded(false);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -225,6 +234,10 @@ export function CheckFormClient() {
     setAiAnalyzedAt(null);
     setAiCached(false);
     setAiError(null);
+    setClipRecs(null);
+    setClipGeneratedAt(null);
+    setClipCached(false);
+    setClipError(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
   };
 
@@ -290,7 +303,10 @@ export function CheckFormClient() {
     formNotes: draft.notes,
   });
 
-  const recommendClips = async (analysisForClips: AIAnalysis | null) => {
+  const recommendClips = async (
+    analysisForClips: AIAnalysis | null,
+    opts: { recordId?: string | null; force?: boolean } = {},
+  ) => {
     setClipError(null);
     setClipLoading(true);
     setClipRecs(null);
@@ -301,11 +317,17 @@ export function CheckFormClient() {
         body: JSON.stringify({
           profile: buildAIProfile(),
           analysis: analysisForClips ?? undefined,
+          recordId: opts.recordId ?? draft.editingRecordId ?? undefined,
+          force: opts.force === true,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "recommend-clips failed");
       setClipRecs(json.recommendations);
+      setClipGeneratedAt(json.generated_at ?? new Date().toISOString());
+      setClipCached(!!json.cached);
+      // Refresh records so the cached clip stays in sync with what's saved
+      if (opts.recordId ?? draft.editingRecordId) loadRecords();
     } catch (e: any) {
       setClipError(e.message);
     } finally {
@@ -317,9 +339,11 @@ export function CheckFormClient() {
     setAiOpen(true);
     setAiError(null);
     setAiLoading(true);
-    // Reset clip state on fresh analyze
-    setClipRecs(null);
-    setClipError(null);
+    // Reset clip state on FORCE (re-analyze) — keep cached on normal open
+    if (force) {
+      setClipRecs(null);
+      setClipError(null);
+    }
     try {
       // Auto-save the record first so the AI result has somewhere to live (cache hit next time)
       let recordId = draft.editingRecordId ?? null;
@@ -347,9 +371,13 @@ export function CheckFormClient() {
       setAiCached(!!json.cached);
       loadRecords();
 
-      // Fire-and-forget · STP clip recommendation after AI analysis succeeds
-      // (Don't await · don't block modal · render once ready)
-      void recommendClips(json.analysis);
+      // Fire clip recommendation:
+      // - If force=true → re-call Gemini (force clips too)
+      // - If already have cached clipRecs → skip (preloaded from record)
+      // - Otherwise → call API (which will cache-hit if DB has it)
+      if (force || !clipRecs) {
+        void recommendClips(json.analysis, { recordId, force });
+      }
     } catch (e: any) {
       setAiError(e.message);
     } finally {
@@ -661,7 +689,9 @@ export function CheckFormClient() {
         clipRecs={clipRecs}
         clipLoading={clipLoading}
         clipError={clipError}
-        onRecommendClips={() => recommendClips(aiAnalysis)}
+        clipCached={clipCached}
+        clipGeneratedAt={clipGeneratedAt}
+        onRecommendClips={() => recommendClips(aiAnalysis, { force: true })}
       />
     </div>
   );

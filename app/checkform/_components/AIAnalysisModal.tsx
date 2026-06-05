@@ -20,12 +20,14 @@ interface Props {
   clipRecs?: ClipRecommendations | null;
   clipLoading?: boolean;
   clipError?: string | null;
+  clipCached?: boolean;
+  clipGeneratedAt?: string | null;
   onRecommendClips?: () => void;
 }
 
 export function AIAnalysisModal({
   open, loading, error, analysis, cached, analyzedAt, prospectName, onReanalyze, onClose,
-  clipRecs, clipLoading, clipError, onRecommendClips,
+  clipRecs, clipLoading, clipError, clipCached, clipGeneratedAt, onRecommendClips,
 }: Props) {
   if (!open) return null;
 
@@ -80,6 +82,8 @@ export function AIAnalysisModal({
             clipRecs={clipRecs ?? null}
             clipLoading={!!clipLoading}
             clipError={clipError ?? null}
+            clipCached={!!clipCached}
+            clipGeneratedAt={clipGeneratedAt ?? null}
             onRecommendClips={onRecommendClips}
           />
         ) : null}
@@ -142,12 +146,16 @@ function AnalysisBody({
   clipRecs,
   clipLoading,
   clipError,
+  clipCached,
+  clipGeneratedAt,
   onRecommendClips,
 }: {
   analysis: AIAnalysis;
   clipRecs: ClipRecommendations | null;
   clipLoading: boolean;
   clipError: string | null;
+  clipCached: boolean;
+  clipGeneratedAt: string | null;
   onRecommendClips?: () => void;
 }) {
   const approachTheme =
@@ -262,6 +270,8 @@ function AnalysisBody({
         recs={clipRecs}
         loading={clipLoading}
         error={clipError}
+        cached={clipCached}
+        generatedAt={clipGeneratedAt}
         onRefresh={onRecommendClips}
       />
     </div>
@@ -269,18 +279,20 @@ function AnalysisBody({
 }
 
 function ClipRecommendationsSection({
-  recs, loading, error, onRefresh,
+  recs, loading, error, cached, generatedAt, onRefresh,
 }: {
   recs: ClipRecommendations | null;
   loading: boolean;
   error: string | null;
+  cached: boolean;
+  generatedAt: string | null;
   onRefresh?: () => void;
 }) {
   if (!loading && !error && !recs) return null;
   return (
     <section className="rounded-3xl border border-wellness-pale bg-gradient-to-br from-wellness-ultra/40 via-warm-white to-amber-ultra/30 p-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-wellness-deep font-bold">
             🎬 คลิปแนะนำให้ฟัง
           </span>
@@ -289,14 +301,19 @@ function ClipRecommendationsSection({
               · STP Matcher · {recs.matches.length}/{recs.total_clips_evaluated} clips
             </span>
           )}
+          {cached && generatedAt && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-wellness-ultra px-1.5 py-0.5 font-mono text-[9px] font-bold text-wellness-deep ring-1 ring-wellness-pale">
+              💾 cached · {new Date(generatedAt).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+            </span>
+          )}
         </div>
         {onRefresh && !loading && (
           <button
             onClick={onRefresh}
             className="font-mono text-[10px] text-ink-50 hover:text-ink-80 underline-offset-2 hover:underline"
-            title="วิเคราะห์ใหม่"
+            title="วิเคราะห์ใหม่ · ใช้ quota"
           >
-            🔄 reanalyze
+            🔄 จับคู่ใหม่
           </button>
         )}
       </div>
