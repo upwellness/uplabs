@@ -383,27 +383,31 @@ function ClipCard({ match }: { match: ClipMatch }) {
 
   return (
     <div className="rounded-2xl border border-ink-10 bg-white overflow-hidden shadow-[0_2px_8px_-4px_rgba(0,0,0,0.06)]">
-      {/* Top: thumbnail + meta */}
-      <div className="flex gap-3 p-4">
+      {/* Top: thumbnail + meta — stacks on mobile, side-by-side on sm+ */}
+      <div className="flex flex-col sm:flex-row gap-3 p-4">
         <a
           href={clip.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative shrink-0 block"
+          className="group relative shrink-0 block w-full sm:w-32"
           aria-label={`เปิด YouTube: ${clip.title}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={thumb}
             alt={clip.title}
-            className="h-20 w-32 rounded-lg object-cover ring-1 ring-ink-10"
+            className="aspect-video w-full sm:h-20 sm:w-32 rounded-lg object-cover ring-1 ring-ink-10"
             loading="lazy"
           />
-          <span className="absolute inset-0 flex items-center justify-center text-white text-2xl opacity-90 group-hover:opacity-100">
-            ▶
+          {/* Dark gradient overlay for play-button readability */}
+          <span className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-ink/0 via-ink/0 to-ink/30 group-hover:to-ink/50 transition-colors" />
+          <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/70 text-white text-[14px] pl-0.5 group-hover:bg-rose transition-colors">
+              ▶
+            </span>
           </span>
           {clip.duration_min && (
-            <span className="absolute bottom-1 right-1 rounded bg-ink/80 px-1 py-0.5 font-mono text-[9px] font-bold text-white">
+            <span className="absolute bottom-1 right-1 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
               {clip.duration_min}m
             </span>
           )}
@@ -411,22 +415,28 @@ function ClipCard({ match }: { match: ClipMatch }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-thai text-[14px] font-bold text-ink leading-tight line-clamp-2">
+            <h3 className="font-thai text-[14px] font-bold text-ink leading-snug break-words flex-1 min-w-0">
               {clip.title}
             </h3>
-            <span className={`shrink-0 font-mono text-[11px] font-bold ${confColor}`}>{confidencePct}%</span>
+            <span className={`shrink-0 rounded-full bg-white px-2 py-0.5 font-mono text-[11px] font-bold ring-1 ring-ink-10 ${confColor}`}>
+              {confidencePct}%
+            </span>
           </div>
-          <p className="mt-1 font-thai text-[11px] text-ink-60 line-clamp-1">
-            {clip.speaker.nickname || clip.speaker.name} ·{" "}
-            <span className="font-mono uppercase text-[9px] text-ink-40">{clip.speaker.achievement_level.replace(/_/g, " ")}</span>
+          <p className="mt-1 font-thai text-[11.5px] text-ink-60 break-words">
+            {clip.speaker.nickname || clip.speaker.name}
+            <span className="text-ink-30"> · </span>
+            <span className="font-mono uppercase text-[9px] text-ink-40 tracking-wide">
+              {clip.speaker.achievement_level.replace(/_/g, " ")}
+            </span>
           </p>
           <a
             href={clip.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-block font-mono text-[10px] text-rose hover:underline underline-offset-2"
+            className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] text-rose hover:underline underline-offset-2 break-all"
           >
-            youtu.be/{clip.youtube_id} ↗
+            <span>youtu.be/{clip.youtube_id}</span>
+            <span aria-hidden>↗</span>
           </a>
         </div>
       </div>
@@ -436,11 +446,11 @@ function ClipCard({ match }: { match: ClipMatch }) {
         <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-wellness-deep font-bold mb-1">
           💡 ทำไมคลิปนี้
         </div>
-        <p className="font-thai text-[12px] leading-relaxed text-ink-80">{match.why_this_clip}</p>
+        <p className="font-thai text-[12px] leading-relaxed text-ink-80 break-words">{match.why_this_clip}</p>
         {match.key_signals_aligned && match.key_signals_aligned.length > 0 && (
           <ul className="mt-2 space-y-0.5">
             {match.key_signals_aligned.map((s, i) => (
-              <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-50 pl-3 relative">
+              <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-50 pl-3 relative break-words">
                 <span className="absolute left-0 text-wellness">·</span>{s}
               </li>
             ))}
@@ -451,7 +461,7 @@ function ClipCard({ match }: { match: ClipMatch }) {
             <span className="font-mono text-[9px] uppercase font-bold text-status-warning">⚠ concerns</span>
             <ul className="mt-1 space-y-0.5">
               {match.potential_concerns.map((c, i) => (
-                <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-60">· {c}</li>
+                <li key={i} className="font-thai text-[10.5px] leading-relaxed text-ink-60 break-words">· {c}</li>
               ))}
             </ul>
           </div>
@@ -460,34 +470,34 @@ function ClipCard({ match }: { match: ClipMatch }) {
 
       {/* Share message · copy-ready */}
       <div className="border-t border-ink-5 px-4 py-3 bg-rose-ultra/30">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-rose font-bold">
             💬 ข้อความส่ง · DM/LINE
           </span>
           <button
             onClick={() => copy("share", `${match.share_message_th}\n\n${clip.url}`)}
-            className={`font-mono text-[10px] font-bold transition-colors ${copied === "share" ? "text-wellness" : "text-rose hover:text-rose-deep"}`}
+            className={`shrink-0 font-mono text-[10px] font-bold transition-colors ${copied === "share" ? "text-wellness" : "text-rose hover:text-rose-deep"}`}
           >
             {copied === "share" ? "✓ copied" : "📋 copy"}
           </button>
         </div>
-        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic">"{match.share_message_th}"</p>
+        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic break-words">"{match.share_message_th}"</p>
       </div>
 
       {/* Follow-up question */}
       <div className="border-t border-ink-5 px-4 py-3 bg-amber-ultra/30">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-amber font-bold">
             🎯 ถามต่อหลังดูจบ
           </span>
           <button
             onClick={() => copy("followup", match.follow_up_question_th)}
-            className={`font-mono text-[10px] font-bold transition-colors ${copied === "followup" ? "text-wellness" : "text-amber hover:text-rose-deep"}`}
+            className={`shrink-0 font-mono text-[10px] font-bold transition-colors ${copied === "followup" ? "text-wellness" : "text-amber hover:text-rose-deep"}`}
           >
             {copied === "followup" ? "✓ copied" : "📋 copy"}
           </button>
         </div>
-        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic">"{match.follow_up_question_th}"</p>
+        <p className="font-thai text-[12.5px] leading-relaxed text-ink-80 italic break-words">"{match.follow_up_question_th}"</p>
       </div>
     </div>
   );
