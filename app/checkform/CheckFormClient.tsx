@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FORM_SECTIONS, analyzeForm, type FormKey, type FormSectionData } from "./_data/form-questions";
 import { AnalysisModal } from "./AnalysisModal";
@@ -186,6 +186,43 @@ export function CheckFormClient() {
     setRecordsLoading(false);
   };
   useEffect(() => { loadRecords(); }, []);
+
+  // Auto-load record when navigated from /prospects (or anywhere) via ?load=<id>
+  const autoLoadedRef = useRef(false);
+  useEffect(() => {
+    if (autoLoadedRef.current) return;
+    if (records.length === 0) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const loadId = params.get("load");
+    if (!loadId) return;
+    const r = records.find((rec) => rec.id === loadId);
+    if (!r) return;
+    autoLoadedRef.current = true;
+    // Inline load (skip the existing-draft confirm dialog · explicit URL intent)
+    setDraft({
+      prospectName: r.prospect_name,
+      meetingContext: r.meeting_context ?? "",
+      scores: r.scores ?? {},
+      notes: r.notes ?? {},
+      profile: r.profile ?? EMPTY_PROFILE,
+      disc: {
+        primary: (r.disc_primary as DiscData["primary"]) ?? undefined,
+        secondary: (r.disc_secondary as DiscData["secondary"]) ?? undefined,
+      },
+      updatedAt: r.updated_at,
+      editingRecordId: r.id,
+    });
+    setAiAnalysis(r.ai_analysis ?? null);
+    setAiAnalyzedAt(r.ai_analyzed_at ?? null);
+    setAiCached(!!r.ai_analysis);
+    setClipRecs(r.clip_recommendations ?? null);
+    setClipGeneratedAt(r.clip_generated_at ?? null);
+    setClipCached(!!r.clip_recommendations);
+    setRecordsExpanded(false);
+    // Clean up URL so refresh doesn't re-trigger
+    window.history.replaceState({}, "", "/checkform");
+  }, [records]);
 
   const setScore = (key: FormKey, value: 1 | 2 | 3) =>
     setDraft((d) => ({ ...d, scores: { ...d.scores, [key]: d.scores[key] === value ? undefined : value } }));
