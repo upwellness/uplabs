@@ -5,6 +5,23 @@ import { Button } from "@/components/ui/Button";
 import { FORM_SECTIONS, analyzeForm, type FormKey, type FormSectionData } from "./_data/form-questions";
 import { AnalysisModal } from "./AnalysisModal";
 import { ProfileForm, EMPTY_PROFILE, EMPTY_DISC, type ProfileData, type DiscData } from "./_components/ProfileForm";
+
+/**
+ * Ensure a record's `profile` blob has the full shape that ProfileForm
+ * expects (demographics, career, lifestyle.hobbies, family). Old records
+ * or records created via /prospects convert can have partial shape — this
+ * fills in missing branches with empty defaults to prevent undefined access
+ * crashes.
+ */
+function normalizeProfile(p: any): ProfileData {
+  const src = (p && typeof p === "object") ? p : {};
+  return {
+    demographics: { ...(src.demographics ?? {}) },
+    career:       { ...(src.career       ?? {}) },
+    lifestyle:    { hobbies: [], ...(src.lifestyle ?? {}) },
+    family:       { ...(src.family       ?? {}) },
+  };
+}
 import { AIAnalysisModal } from "./_components/AIAnalysisModal";
 import type { AIAnalysis, CheckformProfile } from "@/lib/checkform/ai-analyze";
 import type { ClipRecommendations } from "@/lib/checkform/clip-matcher";
@@ -147,7 +164,17 @@ export function CheckFormClient() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setDraft(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Defensive: ensure profile has full shape even if old draft saved without all keys
+        setDraft({
+          ...parsed,
+          profile: normalizeProfile(parsed?.profile),
+          disc: parsed?.disc ?? EMPTY_DISC,
+          scores: parsed?.scores ?? {},
+          notes: parsed?.notes ?? {},
+        });
+      }
     } catch { /* ignore */ }
     setHydrated(true);
   }, []);
@@ -205,7 +232,7 @@ export function CheckFormClient() {
       meetingContext: r.meeting_context ?? "",
       scores: r.scores ?? {},
       notes: r.notes ?? {},
-      profile: r.profile ?? EMPTY_PROFILE,
+      profile: normalizeProfile(r.profile),
       disc: {
         primary: (r.disc_primary as DiscData["primary"]) ?? undefined,
         secondary: (r.disc_secondary as DiscData["secondary"]) ?? undefined,
@@ -243,7 +270,7 @@ export function CheckFormClient() {
       meetingContext: r.meeting_context ?? "",
       scores: r.scores ?? {},
       notes: r.notes ?? {},
-      profile: r.profile ?? EMPTY_PROFILE,
+      profile: normalizeProfile(r.profile),
       disc: {
         primary: (r.disc_primary as DiscData["primary"]) ?? undefined,
         secondary: (r.disc_secondary as DiscData["secondary"]) ?? undefined,

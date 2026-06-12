@@ -33,6 +33,9 @@ export async function POST(
     }
 
     // Create a checkform_records row with prefilled name + context
+    // IMPORTANT: profile must have the full shape that ProfileForm expects
+    // (demographics, career, lifestyle.hobbies, family) — otherwise the client
+    // crashes on undefined access. Mirrors EMPTY_PROFILE in ProfileForm.tsx.
     const { data: record, error: rErr } = await supa
       .from("checkform_records")
       .insert({
@@ -41,7 +44,12 @@ export async function POST(
         meeting_context: prospect.context ?? null,
         scores: {},
         notes: {},
-        profile: {},
+        profile: {
+          demographics: {},
+          career: {},
+          lifestyle: { hobbies: [] },
+          family: {},
+        },
         total_score: 0,
       })
       .select()
