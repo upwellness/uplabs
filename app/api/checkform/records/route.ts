@@ -15,9 +15,17 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const supa = createClient();
+    // List view only needs light columns. The heavy jsonb blobs
+    // (ai_analysis, clip_recommendations, profile, scores, notes) are fetched
+    // lazily via GET /api/checkform/records/[id] when a record is opened.
+    // Dropping them here cuts the list payload from ~7KB/row to ~0.3KB/row.
     const { data, error } = await supa
       .from("checkform_records")
-      .select("*")
+      .select(
+        "id, coach_id, prospect_name, meeting_context, verdict_level, " +
+        "verdict_label, total_score, disc_primary, disc_secondary, " +
+        "ai_analyzed_at, clip_generated_at, created_at, updated_at",
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;

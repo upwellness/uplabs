@@ -160,6 +160,9 @@ export function CheckFormClient() {
   const [clipGeneratedAt, setClipGeneratedAt] = useState<string | null>(null);
   const [clipCached, setClipCached] = useState(false);
 
+  // Which record is being fetched (full detail) · for row spinner
+  const [loadingRecordId, setLoadingRecordId] = useState<string | null>(null);
+
   // Hydrate from localStorage
   useEffect(() => {
     try {
@@ -226,7 +229,16 @@ export function CheckFormClient() {
     const r = records.find((rec) => rec.id === loadId);
     if (!r) return;
     autoLoadedRef.current = true;
-    // Inline load (skip the existing-draft confirm dialog · explicit URL intent)
+    // Clean up URL so refresh doesn't re-trigger
+    window.history.replaceState({}, "", "/checkform");
+    // Fetch the full record (list payload is now light · no heavy jsonb)
+    void hydrateAndLoad(loadId, { skipConfirm: true });
+  }, [records]);
+
+  /**
+   * Apply a FULL record (with heavy jsonb fields) into the editor state.
+   */
+  const applyRecordToEditor = (r: CheckformRecord) => {
     setDraft({
       prospectName: r.prospect_name,
       meetingContext: r.meeting_context ?? "",
@@ -246,10 +258,33 @@ export function CheckFormClient() {
     setClipRecs(r.clip_recommendations ?? null);
     setClipGeneratedAt(r.clip_generated_at ?? null);
     setClipCached(!!r.clip_recommendations);
+    setClipError(null);
     setRecordsExpanded(false);
-    // Clean up URL so refresh doesn't re-trigger
-    window.history.replaceState({}, "", "/checkform");
-  }, [records]);
+  };
+
+  /**
+   * Fetch the full record by id (list view doesn't carry heavy jsonb anymore)
+   * and load it into the editor.
+   */
+  const hydrateAndLoad = async (id: string, opts: { skipConfirm?: boolean } = {}) => {
+    if (!opts.skipConfirm && draft.prospectName) {
+      const listRow = records.find((x) => x.id === id);
+      const name = listRow?.prospect_name ?? "record นี้";
+      if (!confirm(`โหลด '${name}' มาแทน · ข้อมูลปัจจุบันจะถูกแทนที่?`)) return;
+    }
+    setLoadingRecordId(id);
+    try {
+      const res = await fetch(`/api/checkform/records/${id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "load record failed");
+      applyRecordToEditor(json.record);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e: any) {
+      alert(e.message ?? "โหลด record ไม่สำเร็จ");
+    } finally {
+      setLoadingRecordId(null);
+    }
+  };
 
   const setScore = (key: FormKey, value: 1 | 2 | 3) =>
     setDraft((d) => ({ ...d, scores: { ...d.scores, [key]: d.scores[key] === value ? undefined : value } }));
@@ -264,31 +299,7 @@ export function CheckFormClient() {
   };
 
   const loadFromRecord = (r: CheckformRecord) => {
-    if (draft.prospectName && !confirm(`โหลด '${r.prospect_name}' มาแทน · ข้อมูลปัจจุบันจะถูกแทนที่?`)) return;
-    setDraft({
-      prospectName: r.prospect_name,
-      meetingContext: r.meeting_context ?? "",
-      scores: r.scores ?? {},
-      notes: r.notes ?? {},
-      profile: normalizeProfile(r.profile),
-      disc: {
-        primary: (r.disc_primary as DiscData["primary"]) ?? undefined,
-        secondary: (r.disc_secondary as DiscData["secondary"]) ?? undefined,
-      },
-      updatedAt: r.updated_at,
-      editingRecordId: r.id,
-    });
-    // Preload cached AI analysis if present
-    setAiAnalysis(r.ai_analysis ?? null);
-    setAiAnalyzedAt(r.ai_analyzed_at ?? null);
-    setAiCached(!!r.ai_analysis);
-    // Preload cached clip recommendations if present
-    setClipRecs(r.clip_recommendations ?? null);
-    setClipGeneratedAt(r.clip_generated_at ?? null);
-    setClipCached(!!r.clip_recommendations);
-    setClipError(null);
-    setRecordsExpanded(false);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    void hydrateAndLoad(r.id);
   };
 
   const startNew = () => {
@@ -515,6 +526,7 @@ export function CheckFormClient() {
           expanded={recordsExpanded}
           setExpanded={setRecordsExpanded}
           editingId={draft.editingRecordId ?? null}
+          loadingId={loadingRecordId}
           onLoad={loadFromRecord}
           onDelete={deleteRecord}
           onStartNew={startNew}
@@ -801,7 +813,7 @@ export function CheckFormClient() {
 /* ──────────────────────────────────────────────────── */
 
 function RecordsPanel({
-  records, loading, error, expanded, setExpanded, editingId, onLoad, onDelete, onStartNew, onReload,
+  records, loading, error, expanded, setExpanded, editingId, loadingId, onLoad, onDelete, onStartNew, onReload,
 }: {
   records: CheckformRecord[];
   loading: boolean;
@@ -809,6 +821,7 @@ function RecordsPanel({
   expanded: boolean;
   setExpanded: (v: boolean) => void;
   editingId: string | null;
+  loadingId: string | null;
   onLoad: (r: CheckformRecord) => void;
   onDelete: (id: string, name: string) => void;
   onStartNew: () => void;
@@ -881,19 +894,21 @@ function RecordsPanel({
               {records.map((r) => {
                 const theme = r.verdict_level ? LEVEL_THEME[r.verdict_level] ?? LEVEL_THEME.warm : LEVEL_THEME.warm;
                 const isEditing = editingId === r.id;
+                const isLoading = loadingId === r.id;
                 return (
                   <div
                     key={r.id}
-                    className={`group rounded-2xl border bg-white px-4 py-3 transition-all overflow-hidden ${isEditing ? "border-rose/40 ring-1 ring-rose/20" : "border-ink-10 hover:border-ink-20"}`}
+                    className={`group rounded-2xl border bg-white px-4 py-3 transition-all overflow-hidden ${isEditing ? "border-rose/40 ring-1 ring-rose/20" : "border-ink-10 hover:border-ink-20"} ${isLoading ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <button
                         type="button"
                         onClick={() => onLoad(r)}
-                        className="flex flex-1 min-w-0 items-center gap-3 text-left overflow-hidden"
+                        disabled={isLoading}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left overflow-hidden disabled:cursor-wait"
                       >
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.bg} ${theme.text} ring-1 ${theme.ring} font-head font-extrabold text-[14px]`}>
-                          {r.total_score}
+                          {isLoading ? <span className="animate-spin">⌛</span> : r.total_score}
                         </div>
                         <div className="min-w-0 flex-1 overflow-hidden">
                           <div className="flex items-center gap-2 min-w-0">
