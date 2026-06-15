@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMasterSnapshot } from "@/lib/pulse/master-data";
 import { Logo } from "@/components/ui/Logo";
 import { CgmLinkManager } from "./CgmLinkManager";
+import { WhoopImport } from "./WhoopImport";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,17 @@ export default async function MasterPage({ params }: { params: { id: string } })
         : { data: (r.data ?? []).map((x: any) => ({ profile_name: x.profile_name })) },
     ),
   ]);
+
+  // WHOOP daily summary range (for the import card)
+  const { data: whoopDays } = await admin
+    .from("whoop_daily")
+    .select("cycle_date")
+    .eq("customer_id", params.id)
+    .order("cycle_date", { ascending: true });
+  const whoopDayCount = whoopDays?.length ?? 0;
+  const whoopRange = whoopDayCount > 0
+    ? { start: whoopDays![0].cycle_date, end: whoopDays![whoopDayCount - 1].cycle_date }
+    : null;
 
   const master = buildMasterSnapshot({
     customer: {
@@ -129,6 +141,16 @@ export default async function MasterPage({ params }: { params: { id: string } })
             <Cell point={master.sleep_deep}          label="Deep Sleep" />
             <Cell point={master.sleep_rem}           label="REM Sleep" />
           </Grid>
+        </Section>
+
+        {/* ── WHOOP ── */}
+        <Section title="WHOOP" subtitle="นำเข้าจาก CSV export หรือเชื่อมผ่าน OAuth">
+          <WhoopImport
+            customerId={params.id}
+            customerName={customer.name}
+            initialDayCount={whoopDayCount}
+            initialRange={whoopRange}
+          />
         </Section>
 
         {/* ── CGM ── */}

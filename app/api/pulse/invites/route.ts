@@ -12,8 +12,9 @@ export async function POST(req: Request) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-    const { customer_id } = await req.json();
+    const { customer_id, provider } = await req.json();
     if (!customer_id) return NextResponse.json({ error: "customer_id required" }, { status: 400 });
+    const inviteProvider = provider === "whoop" ? "whoop" : "google_fit";
 
     const supa = createClient();
 
@@ -33,13 +34,14 @@ export async function POST(req: Request) {
       token,
       customer_id,
       coach_id: session.user.id,
-      provider: "google_fit",
+      provider: inviteProvider,
     });
     if (error) throw error;
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     return NextResponse.json({
       token,
+      provider: inviteProvider,
       url: `${siteUrl}/connect/${token}`,
       expires_in_days: 7,
     });

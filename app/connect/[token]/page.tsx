@@ -9,7 +9,7 @@ export default async function ConnectPage({ params }: { params: { token: string 
   const admin = createAdminClient();
   const { data: invite } = await admin
     .from("pulse_invites")
-    .select("token, customer_id, expires_at, used_at, customers!inner(name)")
+    .select("token, customer_id, expires_at, used_at, provider, customers!inner(name)")
     .eq("token", params.token)
     .maybeSingle();
 
@@ -76,13 +76,15 @@ export default async function ConnectPage({ params }: { params: { token: string 
 
           <div className="mt-8 flex flex-col gap-3 border-t border-ink-5 pt-6">
             <p className="font-thai text-[13px] text-ink-60">
-              ขั้นต่อไป คุณจะเข้าสู่หน้า login Google → กดยอมรับสิทธิ์การอ่านข้อมูลสุขภาพ
+              {(invite as any).provider === "whoop"
+                ? "ขั้นต่อไป คุณจะเข้าสู่หน้า login WHOOP → กดยอมรับสิทธิ์การอ่านข้อมูลสุขภาพ"
+                : "ขั้นต่อไป คุณจะเข้าสู่หน้า login Google → กดยอมรับสิทธิ์การอ่านข้อมูลสุขภาพ"}
             </p>
             <a
-              href={`/api/pulse/oauth/start?token=${params.token}`}
+              href={`/api/pulse/${(invite as any).provider === "whoop" ? "whoop/oauth" : "oauth"}/start?token=${params.token}`}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-rose px-6 py-3.5 font-head text-base font-bold text-white shadow-[0_4px_12px_rgba(140,76,76,0.25)] transition-all hover:shadow-[0_6px_20px_rgba(140,76,76,0.35)] active:scale-[0.98]"
             >
-              ✓ ยอมรับและเชื่อมต่อ Google Fit
+              {(invite as any).provider === "whoop" ? "✓ ยอมรับและเชื่อมต่อ WHOOP" : "✓ ยอมรับและเชื่อมต่อ Google Fit"}
             </a>
             <p className="text-center font-mono text-[10px] text-ink-40">
               ถ้ายังไม่ยินยอม ปิดหน้านี้ได้เลย — เราจะไม่ดึงข้อมูลใดๆ
