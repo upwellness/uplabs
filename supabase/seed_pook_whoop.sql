@@ -16,11 +16,13 @@ begin
     limit 1;
   if v_coach is null then select id into v_coach from auth.users order by created_at limit 1; end if;
 
-  -- 2) upsert customer พี่ปุ๊ก
-  select id into v_cust from public.customers where name = 'พี่ปุ๊ก (จันทร์ทิวา โชตินุชิต)' and coach_id = v_coach limit 1;
+  -- 2) match customer ที่มีอยู่แล้วในระบบ (ชื่อจริง: จันทร์ทิวา โชตินุชิต · DOB 1968-02-09)
+  --    match ด้วยชื่อ display อย่างเดียว (ไม่ filter coach) เพื่อ attach กับ record เดิม ไม่สร้างซ้ำ
+  select id, coach_id into v_cust, v_coach from public.customers where name = 'พี่ปุ๊ก (พี่ตูน)' limit 1;
   if v_cust is null then
+    -- ไม่พบ → สร้างใหม่ผูกกับ admin คนแรก
     insert into public.customers (name, gender, birth_date, height, coach_id)
-    values ('พี่ปุ๊ก (จันทร์ทิวา โชตินุชิต)', 'female', '1968-02-09', 160, v_coach)
+    values ('พี่ปุ๊ก (พี่ตูน)', 'female', '1968-02-09', 160, v_coach)
     returning id into v_cust;
   end if;
 
