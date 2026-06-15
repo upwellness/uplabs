@@ -144,25 +144,40 @@ create index if not exists idx_whoop_journal_customer
   on public.whoop_journal(customer_id, cycle_date desc);
 
 -- ════════════════════════════════════════════════════════════════
--- RLS — per-coach + admin (mirror pulse_readings)
+-- RLS — per-coach + admin (mirror pulse_readings) · explicit policies
 -- ════════════════════════════════════════════════════════════════
 alter table public.whoop_daily     enable row level security;
 alter table public.whoop_sleeps    enable row level security;
 alter table public.whoop_workouts  enable row level security;
 alter table public.whoop_journal   enable row level security;
 
-do $$
-declare t text;
-begin
-  foreach t in array array['whoop_daily','whoop_sleeps','whoop_workouts','whoop_journal']
-  loop
-    execute format('drop policy if exists %I_admin on public.%I', t, t);
-    execute format('drop policy if exists %I_own   on public.%I', t, t);
-    execute format($f$create policy %I_admin on public.%I for all using (public.my_role() = 'admin')$f$, t, t);
-    execute format($f$create policy %I_own on public.%I for all using (
-      exists (select 1 from public.customers c where c.id = %I.customer_id and c.coach_id = auth.uid()))$f$, t, t, t);
-  end loop;
-end $$;
+-- whoop_daily
+drop policy if exists whoop_daily_admin on public.whoop_daily;
+drop policy if exists whoop_daily_own   on public.whoop_daily;
+create policy whoop_daily_admin on public.whoop_daily for all using (public.my_role() = 'admin');
+create policy whoop_daily_own   on public.whoop_daily for all using (
+  exists (select 1 from public.customers c where c.id = whoop_daily.customer_id and c.coach_id = auth.uid()));
+
+-- whoop_sleeps
+drop policy if exists whoop_sleeps_admin on public.whoop_sleeps;
+drop policy if exists whoop_sleeps_own   on public.whoop_sleeps;
+create policy whoop_sleeps_admin on public.whoop_sleeps for all using (public.my_role() = 'admin');
+create policy whoop_sleeps_own   on public.whoop_sleeps for all using (
+  exists (select 1 from public.customers c where c.id = whoop_sleeps.customer_id and c.coach_id = auth.uid()));
+
+-- whoop_workouts
+drop policy if exists whoop_workouts_admin on public.whoop_workouts;
+drop policy if exists whoop_workouts_own   on public.whoop_workouts;
+create policy whoop_workouts_admin on public.whoop_workouts for all using (public.my_role() = 'admin');
+create policy whoop_workouts_own   on public.whoop_workouts for all using (
+  exists (select 1 from public.customers c where c.id = whoop_workouts.customer_id and c.coach_id = auth.uid()));
+
+-- whoop_journal
+drop policy if exists whoop_journal_admin on public.whoop_journal;
+drop policy if exists whoop_journal_own   on public.whoop_journal;
+create policy whoop_journal_admin on public.whoop_journal for all using (public.my_role() = 'admin');
+create policy whoop_journal_own   on public.whoop_journal for all using (
+  exists (select 1 from public.customers c where c.id = whoop_journal.customer_id and c.coach_id = auth.uid()));
 
 -- ════════════════════════════════════════════════════════════════
 -- Verify:
