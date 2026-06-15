@@ -202,9 +202,16 @@ export default async function MasterPage({ params }: { params: { id: string } })
           </div>
         </Section>
 
-        <Link href={`/pulse?customer=${params.id}`} className="mt-8 inline-block rounded-full bg-rose px-5 py-2.5 text-sm font-semibold text-white">
-          ← กลับไป UP Pulse
-        </Link>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href={`/pulse?customer=${params.id}`} className="inline-block rounded-full bg-rose px-5 py-2.5 text-sm font-semibold text-white">
+            ← กลับไป UP Pulse
+          </Link>
+          {(whoopDayCount > 0) && (
+            <Link href={`/pulse/report/${params.id}`} className="inline-block rounded-full border border-rose/30 bg-rose-ultra px-5 py-2.5 text-sm font-semibold text-rose hover:bg-rose hover:text-white transition-colors">
+              📄 เปิด Report (Print PDF ได้)
+            </Link>
+          )}
+        </div>
       </div>
     </main>
   );
