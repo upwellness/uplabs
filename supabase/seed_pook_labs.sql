@@ -7,9 +7,10 @@
 do $$
 declare v_coach uuid; v_cust uuid; v_rec uuid;
 begin
-  -- match customer ที่มีอยู่ (ชื่อ display อย่างเดียว) + เอา coach จาก record เดิม
-  select id, coach_id into v_cust, v_coach from public.customers where name='พี่ปุ๊ก (พี่ตูน)' limit 1;
-  if v_cust is null then raise exception 'ไม่พบ customer พี่ปุ๊ก (พี่ตูน) — run seed_pook_whoop.sql ก่อน'; end if;
+  -- match customer ที่มีอยู่ (ชื่อใหม่หรือเก่า) + เอา coach จาก record เดิม
+  select id, coach_id into v_cust, v_coach from public.customers
+    where name in ('พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)') order by created_at limit 1;
+  if v_cust is null then raise exception 'ไม่พบ customer พี่ปุ๊ก — run seed_pook_whoop.sql ก่อน'; end if;
   if v_coach is null then select id into v_coach from auth.users order by created_at limit 1; end if;
 
   delete from public.customer_lab_values where customer_id=v_cust;

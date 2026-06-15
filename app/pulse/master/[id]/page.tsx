@@ -57,16 +57,17 @@ export default async function MasterPage({ params }: { params: { id: string } })
     ),
   ]);
 
-  // WHOOP daily summary range (for the import card)
+  // WHOOP daily summary — metrics for display + range for import card
   const { data: whoopDays } = await admin
     .from("whoop_daily")
-    .select("cycle_date")
+    .select("cycle_date, recovery, rhr, hrv, spo2, skin_temp, strain, sleep_perf, resp_rate, asleep_min, deep_min, rem_min, light_min, sleep_eff")
     .eq("customer_id", params.id)
     .order("cycle_date", { ascending: true });
   const whoopDayCount = whoopDays?.length ?? 0;
   const whoopRange = whoopDayCount > 0
     ? { start: whoopDays![0].cycle_date, end: whoopDays![whoopDayCount - 1].cycle_date }
     : null;
+  const whoopAgg = buildWhoopAgg(whoopDays ?? []);
 
   const master = buildMasterSnapshot({
     customer: {
@@ -144,13 +145,31 @@ export default async function MasterPage({ params }: { params: { id: string } })
         </Section>
 
         {/* ── WHOOP ── */}
-        <Section title="WHOOP" subtitle="นำเข้าจาก CSV export หรือเชื่อมผ่าน OAuth">
-          <WhoopImport
-            customerId={params.id}
-            customerName={customer.name}
-            initialDayCount={whoopDayCount}
-            initialRange={whoopRange}
-          />
+        <Section title="WHOOP" subtitle={whoopAgg ? `เฉลี่ย ${whoopAgg.windowDays} วันล่าสุด · ล่าสุด ${whoopAgg.lastDate}` : "นำเข้าจาก CSV export หรือเชื่อมผ่าน OAuth"}>
+          {whoopAgg && (
+            <Grid>
+              <Cell label="Recovery"     point={whoopAgg.recovery} />
+              <Cell label="HRV"          point={whoopAgg.hrv} />
+              <Cell label="Resting HR"   point={whoopAgg.rhr} />
+              <Cell label="SpO₂"         point={whoopAgg.spo2} />
+              <Cell label="Skin Temp"    point={whoopAgg.skin_temp} />
+              <Cell label="Day Strain"   point={whoopAgg.strain} />
+              <Cell label="Resp Rate"    point={whoopAgg.resp_rate} />
+              <Cell label="Sleep Perf"   point={whoopAgg.sleep_perf} />
+              <Cell label="Sleep (total)" point={whoopAgg.sleep_total} />
+              <Cell label="Deep Sleep"   point={whoopAgg.deep} />
+              <Cell label="REM Sleep"    point={whoopAgg.rem} />
+              <Cell label="Sleep Eff"    point={whoopAgg.sleep_eff} />
+            </Grid>
+          )}
+          <div className={whoopAgg ? "mt-5" : ""}>
+            <WhoopImport
+              customerId={params.id}
+              customerName={customer.name}
+              initialDayCount={whoopDayCount}
+              initialRange={whoopRange}
+            />
+          </div>
         </Section>
 
         {/* ── CGM ── */}
@@ -189,6 +208,48 @@ export default async function MasterPage({ params }: { params: { id: string } })
       </div>
     </main>
   );
+}
+
+/* ── WHOOP aggregation ──────────────────────────── */
+
+type WhoopRow = {
+  cycle_date: string; recovery: number | null; rhr: number | null; hrv: number | null;
+  spo2: number | null; skin_temp: number | null; strain: number | null; sleep_perf: number | null;
+  resp_rate: number | null; asleep_min: number | null; deep_min: number | null;
+  rem_min: number | null; light_min: number | null; sleep_eff: number | null;
+};
+
+function buildWhoopAgg(rows: WhoopRow[]) {
+  if (rows.length === 0) return null;
+  // rows are ascending by date — take the last 30 for the rolling average
+  const window = rows.slice(-30);
+  const lastDate = rows[rows.length - 1].cycle_date;
+  const avg = (key: keyof WhoopRow) => {
+    const vals = window.map((r) => r[key]).filter((v): v is number => typeof v === "number");
+    if (vals.length === 0) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  };
+  const pt = (v: number | null, unit: string, digits = 0) =>
+    v == null ? null : { value: v.toFixed(digits), unit, as_of: lastDate, days_stale: null, source: "WHOOP" };
+  const minToH = (v: number | null) =>
+    v == null ? null : { value: (v / 60).toFixed(1), unit: "ชม.", as_of: lastDate, days_stale: null, source: "WHOOP" };
+
+  return {
+    windowDays: window.length,
+    lastDate,
+    recovery:   pt(avg("recovery"), "%"),
+    hrv:        pt(avg("hrv"), "ms"),
+    rhr:        pt(avg("rhr"), "bpm"),
+    spo2:       pt(avg("spo2"), "%", 1),
+    skin_temp:  pt(avg("skin_temp"), "°C", 1),
+    strain:     pt(avg("strain"), "", 1),
+    resp_rate:  pt(avg("resp_rate"), "rpm", 1),
+    sleep_perf: pt(avg("sleep_perf"), "%"),
+    sleep_total: minToH(avg("asleep_min")),
+    deep:       minToH(avg("deep_min")),
+    rem:        minToH(avg("rem_min")),
+    sleep_eff:  pt(avg("sleep_eff"), "%"),
+  };
 }
 
 /* ── Components ─────────────────────────────────── */

@@ -17,13 +17,17 @@ begin
   if v_coach is null then select id into v_coach from auth.users order by created_at limit 1; end if;
 
   -- 2) match customer ที่มีอยู่แล้วในระบบ (ชื่อจริง: จันทร์ทิวา โชตินุชิต · DOB 1968-02-09)
-  --    match ด้วยชื่อ display อย่างเดียว (ไม่ filter coach) เพื่อ attach กับ record เดิม ไม่สร้างซ้ำ
-  select id, coach_id into v_cust, v_coach from public.customers where name = 'พี่ปุ๊ก (พี่ตูน)' limit 1;
+  --    match ชื่อใหม่ 'พี่ปุ๊ก' หรือชื่อเก่า 'พี่ปุ๊ก (พี่ตูน)' เพื่อ attach record เดิม ไม่สร้างซ้ำ
+  select id, coach_id into v_cust, v_coach from public.customers
+    where name in ('พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)') order by created_at limit 1;
   if v_cust is null then
     -- ไม่พบ → สร้างใหม่ผูกกับ admin คนแรก
     insert into public.customers (name, gender, birth_date, height, coach_id)
-    values ('พี่ปุ๊ก (พี่ตูน)', 'female', '1968-02-09', 160, v_coach)
+    values ('พี่ปุ๊ก', 'female', '1968-02-09', 160, v_coach)
     returning id into v_cust;
+  else
+    -- เจอชื่อเก่า → เปลี่ยนเป็น 'พี่ปุ๊ก'
+    update public.customers set name = 'พี่ปุ๊ก' where id = v_cust and name <> 'พี่ปุ๊ก';
   end if;
 
   -- clear existing whoop rows for idempotency
