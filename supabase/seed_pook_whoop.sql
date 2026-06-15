@@ -19,15 +19,15 @@ begin
   -- 2) match customer ที่มีอยู่แล้วในระบบ (ชื่อจริง: จันทร์ทิวา โชตินุชิต · DOB 1968-02-09)
   --    match ชื่อใหม่ 'พี่ปุ๊ก' หรือชื่อเก่า 'พี่ปุ๊ก (พี่ตูน)' เพื่อ attach record เดิม ไม่สร้างซ้ำ
   select id, coach_id into v_cust, v_coach from public.customers
-    where name in ('พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)') order by created_at limit 1;
+    where name in ('พี่ปุ๊', 'พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)', 'พี่ปุ๊ก (จันทร์ทิวา โชตินุชิต)') order by created_at limit 1;
   if v_cust is null then
     -- ไม่พบ → สร้างใหม่ผูกกับ admin คนแรก
     insert into public.customers (name, gender, birth_date, height, coach_id)
-    values ('พี่ปุ๊ก', 'female', '1968-02-09', 160, v_coach)
+    values ('พี่ปุ๊', 'female', '1968-02-09', 160, v_coach)
     returning id into v_cust;
   else
     -- เจอชื่อเก่า → เปลี่ยนเป็น 'พี่ปุ๊ก'
-    update public.customers set name = 'พี่ปุ๊ก' where id = v_cust and name <> 'พี่ปุ๊ก';
+    update public.customers set name = 'พี่ปุ๊' where id = v_cust and name <> 'พี่ปุ๊';
   end if;
 
   -- clear existing whoop rows for idempotency

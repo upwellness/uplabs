@@ -1,11 +1,10 @@
 -- ════════════════════════════════════════════════════════════════
--- ★ SETUP รวมครบ · พี่ปุ๊ก WHOOP + Lab
+-- ★ SETUP รวมครบ · พี่ปุ๊ WHOOP + Lab
 -- Paste ทั้งไฟล์นี้ใน Supabase SQL Editor → กด Run ครั้งเดียวจบ
---   PART 1 สร้างตาราง → PART 2 seed whoop → PART 3 seed lab
--- customer ใช้ชื่อ 'พี่ปุ๊ก' (match ชื่อเก่า 'พี่ปุ๊ก (พี่ตูน)' + rename ให้อัตโนมัติ)
+-- customer ใช้ชื่อ 'พี่ปุ๊' (match ชื่อเก่าทุกแบบ + ไม่สร้างซ้ำ)
 -- ════════════════════════════════════════════════════════════════
 
--- ─── PART 1/3 · MIGRATION (สร้างตาราง 4 ตาราง + RLS) ───
+-- ─── PART 1/3 · MIGRATION ───
 -- ════════════════════════════════════════════════════════════════
 -- UP Pulse · WHOOP integration — CSV import (all 4 exports) + OAuth
 -- Captures EVERY field from the WHOOP data export:
@@ -218,15 +217,15 @@ begin
   -- 2) match customer ที่มีอยู่แล้วในระบบ (ชื่อจริง: จันทร์ทิวา โชตินุชิต · DOB 1968-02-09)
   --    match ชื่อใหม่ 'พี่ปุ๊ก' หรือชื่อเก่า 'พี่ปุ๊ก (พี่ตูน)' เพื่อ attach record เดิม ไม่สร้างซ้ำ
   select id, coach_id into v_cust, v_coach from public.customers
-    where name in ('พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)') order by created_at limit 1;
+    where name in ('พี่ปุ๊', 'พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)', 'พี่ปุ๊ก (จันทร์ทิวา โชตินุชิต)') order by created_at limit 1;
   if v_cust is null then
     -- ไม่พบ → สร้างใหม่ผูกกับ admin คนแรก
     insert into public.customers (name, gender, birth_date, height, coach_id)
-    values ('พี่ปุ๊ก', 'female', '1968-02-09', 160, v_coach)
+    values ('พี่ปุ๊', 'female', '1968-02-09', 160, v_coach)
     returning id into v_cust;
   else
     -- เจอชื่อเก่า → เปลี่ยนเป็น 'พี่ปุ๊ก'
-    update public.customers set name = 'พี่ปุ๊ก' where id = v_cust and name <> 'พี่ปุ๊ก';
+    update public.customers set name = 'พี่ปุ๊' where id = v_cust and name <> 'พี่ปุ๊';
   end if;
 
   -- clear existing whoop rows for idempotency
@@ -867,7 +866,7 @@ begin
   raise notice 'พี่ปุ๊ก WHOOP seeded: cust=%', v_cust;
 end $$;
 
--- ─── PART 3/3 · SEED LAB (lipid + glucose + ตับ + ไต + CBC · 3 ปี · 39 ค่า) ───
+-- ─── PART 3/3 · SEED LAB (3 ปี · 39 ค่า) ───
 -- ════════════════════════════════════════════════════════════════
 -- SEED · พี่ปุ๊ก — Lab results 3 ปี (PhyaThai 2 · 2566/2567/2568)
 -- Lipid + Glucose + Liver + Kidney + CBC (thalassemia trait)
@@ -879,7 +878,7 @@ declare v_coach uuid; v_cust uuid; v_rec uuid;
 begin
   -- match customer ที่มีอยู่ (ชื่อใหม่หรือเก่า) + เอา coach จาก record เดิม
   select id, coach_id into v_cust, v_coach from public.customers
-    where name in ('พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)') order by created_at limit 1;
+    where name in ('พี่ปุ๊', 'พี่ปุ๊ก', 'พี่ปุ๊ก (พี่ตูน)', 'พี่ปุ๊ก (จันทร์ทิวา โชตินุชิต)') order by created_at limit 1;
   if v_cust is null then raise exception 'ไม่พบ customer พี่ปุ๊ก — run seed_pook_whoop.sql ก่อน'; end if;
   if v_coach is null then select id into v_coach from auth.users order by created_at limit 1; end if;
 
