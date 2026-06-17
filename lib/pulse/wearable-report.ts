@@ -186,11 +186,14 @@ export interface WearableReport {
 
 const dayOf = (iso: string) => (iso || "").split("T")[0].split(" ")[0];
 
-/** Merge WHOOP daily + Google-Fit readings into one chronological series. */
+/** Merge WHOOP daily + pulse_readings (Google Fit / Apple Health) into one series. */
 export function buildWearableReport(opts: {
   whoop?: WhoopDailyRow[];
   pulseReadings?: PulseReadingRow[];
+  /** label for the pulse_readings source (e.g. "Apple Watch", "Google Fit") */
+  pulseSource?: string;
 }): WearableReport {
+  const srcLabel = opts.pulseSource ?? "Google Fit";
   const byDate = new Map<string, UnifiedDaily>();
   const ensure = (d: string) => {
     if (!byDate.has(d)) byDate.set(d, { date: d });
@@ -223,6 +226,11 @@ export function buildWearableReport(opts: {
     const sum = (a?: number[]) => (a && a.length ? a.reduce((x, y) => x + y, 0) : undefined);
     if (metrics.rhr && row.rhr == null) row.rhr = avg(metrics.rhr) ?? null;
     if (metrics.hr_bpm && row.hr_avg == null) row.hr_avg = avg(metrics.hr_bpm) ?? null;
+    // Apple HRV = SDNN (ms) · only used if WHOOP RMSSD absent
+    if (metrics.hrv && row.hrv == null) row.hrv = avg(metrics.hrv) ?? null;
+    if (metrics.spo2 && row.spo2 == null) row.spo2 = avg(metrics.spo2) ?? null;
+    if (metrics.resp_rate && row.resp_rate == null) row.resp_rate = avg(metrics.resp_rate) ?? null;
+    if (metrics.skin_temp && row.skin_temp == null) row.skin_temp = avg(metrics.skin_temp) ?? null;
     if (metrics.steps) row.steps = sum(metrics.steps) ?? null;
     if (metrics.active_minutes) row.active_minutes = sum(metrics.active_minutes) ?? null;
     if (metrics.calories_expended) row.calories = sum(metrics.calories_expended) ?? null;
@@ -231,7 +239,8 @@ export function buildWearableReport(opts: {
     if (metrics.sleep_total && row.asleep_min == null) row.asleep_min = sum(metrics.sleep_total) ?? null;
     if (metrics.sleep_deep && row.deep_min == null) row.deep_min = sum(metrics.sleep_deep) ?? null;
     if (metrics.sleep_rem && row.rem_min == null) row.rem_min = sum(metrics.sleep_rem) ?? null;
-    if (Object.keys(metrics).length) sources.add("Google Fit");
+    if (metrics.sleep_light && row.light_min == null) row.light_min = sum(metrics.sleep_light) ?? null;
+    if (Object.keys(metrics).length) sources.add(srcLabel);
   }
 
   const series = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));

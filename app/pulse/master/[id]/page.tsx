@@ -6,6 +6,7 @@ import { buildMasterSnapshot } from "@/lib/pulse/master-data";
 import { Logo } from "@/components/ui/Logo";
 import { CgmLinkManager } from "./CgmLinkManager";
 import { WhoopImport } from "./WhoopImport";
+import { AppleImport } from "./AppleImport";
 
 export const dynamic = "force-dynamic";
 
@@ -169,6 +170,9 @@ export default async function MasterPage({ params }: { params: { id: string } })
               initialDayCount={whoopDayCount}
               initialRange={whoopRange}
             />
+          </div>
+          <div className="mt-4">
+            <AppleImport customerId={params.id} customerName={customer.name} />
           </div>
         </Section>
 
