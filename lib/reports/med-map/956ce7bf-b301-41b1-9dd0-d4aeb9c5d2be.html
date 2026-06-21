@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แผนผังยา & อาหารเสริม · น้องต๋า · UP Wellness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Lora:ital@1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --olive:#3D5826; --olive-light:#5A7A3A; --olive-pale:#E8EDE0;
+  --gold:#F4C842; --gold-deep:#C99D2F; --gold-pale:#FBF3D6;
+  --cream:#F7F4EE; --cream-dark:#EDE8DE;
+  --ink:#1F1E1B; --ink-60:#56544E; --ink-40:#8B8880; --ink-20:#C7C3B8;
+  --green:#396755; --green-bg:#E3EDE7;
+  --amber:#C47A2A; --amber-bg:#FAEFDD;
+  --red:#C2533F; --red-bg:#F6E2DC;
+  --white:#FFFFFF;
+  --c-dm:#2A7B8F; --c-lipid:#C47A2A; --c-pcos:#8C4C4C; --c-bipolar:#5B5A8C; --c-rls:#5A7A3A;
+  --shadow:0 1px 3px rgba(31,30,27,.06),0 8px 24px -12px rgba(31,30,27,.12);
+  --shadow-lg:0 2px 8px rgba(31,30,27,.08),0 24px 48px -20px rgba(31,30,27,.18);
+  --radius:20px; --radius-sm:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Sarabun',sans-serif;background:var(--cream);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3,h4,.head{font-family:'Kanit',sans-serif;font-weight:600;letter-spacing:-.01em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+#doc{zoom:1}
+.fs-sm #doc{zoom:.9}.fs-md #doc{zoom:1}.fs-lg #doc{zoom:1.13}.fs-xl #doc{zoom:1.28}
+
+/* controls */
+#fsctl{position:fixed;top:14px;right:14px;z-index:210;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--cream-dark);border-radius:100px;padding:5px 8px;box-shadow:0 4px 16px -6px rgba(31,30,27,.25)}
+#fsctl .lbl{font-family:'Kanit';font-size:10px;color:var(--ink-40);font-weight:500;padding-right:2px}
+#fsctl button{width:30px;height:30px;border:none;border-radius:50%;background:var(--cream);color:var(--olive);font-family:'Kanit';font-weight:700;cursor:pointer;transition:.18s;display:flex;align-items:center;justify-content:center;line-height:1}
+#fsctl button:hover{background:var(--olive-pale);transform:scale(1.08)}
+#fsctl button.b1{font-size:11px}#fsctl button.b2{font-size:14px}#fsctl button.b3{font-size:17px}
+#fsctl button.on{background:var(--olive);color:var(--gold)}
+#printbtn{position:fixed;top:14px;right:172px;z-index:210;border:1px solid var(--cream-dark);background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-radius:100px;padding:8px 15px;font-family:'Kanit';font-weight:600;font-size:12.5px;color:var(--olive);cursor:pointer;box-shadow:0 4px 16px -6px rgba(31,30,27,.25);transition:.18s}
+#printbtn:hover{background:var(--olive);color:var(--gold)}
+@media(max-width:640px){#fsctl .lbl{display:none}#printbtn{right:128px;padding:7px 11px}}
+
+/* hero */
+.hero{background:linear-gradient(135deg,var(--olive) 0%,#34491f 100%);color:var(--cream);padding:46px 0 38px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(900px 300px at 80% -10%,rgba(244,200,66,.16),transparent 60%)}
+.hero .wrap{position:relative;z-index:1}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-family:'Kanit';font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--gold);background:rgba(244,200,66,.12);border:1px solid rgba(244,200,66,.28);padding:5px 13px;border-radius:100px;margin-bottom:16px}
+.kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(244,200,66,.2)}
+.hero h1{font-size:clamp(26px,4.5vw,40px);font-weight:700;line-height:1.15}
+.hero h1 .accent{font-family:'Lora',serif;font-style:italic;font-weight:400;color:var(--gold)}
+.hero p{margin-top:12px;max-width:680px;color:rgba(247,244,238,.82);font-size:15px}
+.hchips{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
+.hchip{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:7px 14px;font-size:13px}
+.hchip b{font-family:'Kanit';color:var(--gold);font-weight:700;font-size:15px}
+
+section{padding:34px 0}
+.sec-head{margin-bottom:18px}
+.sec-head .eyebrow{font-family:'Kanit';font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-deep)}
+.sec-head .t{font-size:22px;font-weight:600;color:var(--olive);margin-top:2px}
+.sec-head .s{font-size:13.5px;color:var(--ink-60);margin-top:3px}
+
+/* filter */
+.filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:8px}
+.fbtn{font-family:'Kanit';font-weight:500;font-size:13px;border:1.5px solid var(--cream-dark);background:var(--white);color:var(--ink-60);border-radius:100px;padding:7px 15px;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:7px}
+.fbtn .sw{width:10px;height:10px;border-radius:50%}
+.fbtn:hover{border-color:var(--ink-20);color:var(--ink)}
+.fbtn.active{color:var(--white);border-color:transparent}
+.fbtn.reset{color:var(--ink-40)}
+.fbtn.reset.active{background:var(--ink);color:var(--white)}
+
+/* MAP */
+.mapwrap{position:relative;margin-top:18px}
+#links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+#links path{fill:none;transition:stroke-opacity .25s,stroke-width .2s}
+.cols{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr 1fr;gap:clamp(18px,5vw,64px)}
+.col-h{font-family:'Kanit';font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-40);text-align:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px dashed var(--cream-dark)}
+.col{display:flex;flex-direction:column;gap:12px}
+.node{background:var(--white);border:1.5px solid var(--cream-dark);border-radius:var(--radius-sm);padding:12px 13px;cursor:pointer;transition:transform .15s,box-shadow .2s,opacity .25s,border-color .2s;position:relative;box-shadow:var(--shadow)}
+.node:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.node:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.node .nt{font-family:'Kanit';font-weight:600;font-size:14.5px;line-height:1.25;display:flex;align-items:center;gap:8px}
+.node .ns{font-size:11.5px;color:var(--ink-40);margin-top:2px}
+.node .led{width:10px;height:10px;border-radius:50%;flex:none}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tag{font-size:11px;color:var(--ink-60);background:var(--cream);border:1px solid var(--cream-dark);border-radius:7px;padding:2px 8px}
+.node .dose{font-size:11px;color:var(--ink-60);margin-top:6px;font-family:'Kanit'}
+.node .ca{font-size:11px;color:var(--amber);margin-top:5px;line-height:1.4}
+.badge{position:absolute;top:10px;right:11px;font-family:'Kanit';font-weight:600;font-size:10px;padding:2px 8px;border-radius:100px}
+.badge.safe{background:var(--green-bg);color:var(--green)}
+.badge.caution{background:var(--amber-bg);color:var(--amber)}
+.node .why{font-size:11.5px;color:var(--ink-60);margin-top:7px;line-height:1.45}
+/* dim / highlight states */
+.cols.sel .node{opacity:.28}
+.cols.sel .node.hot{opacity:1}
+.node.hot{border-color:var(--nodecolor,var(--gold-deep))}
+.maphint{text-align:center;font-size:12.5px;color:var(--ink-40);margin-top:16px}
+.maphint b{color:var(--olive)}
+
+/* warnings */
+.warn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.warn{background:var(--white);border:1px solid var(--cream-dark);border-left:4px solid var(--amber);border-radius:var(--radius-sm);padding:15px 16px;box-shadow:var(--shadow)}
+.warn .wt{font-family:'Kanit';font-weight:600;font-size:14.5px;color:var(--ink);display:flex;gap:9px;align-items:flex-start}
+.warn .wd{font-size:12.5px;color:var(--ink-60);margin-top:6px;line-height:1.5}
+.warn.crit{border-left-color:var(--red)}
+
+/* allergy */
+.alg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px}
+.alg-card{background:var(--red-bg);border:1px solid #E9C7BD;border-radius:var(--radius-sm);padding:14px 16px}
+.alg-card .an{font-family:'Kanit';font-weight:600;color:#9B3D2C;font-size:14.5px}
+.alg-card .ar{font-size:12.5px;color:#A45744;margin-top:3px}
+.alg-card .anote{font-size:12px;color:var(--ink-60);margin-top:7px;border-top:1px dashed #E2BBB0;padding-top:7px}
+
+.disclaimer{background:var(--gold-pale);border:1px solid #ECD9A0;border-radius:var(--radius-sm);padding:16px 18px;font-size:12.5px;color:#6B5A22;line-height:1.65}
+footer{background:var(--olive);color:var(--cream);text-align:center;padding:30px 0;margin-top:18px}
+footer .fb{font-family:'Kanit';font-weight:600;font-size:15px;color:var(--gold)}
+footer .ft-tag{font-family:'Lora';font-style:italic;color:var(--gold);margin-top:8px;font-size:15px}
+footer .meta{font-size:11.5px;color:rgba(247,244,238,.6);margin-top:10px}
+
+@media(max-width:760px){
+  .cols{grid-template-columns:1fr;gap:8px}
+  #links{display:none}
+  .col-h{margin-top:14px}
+  .node{opacity:1 !important}
+}
+@media print{
+  #fsctl,#printbtn,.filters,.maphint{display:none!important}
+  body{background:#fff}#doc{zoom:.92}
+  section{padding:16px 0;break-inside:avoid}
+  .node,.warn,.alg-card{box-shadow:none!important;break-inside:avoid}
+  .cols.sel .node{opacity:1!important}
+  #links path{stroke-opacity:.5!important}
+  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:12mm}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<button id="printbtn" onclick="printReport()">⎙ พิมพ์ / PDF</button>
+<div id="fsctl" role="group" aria-label="ปรับขนาดตัวอักษร">
+  <span class="lbl">ขนาด</span>
+  <button class="b1" onclick="setFs('sm',this)">ก</button>
+  <button class="b2 on" onclick="setFs('md',this)">ก</button>
+  <button class="b3" onclick="setFs('lg',this)">ก</button>
+  <button class="b3" style="font-size:20px" onclick="setFs('xl',this)">ก</button>
+</div>
+
+<div id="doc">
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker"><span class="dot"></span>Medication &amp; Supplement Map · UP Wellness</span>
+    <h1>แผนผังเชื่อมโยง <span class="accent">น้องต๋า</span></h1>
+    <p>ภาพรวมว่า <b>ปัญหาสุขภาพ</b> แต่ละอย่างทำให้เกิด <b>อาการ</b> อะไร · รักษาด้วย <b>ยา</b> ตัวไหน · และ <b>อาหารเสริม Nutrilite</b> ตัวใดที่เหมาะ/ต้องระวัง — คลิกที่การ์ดเพื่อไฮไลต์ทั้งสายความสัมพันธ์</p>
+    <div class="hchips">
+      <span class="hchip"><b>5</b> ภาวะ</span>
+      <span class="hchip"><b>9</b> ยา</span>
+      <span class="hchip"><b>3</b> ประวัติแพ้ยา</span>
+      <span class="hchip"><b>6</b> Nutrilite ที่ประเมิน</span>
+      <span class="hchip">📅 อัปเดต 21/06/2026</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Interactive Map</div>
+      <div class="t">ปัญหา → ยา → อาหารเสริม</div>
+      <div class="s">เลือกภาวะเพื่อดูเฉพาะสายนั้น · หรือคลิกการ์ดใดก็ได้เพื่อไฮไลต์ความเชื่อมโยง</div>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="mapwrap">
+      <svg id="links" preserveAspectRatio="none"></svg>
+      <div class="cols" id="cols">
+        <div><div class="col-h">🩺 ปัญหา + อาการ</div><div class="col" id="col-cond"></div></div>
+        <div><div class="col-h">💊 ยา</div><div class="col" id="col-drug"></div></div>
+        <div><div class="col-h">🌿 อาหารเสริม (Nutrilite)</div><div class="col" id="col-supp"></div></div>
+      </div>
+    </div>
+    <div class="maphint">เส้นทึบ = ความเชื่อมโยง · <b>เขียว</b> = เสริมได้/แนะนำ · <b style="color:var(--amber)">เหลือง</b> = ใช้ได้แต่ต้องระวัง · คลิกพื้นที่ว่างเพื่อรีเซ็ต</div>
+  </div>
+</section>
+
+<section style="padding-top:6px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Safety Watch</div>
+      <div class="t">5 จุดเฝ้าระวังสำคัญ</div>
+    </div>
+    <div class="warn-grid" id="warns"></div>
+  </div>
+</section>
+
+<section style="padding-top:6px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Drug Allergy</div>
+      <div class="t">ประวัติแพ้ยา (ห้ามลืม)</div>
+    </div>
+    <div class="alg" id="algs"></div>
+  </div>
+</section>
+
+<section style="padding-top:6px">
+  <div class="wrap">
+    <div class="disclaimer">
+      <b>⚕️ ข้อจำกัด:</b> รายงานนี้เป็น <b>ข้อมูลประกอบสำหรับเภสัชกร/แพทย์</b> เพื่อการดูแลเชิงป้องกัน (wellness) — ไม่ใช่การวินิจฉัยหรือสั่งใช้ยา · ไม่ปรับ/หยุดยาประจำของแพทย์ · เคสนี้มียาจิตเวชหลายตัว + เสี่ยงพิษตับ + ประวัติแพ้ยา จึง <b>ต้องให้เภสัชกร (จิ้น)/แพทย์ยืนยันก่อนเริ่มอาหารเสริมทุกตัว</b> · ข้อมูลปฏิกิริยายาอ้างอิงเภสัชวิทยาทั่วไป ควรตรวจสอบกับฐานข้อมูล DI ที่อัปเดต
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fb">UP Wellness · Longevity Care</div>
+    <div style="font-size:13px;color:rgba(247,244,238,.85)">แผนผังยา &amp; อาหารเสริมเฉพาะบุคคล</div>
+    <div class="ft-tag">"แก่ช้า · เจ็บสั้น · ตายดี"</div>
+    <div class="meta">น้องต๋า (วรัญญา พันธุมะโอภาส) · ข้อมูลยา 21/06/2026 · สร้างโดยระบบ UP Labs</div>
+  </div>
+</footer>
+</div>
+
+<script>
+const MAP = {
+  conditions: [
+    {id:'dm',     label:'เบาหวาน',        sub:'Diabetes (T2DM)',  color:'var(--c-dm)',     symps:['น้ำตาลในเลือดสูง','ดื้ออินซูลิน']},
+    {id:'lipid',  label:'ไขมันในเลือดสูง', sub:'Hyperlipidemia',   color:'var(--c-lipid)',  symps:['ไตรกลีเซอไรด์สูง','HDL ต่ำ']},
+    {id:'pcos',   label:'PCOS',           sub:'ถุงน้ำในรังไข่',     color:'var(--c-pcos)',   symps:['สิว / ขนดก','รอบเดือนไม่ปกติ']},
+    {id:'bipolar',label:'ไบโพลาร์',        sub:'Bipolar Disorder', color:'var(--c-bipolar)',symps:['อารมณ์แปรปรวน','นอนไม่หลับ','วิตกกังวล']},
+    {id:'rls',    label:'ขาอยู่ไม่สุข',     sub:'Restless Leg',     color:'var(--c-rls)',    symps:['ขากระตุก/ไม่สบายขา ตอนกลางคืน']},
+  ],
+  drugs: [
+    {id:'lusefi',     name:'Lusefi 5mg',        gen:'Luseogliflozin · SGLT2', cond:'dm',      dose:'½ เม็ด · เช้า',    ca:'ติดเชื้อปัสสาวะ · ขาดน้ำ · DKA ถ้าคาร์บต่ำ'},
+    {id:'metformin',  name:'Glucophage XR 750', gen:'Metformin ER',           cond:'dm',      dose:'1 เม็ด · เย็น',    ca:'พร่อง B12 · คลื่นไส้'},
+    {id:'fenofibrate',name:'Supalip NT 145',    gen:'Fenofibrate',            cond:'lipid',   dose:'1 เม็ด · เย็น',    ca:'ปวดกล้ามเนื้อ(คู่ statin) · ค่าตับ'},
+    {id:'diane',      name:'Diane 35',          gen:'Cyproterone + EE',       cond:'pcos',    dose:'1 เม็ด · ก่อนนอน', ca:'เสี่ยงลิ่มเลือด (VTE)'},
+    {id:'abilify',    name:'Abilify 30mg',      gen:'Aripiprazole',           cond:'bipolar', dose:'2×15mg · ก่อนนอน', ca:'เมตาบอลิก · akathisia'},
+    {id:'rivotril',   name:'Rivotril 2mg',      gen:'Clonazepam · BZD',       cond:'bipolar', dose:'1 เม็ด · ก่อนนอน', ca:'ง่วง · ติดยา/ดื้อยา'},
+    {id:'valdoxan',   name:'Valdoxan 50mg',     gen:'Agomelatine',            cond:'bipolar', dose:'2×25mg · ก่อนนอน', ca:'พิษตับ — ต้องตรวจ LFT'},
+    {id:'dayvigo',    name:'Dayvigo 5mg',       gen:'Lemborexant · DORA',     cond:'bipolar', dose:'1 เม็ด · ก่อนนอน', ca:'ง่วงค้าง · เลี่ยงเกรปฟรุต'},
+    {id:'lyrica',     name:'Lyrica 75mg',       gen:'Pregabalin',             cond:'rls',     dose:'PRN ตามอาการ',    ca:'ง่วง · น้ำหนักขึ้น/บวม'},
+  ],
+  supps: [
+    {id:'bplus',  name:'Vitamin B Plus',   status:'safe',    link:['metformin','diane'],     why:'ชดเชย B12 ที่ Metformin ทำให้พร่อง + B6/folate ที่ยาคุมลด — ตรงที่สุด'},
+    {id:'omega',  name:'Triple Omega',     status:'safe',    link:['fenofibrate','abilify'], why:'เสริม Fenofibrate ลดไตรกลีเซอไรด์ + ต้านอักเสบ/หนุนอารมณ์'},
+    {id:'doublex',name:'Double X',         status:'caution', link:['metformin','valdoxan'],  why:'มัลติครบ ชดเชยพร่องได้ แต่ส่วนผสมเยอะ — ให้เภสัชกรดูเทียบยาจิตเวช/ตับ'},
+    {id:'calow',  name:'Calow (Cal-Mag-D)',status:'caution', link:['rivotril','dayvigo'],    why:'ดีต่อกระดูก/เมตาบอลิก · Mg สูงกลางคืนเสริมง่วง · กินห่างยา 2 ชม.'},
+    {id:'bioc',   name:'Bio C Plus',       status:'caution', link:['diane'],                 why:'วิตซีขนาดสูงอาจเพิ่มเอสโตรเจนยาคุมเล็กน้อย · ขนาดปกติปลอดภัย'},
+    {id:'garlic', name:'Garlic',           status:'caution', link:['lusefi','metformin'],    why:'ลดน้ำตาล + ต้านเกล็ดเลือดอ่อนๆ · ระวังร่วมยาเบาหวาน/ผ่าตัด'},
+  ],
+  warnings: [
+    {crit:1, ic:'😴', t:'กองยานอน/กล่อมประสาทก่อนนอน 5 ตัว', d:'Clonazepam + Aripiprazole + Agomelatine + Lemborexant + Pregabalin → ง่วงสะสม/ล้ม/กดการหายใจ · ห้ามเสริมตัวกล่อมประสาท (เมลาโทนิน/วาเลอเรียน/Mg สูง) ตอนกลางคืน'},
+    {crit:0, ic:'🩸', t:'Metformin → พร่องวิตามิน B12', d:'ใช้นานลดการดูดซึม B12 → แนะนำ Vitamin B Plus + ตรวจ B12 baseline'},
+    {crit:1, ic:'🫀', t:'พิษตับจาก Agomelatine (Valdoxan)', d:'ต้องตรวจค่าตับ (LFT) เป็นระยะ · เลี่ยงอาหารเสริมกระทบตับ (ไนอาซินขนาดสูง / ชาเขียวสกัดเข้มข้น)'},
+    {crit:0, ic:'🧪', t:'SGLT2 (Lusefi) + คาร์บต่ำ → เสี่ยง DKA', d:'ถ้าจะทำคีโต / อดอาหาร (IF) ต้องปรึกษาแพทย์ก่อน'},
+    {crit:0, ic:'🩹', t:'Diane 35 → เสี่ยงลิ่มเลือด (VTE)', d:'ร่วมกับภาวะเมตาบอลิก · ระวังถ้าไม่ค่อยขยับ หรือสูบบุหรี่'},
+  ],
+  allergies: [
+    {name:'Oxcarbazepine (Trileptal)', r:'ผื่นคัน · คลื่นไส้ · อาเจียน', note:'เลี่ยง · ระวังแพ้ข้ามกับ carbamazepine'},
+    {name:'Succinylcholine',           r:'ผื่นที่คอ',                  note:'ใช้ได้ถ้าให้ Fexofenadine 180mg/วัน เป็น pre-medication (สำคัญตอนดมยาสลบ)'},
+    {name:'Stresam (etifoxine)',       r:'ผื่นคัน',                    note:'เลี่ยง'},
+  ],
+};
+
+const condColor = id => (MAP.conditions.find(c=>c.id===id)||{}).color || 'var(--ink-40)';
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+
+// ---- render columns ----
+const colCond=document.getElementById('col-cond'), colDrug=document.getElementById('col-drug'), colSupp=document.getElementById('col-supp');
+MAP.conditions.forEach(c=>{
+  const n=el('div','node','<span class="led" style="background:'+c.color+'"></span>');
+  n.style.setProperty('--nodecolor',c.color);
+  n.dataset.id='cond:'+c.id;
+  n.innerHTML='<div class="nt"><span class="led" style="background:'+c.color+'"></span>'+c.label+'</div><div class="ns">'+c.sub+'</div><div class="tags">'+c.symps.map(s=>'<span class="tag">'+s+'</span>').join('')+'</div>';
+  n.tabIndex=0; colCond.appendChild(n);
+});
+MAP.drugs.forEach(d=>{
+  const col=condColor(d.cond);
+  const n=el('div','node'); n.style.setProperty('--nodecolor',col); n.dataset.id='drug:'+d.id;
+  n.innerHTML='<div class="nt"><span class="led" style="background:'+col+'"></span>'+d.name+'</div><div class="ns">'+d.gen+'</div><div class="dose">'+d.dose+'</div><div class="ca">⚠ '+d.ca+'</div>';
+  n.tabIndex=0; colDrug.appendChild(n);
+});
+MAP.supps.forEach(s=>{
+  const col = s.status==='safe' ? 'var(--green)' : 'var(--amber)';
+  const n=el('div','node'); n.style.setProperty('--nodecolor',col); n.dataset.id='supp:'+s.id;
+  n.innerHTML='<span class="badge '+s.status+'">'+(s.status==='safe'?'✓ แนะนำ':'⚠ ระวัง')+'</span><div class="nt"><span class="led" style="background:'+col+'"></span>'+s.name+'</div><div class="why">'+s.why+'</div>';
+  n.tabIndex=0; colSupp.appendChild(n);
+});
+
+// ---- edges ----
+const edges=[]; // {a:nodeId, b:nodeId, color}
+MAP.drugs.forEach(d=>edges.push({a:'cond:'+d.cond, b:'drug:'+d.id, color:condColor(d.cond)}));
+MAP.supps.forEach(s=>s.link.forEach(dr=>{
+  const col = s.status==='safe' ? 'var(--green)' : 'var(--amber)';
+  edges.push({a:'drug:'+dr, b:'supp:'+s.id, color:col});
+}));
+
+// adjacency for highlight (undirected, depth<=2)
+const adj={}; edges.forEach(e=>{(adj[e.a]=adj[e.a]||[]).push(e.b);(adj[e.b]=adj[e.b]||[]).push(e.a);});
+function chain(id){const seen=new Set([id]);let front=[id];for(let h=0;h<2;h++){const nx=[];front.forEach(x=>(adj[x]||[]).forEach(y=>{if(!seen.has(y)){seen.add(y);nx.push(y);}}));front=nx;}return seen;}
+
+// ---- draw connector lines ----
+const svg=document.getElementById('links'), cols=document.getElementById('cols');
+function nodeById(id){return cols.querySelector('[data-id="'+CSS.escape(id)+'"]');}
+function draw(){
+  const box=cols.getBoundingClientRect();
+  svg.setAttribute('viewBox','0 0 '+box.width+' '+box.height);
+  svg.style.height=box.height+'px';
+  let html='';
+  edges.forEach((e,i)=>{
+    const A=nodeById(e.a), B=nodeById(e.b); if(!A||!B)return;
+    const a=A.getBoundingClientRect(), b=B.getBoundingClientRect();
+    const x1=a.right-box.left, y1=a.top-box.top+a.height/2;
+    const x2=b.left-box.left,  y2=b.top-box.top+b.height/2;
+    const mx=(x1+x2)/2;
+    html+='<path id="e'+i+'" d="M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2+'" stroke="'+e.color+'" stroke-width="2" stroke-opacity="0.22"/>';
+  });
+  svg.innerHTML=html;
+  if(activeSel) paint(activeSel);
+}
+let activeSel=null;
+function paint(id){
+  const set=chain(id);
+  cols.classList.add('sel');
+  cols.querySelectorAll('.node').forEach(n=>n.classList.toggle('hot',set.has(n.dataset.id)));
+  edges.forEach((e,i)=>{const p=document.getElementById('e'+i);if(!p)return;const on=set.has(e.a)&&set.has(e.b);p.setAttribute('stroke-opacity',on?'0.95':'0.05');p.setAttribute('stroke-width',on?'3':'1.5');});
+}
+function reset(){activeSel=null;cols.classList.remove('sel');cols.querySelectorAll('.node').forEach(n=>n.classList.remove('hot'));edges.forEach((e,i)=>{const p=document.getElementById('e'+i);if(p){p.setAttribute('stroke-opacity','0.22');p.setAttribute('stroke-width','2');}});document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));document.querySelector('.fbtn.reset').classList.add('active');}
+function select(id){activeSel=id;paint(id);}
+
+cols.addEventListener('click',e=>{const n=e.target.closest('.node');if(n){activeSel=n.dataset.id;syncFilter(n.dataset.id);paint(n.dataset.id);}});
+cols.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('node')){e.preventDefault();activeSel=e.target.dataset.id;syncFilter(e.target.dataset.id);paint(e.target.dataset.id);}});
+document.querySelector('.mapwrap').addEventListener('click',e=>{if(!e.target.closest('.node'))reset();});
+
+// ---- filters ----
+const fc=document.getElementById('filters');
+const rb=el('button','fbtn reset active','ดูทั้งหมด'); rb.onclick=reset; fc.appendChild(rb);
+MAP.conditions.forEach(c=>{
+  const b=el('button','fbtn','<span class="sw" style="background:'+c.color+'"></span>'+c.label);
+  b.dataset.cond=c.id;
+  b.onclick=()=>{document.querySelectorAll('.fbtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');b.style.background=c.color;select('cond:'+c.id);};
+  fc.appendChild(b);
+});
+function syncFilter(id){document.querySelectorAll('.fbtn').forEach(x=>{x.classList.remove('active');x.style.background='';});const cid=id.startsWith('cond:')?id.slice(5):null;if(cid){const b=document.querySelector('.fbtn[data-cond="'+cid+'"]');if(b){b.classList.add('active');b.style.background=condColor(cid);}}}
+
+// ---- warnings / allergies ----
+const wg=document.getElementById('warns');
+MAP.warnings.forEach(w=>wg.appendChild(el('div','warn'+(w.crit?' crit':''),'<div class="wt"><span>'+w.ic+'</span><span>'+w.t+'</span></div><div class="wd">'+w.d+'</div>')));
+const ag=document.getElementById('algs');
+MAP.allergies.forEach(a=>ag.appendChild(el('div','alg-card','<div class="an">'+a.name+'</div><div class="ar">→ '+a.r+'</div><div class="anote">'+a.note+'</div>')));
+
+// ---- controls ----
+function setFs(s,btn){document.body.className='fs-'+s;document.querySelectorAll('#fsctl button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');setTimeout(draw,180);}
+function printReport(){const had=activeSel;reset();window.print();if(had){activeSel=had;paint(had);}}
+
+// ---- init ----
+window.addEventListener('load',()=>{requestAnimationFrame(draw);setTimeout(draw,300);});
+window.addEventListener('resize',()=>{clearTimeout(window._rz);window._rz=setTimeout(draw,120);});
+document.fonts&&document.fonts.ready.then(draw);
+</script>
+</body>
+</html>

@@ -215,6 +215,9 @@ export default async function MasterPage({ params }: { params: { id: string } })
               📄 เปิด Report (Print PDF ได้)
             </Link>
           )}
+          <a href={`/api/customers/${params.id}/med-map`} target="_blank" rel="noopener noreferrer" className="inline-block rounded-full border border-rose/30 bg-rose-ultra px-5 py-2.5 text-sm font-semibold text-rose hover:bg-rose hover:text-white transition-colors">
+            🌿 แผนผังยา &amp; อาหารเสริม
+          </a>
         </div>
       </div>
     </main>
