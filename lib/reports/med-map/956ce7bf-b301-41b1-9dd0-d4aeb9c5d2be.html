@@ -119,11 +119,19 @@ h1,h2,h3,h4,.head{font-family:'Kanit',sans-serif;font-weight:600;letter-spacing:
 /* ── TAB 3 · BODY ── */
 .bodywrap{display:grid;grid-template-columns:minmax(260px,420px) 1fr;gap:26px;align-items:start}
 .bodyfig{position:relative;background:linear-gradient(160deg,#fff,var(--cream));border:1px solid var(--cream-dark);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-.bodyfig svg{display:block;width:100%;height:auto;max-height:560px}
-.pin{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;border:2.5px solid #fff;background:var(--gold-deep);color:#fff;font-family:'Kanit';font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px -2px rgba(31,30,27,.4);transition:transform .15s,background .2s;z-index:3}
-.pin:hover{transform:translate(-50%,-50%) scale(1.18)}
-.pin.on{background:var(--olive);transform:translate(-50%,-50%) scale(1.22);box-shadow:0 0 0 6px rgba(61,88,38,.18)}
-.pin:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.bodyfig svg{display:block;width:100%;height:auto;max-height:640px}
+.organ{cursor:pointer}
+.organ .shape{transition:stroke .2s,stroke-width .2s,filter .2s,fill-opacity .2s}
+.organ .olabel{font-family:'Kanit';font-size:9.5px;fill:var(--ink-60);font-weight:500;transition:.2s}
+.organ .olead{stroke:var(--ink-20);stroke-width:1;stroke-dasharray:2 2}
+.organ .olabel,.organ .olead{pointer-events:none}
+.organ:hover .shape{filter:brightness(1.08) saturate(1.12)}
+.organ:hover .olabel{fill:var(--olive);font-weight:700}
+.organ.on .shape{stroke:var(--gold-deep);stroke-width:3;filter:drop-shadow(0 0 5px rgba(201,157,47,.65))}
+.organ.on .olabel{fill:var(--olive);font-weight:700}
+.organ.on .olead{stroke:var(--gold-deep);stroke-dasharray:none;stroke-width:1.4}
+.organ:focus-visible{outline:none}
+.organ:focus-visible .shape{stroke:var(--gold);stroke-width:3}
 .bodydetail{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);min-height:300px}
 .bd-empty{color:var(--ink-40);font-size:14px;text-align:center;padding-top:60px}
 .bd-empty .big{font-size:34px;display:block;margin-bottom:10px}
@@ -264,24 +272,99 @@ footer .meta{font-size:11.5px;color:rgba(247,244,238,.6);margin-top:10px}
   <div class="sec-head">
     <div class="eyebrow">Body Map</div>
     <div class="t">อาการ · ยา · วิตามิน อยู่ตรงไหนของร่างกาย</div>
-    <div class="s">คลิกจุดบนร่างกาย เพื่อดูว่าอวัยวะนั้นเกี่ยวกับอาการ ยา และวิตามินตัวไหน</div>
+    <div class="s">คลิกที่อวัยวะ (มี label ชี้ตำแหน่งจริง) เพื่อดูว่าอวัยวะนั้นเกี่ยวกับอาการ ยา และวิตามินตัวไหน</div>
   </div>
   <div class="bodywrap">
     <div>
       <div class="bodyfig" id="bodyfig">
-        <svg viewBox="0 0 220 470" xmlns="http://www.w3.org/2000/svg" aria-label="ภาพร่างกาย">
+        <svg viewBox="0 0 260 480" xmlns="http://www.w3.org/2000/svg" aria-label="แผนที่อวัยวะ" id="bodysvg">
           <defs>
-            <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#5A7A3A" stop-opacity=".22"/>
-              <stop offset="1" stop-color="#3D5826" stop-opacity=".30"/>
-            </linearGradient>
+            <linearGradient id="skinfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFEAE0"/><stop offset="1" stop-color="#E4DFD3"/></linearGradient>
           </defs>
-          <g fill="url(#bg)" stroke="#3D5826" stroke-opacity=".35" stroke-width="1.5">
-            <circle cx="110" cy="42" r="27"/>
-            <path d="M99 67 h22 v13 c18 3 30 14 33 33 l6 50 c1 9 -10 12 -13 3 l-9 -34 -3 60 c6 40 9 80 6 128 c-1 12 -19 12 -21 0 l-8 -86 -8 86 c-2 12 -20 12 -21 0 c-3 -48 0 -88 6 -128 l-3 -60 -9 34 c-3 9 -14 6 -13 -3 l6 -50 c3 -19 15 -30 33 -33 z"/>
+
+          <!-- body silhouette backdrop (not clickable) -->
+          <g fill="url(#skinfill)" stroke="#D6D1C5" stroke-width="1.5">
+            <circle cx="130" cy="40" r="30"/>
+            <path d="M115,68 h30 v10 c20,2 30,12 36,30 l8,70 c1,8 -10,10 -13,2 l-9,-40 q-3,30 -2,60 c5,46 8,92 6,150 c-1,12 -20,12 -22,0 l-9,-100 -9,100 c-2,12 -21,12 -22,0 c-2,-58 1,-104 6,-150 q1,-30 -2,-60 l-9,40 c-3,8 -14,6 -13,-2 l8,-70 c6,-18 16,-28 36,-30 z"/>
+          </g>
+
+          <!-- legs (drawn under, highlight overlay) -->
+          <g class="organ" data-id="legs" tabindex="0" role="button" aria-label="ขา">
+            <rect class="shape" x="111" y="320" width="17" height="146" rx="8" fill="#A9C089" fill-opacity=".55" stroke="#5A7A3A"/>
+            <rect class="shape" x="132" y="320" width="17" height="146" rx="8" fill="#A9C089" fill-opacity=".55" stroke="#5A7A3A"/>
+            <line class="olead" x1="149" y1="392" x2="196" y2="392"/>
+            <text class="olabel" x="199" y="395">ขา (RLS)</text>
+          </g>
+
+          <!-- pelvis / bone -->
+          <g class="organ" data-id="bone" tabindex="0" role="button" aria-label="กระดูก">
+            <path class="shape" d="M108,278 C104,294 121,308 130,301 C139,308 156,294 152,278 C149,289 139,294 130,292 C121,294 111,289 108,278 Z" fill="#DAD6CA" stroke="#A8A496"/>
+            <line class="olead" x1="153" y1="288" x2="196" y2="294"/>
+            <text class="olabel" x="199" y="297">กระดูก</text>
+          </g>
+
+          <!-- liver -->
+          <g class="organ" data-id="liver" tabindex="0" role="button" aria-label="ตับ">
+            <path class="shape" d="M92,150 C108,143 130,146 137,151 L134,170 C120,180 100,178 92,171 Z" fill="#B58A5E" stroke="#8C6A4C"/>
+            <line class="olead" x1="92" y1="160" x2="60" y2="150"/>
+            <text class="olabel" x="57" y="153" text-anchor="end">ตับ</text>
+          </g>
+
+          <!-- stomach + intestine (gut) -->
+          <g class="organ" data-id="gut" tabindex="0" role="button" aria-label="ทางเดินอาหาร">
+            <path class="shape" d="M150,148 C162,149 165,161 159,168 C154,173 147,171 147,164 C147,158 144,148 150,148 Z" fill="#E0B96A" stroke="#C99D2F"/>
+            <path class="shape" d="M114,210 h28 a8,8 0 0 1 0,15 h-26 a8,8 0 0 0 0,15 h26 a8,8 0 0 1 0,13 h-26" fill="none" stroke="#C99D2F" stroke-width="6" stroke-linecap="round"/>
+            <line class="olead" x1="150" y1="232" x2="196" y2="236"/>
+            <text class="olabel" x="199" y="239">ทางเดินอาหาร</text>
+          </g>
+
+          <!-- pancreas -->
+          <g class="organ" data-id="pancreas" tabindex="0" role="button" aria-label="ตับอ่อน">
+            <path class="shape" d="M104,188 C112,182 128,181 141,184 C144,185 143,190 139,189 C126,187 114,190 106,193 C102,194 101,190 104,188 Z" fill="#7FB8C4" stroke="#2A7B8F"/>
+            <line class="olead" x1="104" y1="190" x2="60" y2="198"/>
+            <text class="olabel" x="57" y="201" text-anchor="end">ตับอ่อน</text>
+          </g>
+
+          <!-- kidneys -->
+          <g class="organ" data-id="kidney" tabindex="0" role="button" aria-label="ไต">
+            <path class="shape" d="M99,191 C92,191 90,202 95,209 C100,214 106,211 106,202 C106,195 105,191 99,191 Z" fill="#8FB0C4" stroke="#3E6E8E"/>
+            <path class="shape" d="M161,191 C168,191 170,202 165,209 C160,214 154,211 154,202 C154,195 155,191 161,191 Z" fill="#8FB0C4" stroke="#3E6E8E"/>
+            <line class="olead" x1="166" y1="200" x2="196" y2="204"/>
+            <text class="olabel" x="199" y="207">ไต</text>
+          </g>
+
+          <!-- heart -->
+          <g class="organ" data-id="heart" tabindex="0" role="button" aria-label="หัวใจ">
+            <path class="shape" d="M138,116 C138,109 129,107 125,113 C121,118 123,126 138,135 C153,126 155,118 151,113 C147,107 138,109 138,116 Z" fill="#D98A78" stroke="#C2533F"/>
+            <line class="olead" x1="153" y1="116" x2="196" y2="110"/>
+            <text class="olabel" x="199" y="113">หัวใจ &amp; หลอดเลือด</text>
+          </g>
+
+          <!-- ovary / uterus -->
+          <g class="organ" data-id="ovary" tabindex="0" role="button" aria-label="รังไข่ มดลูก">
+            <path class="shape" d="M130,250 C139,250 141,263 134,271 C131,275 129,275 126,271 C119,263 121,250 130,250 Z" fill="#D69BB0" stroke="#8C4C4C"/>
+            <ellipse class="shape" cx="115" cy="258" rx="4.5" ry="3.4" fill="#D69BB0" stroke="#8C4C4C"/>
+            <ellipse class="shape" cx="145" cy="258" rx="4.5" ry="3.4" fill="#D69BB0" stroke="#8C4C4C"/>
+            <line class="olead" x1="111" y1="259" x2="60" y2="252"/>
+            <text class="olabel" x="57" y="255" text-anchor="end">รังไข่ / มดลูก</text>
+          </g>
+
+          <!-- brain -->
+          <g class="organ" data-id="brain" tabindex="0" role="button" aria-label="สมอง">
+            <path class="shape" d="M114,38 C112,28 122,22 130,24 C138,22 148,28 146,38 C147,46 138,50 130,48 C122,50 113,46 114,38 Z" fill="#B9A6D6" stroke="#5B5A8C"/>
+            <path d="M130,25 V48 M122,27 C126,33 126,42 122,47 M138,27 C134,33 134,42 138,47" fill="none" stroke="#5B5A8C" stroke-width="1" stroke-opacity=".6"/>
+            <line class="olead" x1="148" y1="34" x2="194" y2="26"/>
+            <text class="olabel" x="197" y="29">สมอง</text>
+          </g>
+
+          <!-- skin (forearm patch) -->
+          <g class="organ" data-id="skin" tabindex="0" role="button" aria-label="ผิวหนัง">
+            <rect class="shape" x="70" y="168" width="17" height="26" rx="6" fill="#E8D9C0" stroke="#C7A98A"/>
+            <path d="M73,174 h11 M73,180 h11 M73,186 h11" stroke="#C7A98A" stroke-width="1" stroke-opacity=".7"/>
+            <line class="olead" x1="70" y1="181" x2="48" y2="176"/>
+            <text class="olabel" x="45" y="179" text-anchor="end">ผิวหนัง</text>
           </g>
         </svg>
-        <div id="pins"></div>
       </div>
       <div class="bodylegend">
         <span><i class="lgdot" style="background:var(--c-pcos)"></i> อาการ</span>
@@ -291,7 +374,7 @@ footer .meta{font-size:11.5px;color:rgba(247,244,238,.6);margin-top:10px}
       </div>
     </div>
     <div class="bodydetail" id="bodydetail">
-      <div class="bd-empty"><span class="big">🧍</span>คลิกจุดสีทองบนร่างกาย<br>เพื่อดูรายละเอียดแต่ละอวัยวะ</div>
+      <div class="bd-empty"><span class="big">🧍</span>คลิกที่อวัยวะบนภาพร่างกาย<br>เพื่อดูว่าเกี่ยวกับอาการ ยา และวิตามินตัวไหน</div>
     </div>
   </div>
 </section>
@@ -515,11 +598,13 @@ MAP.drugs.forEach(d=>{const col=condColor(d.cond);const cl=(MAP.conditions.find(
   '</div>';dgrid.appendChild(card);});
 
 /* ===== TAB 3 · BODY ===== */
-const pins=document.getElementById('pins'),bd=document.getElementById('bodydetail');
-MAP.body.forEach((r,i)=>{const p=el('button','pin',(i+1));p.style.left=r.x+'%';p.style.top=r.y+'%';p.dataset.id=r.id;p.title=r.label;p.setAttribute('aria-label',r.label);
-  p.onclick=()=>showRegion(r.id);pins.appendChild(p);});
+const bd=document.getElementById('bodydetail');
+document.querySelectorAll('#bodysvg .organ').forEach(g=>{
+  g.addEventListener('click',()=>showRegion(g.dataset.id));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showRegion(g.dataset.id);}});
+});
 function showRegion(id){const r=MAP.body.find(x=>x.id===id);if(!r)return;
-  document.querySelectorAll('.pin').forEach(p=>p.classList.toggle('on',p.dataset.id===id));
+  document.querySelectorAll('#bodysvg .organ').forEach(p=>p.classList.toggle('on',p.dataset.id===id));
   const blk=(title,arr,cls)=>arr&&arr.length?'<div class="bd-block"><div class="bl">'+title+'</div><div class="chiprow">'+arr.map(x=>'<span class="bchip '+cls+'">'+x+'</span>').join('')+'</div></div>':'';
   bd.innerHTML='<div class="bd-title">'+r.ic+' '+r.label+'</div><div class="bd-sub">'+r.note+'</div>'+
     blk('อาการ',r.sym,'sym')+blk('ยาที่ออกฤทธิ์ตรงนี้',r.drug,'drug')+blk('วิตามิน / อาหารเสริม',r.vit,'vit')+blk('ข้อระวัง',r.warn,'warn');}
