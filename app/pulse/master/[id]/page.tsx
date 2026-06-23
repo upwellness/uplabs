@@ -70,12 +70,6 @@ export default async function MasterPage({ params }: { params: { id: string } })
     : null;
   const whoopAgg = buildWhoopAgg(whoopDays ?? []);
 
-  // does this customer have a generated med-map report? (controls the button)
-  const { data: medMapRec } = await admin
-    .from("customer_records").select("id")
-    .eq("customer_id", params.id).eq("document_type", "med_map").limit(1).maybeSingle();
-  const hasMedMap = !!medMapRec;
-
   const master = buildMasterSnapshot({
     customer: {
       name:       customer.name,
@@ -120,15 +114,6 @@ export default async function MasterPage({ params }: { params: { id: string } })
           {master.customer.age && <><Dot /><span>{master.customer.age} ปี</span></>}
           {master.customer.height_cm && <><Dot /><span>{master.customer.height_cm} cm</span></>}
         </div>
-
-        {hasMedMap && (
-          <div className="mt-4">
-            <a href={`/api/customers/${params.id}/med-map`} target="_blank" rel="noopener noreferrer"
-               className="inline-flex items-center gap-2 rounded-full bg-rose px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose/90 transition-colors">
-              🌿 แผนผังยา &amp; อาหารเสริม
-            </a>
-          </div>
-        )}
 
         {/* ── Body Composition ── */}
         <Section title="Body Composition" subtitle="ค่าจาก BCA / Inbody">
@@ -229,11 +214,6 @@ export default async function MasterPage({ params }: { params: { id: string } })
             <Link href={`/pulse/report/${params.id}`} className="inline-block rounded-full border border-rose/30 bg-rose-ultra px-5 py-2.5 text-sm font-semibold text-rose hover:bg-rose hover:text-white transition-colors">
               📄 เปิด Report (Print PDF ได้)
             </Link>
-          )}
-          {hasMedMap && (
-            <a href={`/api/customers/${params.id}/med-map`} target="_blank" rel="noopener noreferrer" className="inline-block rounded-full border border-rose/30 bg-rose-ultra px-5 py-2.5 text-sm font-semibold text-rose hover:bg-rose hover:text-white transition-colors">
-              🌿 แผนผังยา &amp; อาหารเสริม
-            </a>
           )}
         </div>
       </div>

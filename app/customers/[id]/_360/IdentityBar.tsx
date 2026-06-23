@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Phone, MessageCircle, PlusCircle, Activity, FlaskConical, ArrowUpRight, LineChart, Pill } from "lucide-react";
+import { Phone, MessageCircle, PlusCircle, Activity, FlaskConical, ArrowUpRight, LineChart, Pill, Network } from "lucide-react";
 import type { StatusResult } from "@/lib/customers/status-classifier";
 
 interface IdentityBarProps {
@@ -20,6 +20,7 @@ interface IdentityBarProps {
     labLapseDays:   number | null;
     orderLapseDays: number | null;
     lastTouch:      string | null;
+    hasMedMap?:     boolean;
   };
 }
 
@@ -134,6 +135,13 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
             className="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-ink/8 px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
             <Pill size={14} strokeWidth={2.25} aria-hidden="true" /> Allergy
           </Link>
+          {meta.hasMedMap && (
+            <a href={`/api/customers/${customer.id}/med-map`} target="_blank" rel="noopener"
+              aria-label="เปิดแผนผังยาและอาหารเสริม"
+              className="inline-flex items-center gap-1.5 rounded-full bg-rose-ultra border border-rose/20 px-3.5 py-1.5 text-[12px] font-semibold text-rose hover:bg-rose hover:text-white transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+              <Network size={14} strokeWidth={2.25} aria-hidden="true" /> แผนผังยา &amp; อาหารเสริม
+            </a>
+          )}
           <Link href={`/customers/${customer.id}?legacy=1`}
             className="ml-auto inline-flex items-center gap-1 rounded-full bg-ink/8 px-3 py-1.5 text-[11px] font-mono text-ink-60 hover:bg-ink/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
             title="Switch to legacy view">
