@@ -13,9 +13,14 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const body = await req.json();
-    const { image_base64, mime_type, text_description, customer_id, meal_type, notes } = body;
+    const { image_base64, mime_type, text_description, customer_id, meal_type, notes, apiKey } = body;
     if (!image_base64 && !text_description) {
       return NextResponse.json({ error: "image_base64 หรือ text_description (อย่างน้อย 1)" }, { status: 400 });
+    }
+    // BYO key เท่านั้น — ไม่มี fallback คีย์ระบบ
+    const userKey: string = typeof apiKey === "string" ? apiKey.trim() : "";
+    if (!userKey) {
+      return NextResponse.json({ error: "กรุณาใส่ API Key ก่อน" }, { status: 400 });
     }
 
     // Optional: verify customer belongs to this coach (or admin)
@@ -42,9 +47,11 @@ export async function POST(req: Request) {
       if (text_description) {
         args.textDescription = text_description;
       }
-      result = await analyzeFood(args);
+      result = await analyzeFood(args, userKey);
     } catch (e: any) {
-      return NextResponse.json({ error: e.message ?? "analysis failed" }, { status: 500 });
+      const msg = e?.message ?? "analysis failed";
+      const status = msg === "กรุณาใส่ API Key" ? 400 : 500;
+      return NextResponse.json({ error: msg }, { status });
     }
 
     if (result.error || result.food_identified === "ไม่สามารถระบุได้") {

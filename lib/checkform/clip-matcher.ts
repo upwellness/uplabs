@@ -110,9 +110,8 @@ function trimClipsForPrompt(clips: StpClip[]) {
 export async function recommendClipsWithGemini(input: {
   profile: CheckformProfile;
   analysis?: AIAnalysis | null;
-}): Promise<ClipRecommendations> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+}, apiKey: string): Promise<ClipRecommendations> {
+  if (!apiKey) throw new Error("กรุณาใส่ API Key");
 
   const clips = getActiveClipsForMatcher();
   if (clips.length === 0) {

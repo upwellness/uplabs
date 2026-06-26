@@ -129,9 +129,8 @@ export interface AIAnalysis {
   nextSteps: string[];
 }
 
-export async function analyzeProspectWithGemini(profile: CheckformProfile): Promise<AIAnalysis> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+export async function analyzeProspectWithGemini(profile: CheckformProfile, apiKey: string): Promise<AIAnalysis> {
+  if (!apiKey) throw new Error("กรุณาใส่ API Key");
 
   const userPrompt = `# Prospect Profile
 

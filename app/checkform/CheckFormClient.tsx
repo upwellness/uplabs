@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { GeminiKeyField, getGeminiKey } from "@/components/GeminiKeyField";
 import { FORM_SECTIONS, analyzeForm, type FormKey, type FormSectionData } from "./_data/form-questions";
 import { AnalysisModal } from "./AnalysisModal";
 import { ProfileForm, EMPTY_PROFILE, EMPTY_DISC, type ProfileData, type DiscData } from "./_components/ProfileForm";
@@ -383,6 +384,12 @@ export function CheckFormClient() {
     opts: { recordId?: string | null; force?: boolean } = {},
   ) => {
     setClipError(null);
+    // BYO key เท่านั้น — ไม่มีคีย์ = ไม่ยิง API
+    const geminiKey = getGeminiKey();
+    if (!geminiKey) {
+      setClipError("กรุณาใส่ API Key ก่อน (กด ⚙️ ใส่ API key)");
+      return;
+    }
     setClipLoading(true);
     setClipRecs(null);
     try {
@@ -394,6 +401,7 @@ export function CheckFormClient() {
           analysis: analysisForClips ?? undefined,
           recordId: opts.recordId ?? draft.editingRecordId ?? undefined,
           force: opts.force === true,
+          apiKey: geminiKey,
         }),
       });
 
@@ -430,6 +438,15 @@ export function CheckFormClient() {
   };
 
   const analyzeWithAI = async (force = false) => {
+    // BYO key เท่านั้น — ไม่มีคีย์ = ไม่ยิง API
+    const geminiKey = getGeminiKey();
+    if (!geminiKey) {
+      const msg = "กรุณาใส่ API Key ก่อน (กด ⚙️ ใส่ API key)";
+      setAiOpen(true);
+      setAiError(msg);
+      if (typeof window !== "undefined") window.alert(msg);
+      return;
+    }
     setAiOpen(true);
     setAiError(null);
     setAiLoading(true);
@@ -456,6 +473,7 @@ export function CheckFormClient() {
           profile: buildAIProfile(),
           recordId: recordId ?? undefined,
           force,
+          apiKey: geminiKey,
         }),
       });
       // Robust parsing — handle HTML responses (auth redirect, timeout, etc.)
@@ -644,6 +662,8 @@ export function CheckFormClient() {
               <p className="mt-1 max-w-lg font-thai text-[13px] text-ink-60">
                 Gemini วิเคราะห์ profile + DISC → ได้ <b>วิธีเข้าหา</b> · <b>dialog ตัวอย่าง</b> · <b>สัดส่วน product/business</b> · <b>roleplay จำลอง</b>
               </p>
+              {/* BYO Gemini API key gate (shared with NutriScan) */}
+              <GeminiKeyField className="mt-3 max-w-lg" />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="ghost" size="sm" onClick={reset}>ล้าง</Button>

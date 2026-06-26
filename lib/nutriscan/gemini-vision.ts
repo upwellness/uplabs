@@ -111,9 +111,8 @@ export interface NutriScanInput {
   };
 }
 
-export async function analyzeFood(input: NutriScanInput): Promise<NutriScanResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+export async function analyzeFood(input: NutriScanInput, apiKey: string): Promise<NutriScanResult> {
+  if (!apiKey) throw new Error("กรุณาใส่ API Key");
 
   if (!input.imageBase64 && !input.textDescription) {
     throw new Error("ต้องมี imageBase64 หรือ textDescription อย่างน้อย 1 อย่าง");
