@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
-import PlatePlanner from "./PlatePlanner";
+import PlatePlannerClient from "./PlatePlannerClient";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +70,7 @@ export default async function PlatePlannerPage({
         </p>
 
         <div className="mt-5 overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-[0_12px_40px_-20px_rgba(0,0,0,0.18)]">
-          <PlatePlanner initialW={initialW} initialH={initialH} />
+          <PlatePlannerClient initialW={initialW} initialH={initialH} />
         </div>
       </div>
     </main>
