@@ -13,8 +13,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 export type PlatePlannerProps = { initialW?: number; initialH?: number };
 
-// flag โหมดคีย์ภาพ: native mode → false = ใช้ env GEMINI_API_KEY ฝั่งเซิร์ฟเวอร์ ไม่ถาม (ซ่อนแผง ⚙️ ใส่คีย์)
-const BYO_KEY = false;
+// flag โหมดคีย์ภาพ: true = โชว์แผง ⚙️ ให้เลือก Gemini/OpenAI + ใส่ key เอง (เว้นว่าง = ใช้ env key ฝั่งเซิร์ฟเวอร์)
+const BYO_KEY = true;
 // ===== i18n: LANG เป็น module var · t(ไทย,EN) อ่าน LANG · สลับภาษาแล้ว setLangTick ใน App รีเรนเดอร์ทุก component =====
 let LANG = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_lang')) || 'th';
 const tr = (th, en) => (LANG === 'en' && en) ? en : th;  // i18n (ชื่อ tr กัน t ชนเป้ามาโครใน App)
@@ -554,9 +554,10 @@ function MealCard({ m, onEdit, onReset, edited, onShake, cfg }) {
     const s = sig;
     if (IMG_CACHE[s]) { setImg(IMG_CACHE[s]); return; }   // มีรูปแล้ว ไม่ต้องเสียเงิน gen ซ้ำ
     if (IMG_INFLIGHT.has(s)) return;                      // เมนูนี้กำลัง gen อยู่
+    const provider = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_provider')) || 'gemini';
+    const apiKey = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_key')) || '';  // BYO key (เว้นว่าง = ใช้คีย์ระบบฝั่งเซิร์ฟเวอร์)
     IMG_INFLIGHT.add(s); setLoading(true); setErr(null);
-    // native: ไม่ส่ง provider/apiKey → /api/plate-image ใช้ env GEMINI_API_KEY ฝั่งเซิร์ฟเวอร์ + แคช Supabase
-    fetch('/api/plate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: buildImagePrompt(m), sig: s }) })
+    fetch('/api/plate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, apiKey, prompt: buildImagePrompt(m), sig: s }) })
       .then(r => r.json()).then(d => { if (d.image) { IMG_CACHE[s] = d.image; IDB.set(s, d.image); if (sigRef.current === s) setImg(d.image); } else if (sigRef.current === s) setErr(d.error || tr('สร้างภาพไม่สำเร็จ', 'Image generation failed')); })
       .catch(() => { if (sigRef.current === s) setErr(tr('เรียก backend ไม่ได้ ลองใหม่อีกครั้ง', 'Could not reach the backend, please try again')); })
       .finally(() => { IMG_INFLIGHT.delete(s); if (sigRef.current === s) setLoading(false); });
@@ -707,6 +708,13 @@ function App(props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { try { localStorage.setItem('pp_plan', JSON.stringify({ w, h, goal, even3, seed, show, planLen, dayIdx, cfg })); } catch (e) { } }, [w, h, goal, even3, seed, show, planLen, dayIdx, cfg]);
+  // ตั้งค่า AI สร้างภาพ (BYO key — เลือก Gemini/OpenAI · เก็บในเบราว์เซอร์ · เว้นว่าง = ใช้คีย์ระบบ)
+  const ls = typeof localStorage !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { } };
+  const [aiProvider, setAiProvider] = useState(() => ls.getItem('pp_provider') || 'gemini');
+  const [aiKey, setAiKey] = useState(() => ls.getItem('pp_key') || '');
+  const [setOpen, setSetOpen] = useState(false), [savedKey, setSavedKey] = useState(() => !!ls.getItem('pp_key'));
+  const saveSettings = () => { ls.setItem('pp_provider', aiProvider); ls.setItem('pp_key', aiKey); setSavedKey(!!aiKey); setSetOpen(false); };
+  const provLabel = { gemini: 'Gemini', openai: 'OpenAI' };
   const t = useMemo(() => calcTargets(+w, +h, goal, cfg.lockW), [w, h, goal, cfg.lockW]);
   const plan = useMemo(() => show ? buildPlan(t, goal, even3, planLen, seed, cfg) : null, [t, goal, even3, planLen, seed, show, cfg]);
   const pool = useMemo(() => poolHealth(cfg), [cfg]);  // v4: เช็ค pool หลังกรอง → เตือนถ้าแน่นไป
@@ -746,7 +754,29 @@ function App(props) {
           <p className="text-ink-60 mt-2">{tr('สูตร Dr. Gabrielle Lyon (Forever Strong) · อาหารไทยหาง่าย · ตัวเลขจริงจากฐานข้อมูล USDA/Thai FCD — แก่ช้า เจ็บสั้น ตายดี', 'By Dr. Gabrielle Lyon (Forever Strong) · everyday Thai food · real USDA/Thai FCD numbers — age slow, suffer briefly, die well')}</p>
         </header>
 
-        {BYO_KEY ? null : (
+        {BYO_KEY ? (
+          <div className="glass rounded-2xl p-3 sm:p-4 mb-5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="text-sm text-ink-80">⚙️ {tr('โมเดลสร้างภาพ', 'Image model')}: <span className="font-medium text-ink">{provLabel[aiProvider] || aiProvider}</span> {savedKey ? <span className="text-optimal">· {tr('ใช้คีย์ของคุณ', 'your key')} ✓</span> : <span className="text-ink-40">· {tr('ใช้คีย์ระบบ', 'using server key')}</span>}</div>
+              <button onClick={() => setSetOpen(o => !o)} className="text-sm text-wellness glass glass-hover rounded-lg px-3 py-1.5">{setOpen ? tr('ปิด', 'Close') : tr('ตั้งค่า API key', 'Set API key')}</button>
+            </div>
+            {setOpen && <div className="mt-3 pt-3 border-t border-ink/8">
+              <div className="text-sm text-ink-80 mb-2">{tr('เลือกโมเดล', 'Choose a model')}</div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[['gemini', 'Gemini · Nano Banana'], ['openai', 'OpenAI · gpt-image']].map(o => (
+                  <button key={o[0]} onClick={() => setAiProvider(o[0])} className={"glass glass-hover rounded-xl px-3 py-1.5 text-sm " + (aiProvider === o[0] ? 'ring-2 ring-wellness text-wellness font-medium' : 'text-ink-80')}>{o[1]}</button>))}
+              </div>
+              <div className="mb-3">
+                <div className="text-sm text-ink-80 mb-1">API key — {aiProvider === 'gemini' ? 'Google AI Studio (aistudio.google.com/apikey)' : 'OpenAI (platform.openai.com/api-keys)'} {aiProvider === 'gemini' ? <span className="text-ink-40">· {tr('เว้นว่าง = ใช้คีย์ระบบ', 'blank = use server key')}</span> : null}</div>
+                <input type="password" value={aiKey} onChange={e => setAiKey(e.target.value)} placeholder={aiProvider === 'gemini' ? 'AIza…' : 'sk-…'} className="w-full glass rounded-xl px-3 py-2.5 text-ink outline-none focus:ring-2 ring-wellness/50" />
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button onClick={saveSettings} className="px-4 py-2 rounded-xl text-white text-sm" style={{ background: 'linear-gradient(135deg,#396755,#244438)' }}>{tr('บันทึก', 'Save')}</button>
+                <span className="text-xs text-ink-40">🔐 {tr('คีย์เก็บในเบราว์เซอร์ · ส่งผ่าน HTTPS ตอนสร้างภาพเท่านั้น · ไม่เก็บบนเซิร์ฟเวอร์', 'Key stored in your browser · sent over HTTPS only when generating images · never stored on our server')}</span>
+              </div>
+            </div>}
+          </div>
+        ) : (
           <div className="text-xs text-ink-40 mb-5 flex items-center gap-1.5"><span>🎨</span><span>{tr('กดดูรูปอาหารเสมือนจริงได้ทุกมื้อ — พร้อมใช้เลย ไม่ต้องตั้งค่าอะไร', 'Generate a realistic photo for any meal — ready to use, no setup needed')}</span></div>
         )}
 
