@@ -16,6 +16,7 @@ const PUBLIC_PATHS = [
   "/check",                   // Public Health Check form (lead capture)
   "/metaflex",                // Public MetaFlex Quiz (lead capture)
   "/api/check",               // Public submit endpoint
+  "/v2",                      // Design preview (static mockups · no real data)
 ];
 
 const isPublic = (path: string) =>
