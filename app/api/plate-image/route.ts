@@ -1,7 +1,7 @@
 /**
  * POST /api/plate-image — สร้าง/แคชภาพจานอาหาร (Plate Planner)
  * Body: { provider?: 'gemini'|'openai', apiKey?: string, prompt: string, sig: string } → { image, cached } | { error }
- * คีย์: ใช้ที่ client ส่งมา (BYO) ก่อน → ไม่มี ใช้คีย์ฝั่งเซิร์ฟเวอร์จาก env (GEMINI_API_KEY / OPENAI_API_KEY)
+ * คีย์: ต้องใส่เอง (BYO) เท่านั้น — ไม่มี fallback คีย์ระบบ · ไม่มีคีย์ = error "กรุณาใส่ API Key"
  * แคชกลางใน Supabase Storage (bucket meal-images) — เมนูเดียวกัน (sig เดียวกัน) gen ครั้งเดียวพอ
  */
 import { NextResponse } from "next/server";
@@ -25,11 +25,7 @@ export async function POST(req: Request) {
   let body: { provider?: string; apiKey?: string; prompt?: string; sig?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
   const provider = body.provider === "openai" ? "openai" : "gemini";
-  // BYO key ก่อน → ไม่มี ใช้คีย์ฝั่งเซิร์ฟเวอร์
-  const apiKey =
-    body.apiKey ||
-    (provider === "gemini" ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY) ||
-    "";
+  const apiKey = body.apiKey || "";   // BYO เท่านั้น — ไม่ fallback คีย์ระบบ
   const prompt = body.prompt;
   const sig = body.sig;
   if (!prompt) return NextResponse.json({ error: "no prompt" }, { status: 400 });
@@ -45,10 +41,7 @@ export async function POST(req: Request) {
   }
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: provider === "openai" ? "ยังไม่ได้ใส่ OpenAI API key (กด ⚙️ ตั้งค่า)" : "ไม่มีคีย์ Gemini (ตั้ง env หรือใส่คีย์เองที่ ⚙️)" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "กรุณาใส่ API Key ก่อน (กด ⚙️ ตั้งค่า API key)" }, { status: 400 });
   }
 
   try {

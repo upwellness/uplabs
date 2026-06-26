@@ -555,7 +555,11 @@ function MealCard({ m, onEdit, onReset, edited, onShake, cfg }) {
     if (IMG_CACHE[s]) { setImg(IMG_CACHE[s]); return; }   // มีรูปแล้ว ไม่ต้องเสียเงิน gen ซ้ำ
     if (IMG_INFLIGHT.has(s)) return;                      // เมนูนี้กำลัง gen อยู่
     const provider = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_provider')) || 'gemini';
-    const apiKey = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_key')) || '';  // BYO key (เว้นว่าง = ใช้คีย์ระบบฝั่งเซิร์ฟเวอร์)
+    const apiKey = (typeof localStorage !== 'undefined' && localStorage.getItem('pp_key')) || '';  // BYO key — ต้องใส่เอง ไม่มี fallback
+    if (!apiKey) {   // ไม่มีคีย์ → เด้งบอก ไม่ยิง API
+      const msg = tr('กรุณาใส่ API Key ก่อน — กด ⚙️ ตั้งค่า API key ด้านบน', 'Please enter an API Key first — tap ⚙️ Set API key above');
+      setErr(msg); if (typeof window !== 'undefined') window.alert(msg); return;
+    }
     IMG_INFLIGHT.add(s); setLoading(true); setErr(null);
     fetch('/api/plate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, apiKey, prompt: buildImagePrompt(m), sig: s }) })
       .then(r => r.json()).then(d => { if (d.image) { IMG_CACHE[s] = d.image; IDB.set(s, d.image); if (sigRef.current === s) setImg(d.image); } else if (sigRef.current === s) setErr(d.error || tr('สร้างภาพไม่สำเร็จ', 'Image generation failed')); })
@@ -757,7 +761,7 @@ function App(props) {
         {BYO_KEY ? (
           <div className="glass rounded-2xl p-3 sm:p-4 mb-5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="text-sm text-ink-80">⚙️ {tr('โมเดลสร้างภาพ', 'Image model')}: <span className="font-medium text-ink">{provLabel[aiProvider] || aiProvider}</span> {savedKey ? <span className="text-optimal">· {tr('ใช้คีย์ของคุณ', 'your key')} ✓</span> : <span className="text-ink-40">· {tr('ใช้คีย์ระบบ', 'using server key')}</span>}</div>
+              <div className="text-sm text-ink-80">⚙️ {tr('โมเดลสร้างภาพ', 'Image model')}: <span className="font-medium text-ink">{provLabel[aiProvider] || aiProvider}</span> {savedKey ? <span className="text-optimal">· {tr('มีคีย์แล้ว', 'key set')} ✓</span> : <span className="text-gold">· {tr('ยังไม่ใส่คีย์ — กรุณาใส่', 'no key — please add one')}</span>}</div>
               <button onClick={() => setSetOpen(o => !o)} className="text-sm text-wellness glass glass-hover rounded-lg px-3 py-1.5">{setOpen ? tr('ปิด', 'Close') : tr('ตั้งค่า API key', 'Set API key')}</button>
             </div>
             {setOpen && <div className="mt-3 pt-3 border-t border-ink/8">
@@ -767,7 +771,7 @@ function App(props) {
                   <button key={o[0]} onClick={() => setAiProvider(o[0])} className={"glass glass-hover rounded-xl px-3 py-1.5 text-sm " + (aiProvider === o[0] ? 'ring-2 ring-wellness text-wellness font-medium' : 'text-ink-80')}>{o[1]}</button>))}
               </div>
               <div className="mb-3">
-                <div className="text-sm text-ink-80 mb-1">API key — {aiProvider === 'gemini' ? 'Google AI Studio (aistudio.google.com/apikey)' : 'OpenAI (platform.openai.com/api-keys)'} {aiProvider === 'gemini' ? <span className="text-ink-40">· {tr('เว้นว่าง = ใช้คีย์ระบบ', 'blank = use server key')}</span> : null}</div>
+                <div className="text-sm text-ink-80 mb-1">API key — {aiProvider === 'gemini' ? 'Google AI Studio (aistudio.google.com/apikey)' : 'OpenAI (platform.openai.com/api-keys)'} <span className="text-gold">· {tr('ต้องใส่คีย์เอง', 'your key required')}</span></div>
                 <input type="password" value={aiKey} onChange={e => setAiKey(e.target.value)} placeholder={aiProvider === 'gemini' ? 'AIza…' : 'sk-…'} className="w-full glass rounded-xl px-3 py-2.5 text-ink outline-none focus:ring-2 ring-wellness/50" />
               </div>
               <div className="flex items-center gap-3 flex-wrap">

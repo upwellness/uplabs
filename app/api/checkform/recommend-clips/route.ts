@@ -37,6 +37,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "profile required" }, { status: 400 });
     }
 
+    // BYO key เท่านั้น — ไม่มี fallback คีย์ระบบ
+    const userKey: string = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+    if (!userKey) {
+      return NextResponse.json({ error: "กรุณาใส่ API Key ก่อน" }, { status: 400 });
+    }
+
     const supa = createClient();
 
     // Cache check
@@ -56,7 +62,14 @@ export async function POST(req: Request) {
     }
 
     // Run Gemini
-    const recommendations = await recommendClipsWithGemini({ profile, analysis: analysis ?? null });
+    let recommendations;
+    try {
+      recommendations = await recommendClipsWithGemini({ profile, analysis: analysis ?? null }, userKey);
+    } catch (e: any) {
+      const msg = e?.message ?? "recommend-clips failed";
+      const status = msg === "กรุณาใส่ API Key" ? 400 : 500;
+      return NextResponse.json({ error: msg }, { status });
+    }
     const generatedAt = new Date().toISOString();
 
     // Persist if recordId

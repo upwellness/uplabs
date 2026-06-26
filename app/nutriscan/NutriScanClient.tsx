@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { CPFPie } from "@/components/CPFPie";
+import { GeminiKeyField, getGeminiKey } from "@/components/GeminiKeyField";
 import { macroBreakdown, type Macros } from "@/lib/nutriscan/macros";
 
 interface CustomerOpt {
@@ -96,6 +97,14 @@ export function NutriScanClient() {
   const analyze = async () => {
     if (mode === "image" && !imageDataUrl) return;
     if (mode === "text"  && !textDesc.trim()) return;
+    // BYO key เท่านั้น — ไม่มีคีย์ = ไม่ยิง API
+    const geminiKey = getGeminiKey();
+    if (!geminiKey) {
+      const msg = "กรุณาใส่ API Key ก่อน (กด ⚙️ ใส่ API key)";
+      setError(msg);
+      if (typeof window !== "undefined") window.alert(msg);
+      return;
+    }
     setAnalyzing(true);
     setError(null);
     setResult(null);
@@ -104,6 +113,7 @@ export function NutriScanClient() {
         meal_type: mealType,
         customer_id: customerId || null,
         notes: notes.trim() || null,
+        apiKey: geminiKey,
       };
       if (mode === "image" && imageDataUrl) {
         const match = imageDataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
@@ -147,6 +157,9 @@ export function NutriScanClient() {
     <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,360px]">
       {/* ── Main column ─────────────────────────── */}
       <div className="space-y-6">
+        {/* BYO Gemini API key gate (shared with Check FORM) */}
+        <GeminiKeyField />
+
         {/* Upload card */}
         <section className="rounded-3xl border border-ink-10 bg-white p-6">
           <div className="flex items-center justify-between gap-4">
