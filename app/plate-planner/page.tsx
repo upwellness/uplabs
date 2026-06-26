@@ -1,16 +1,47 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
+import PlatePlanner from "./PlatePlanner";
 
 export const dynamic = "force-dynamic";
 
-// Plate Planner ฝังจาก standalone (โดเมนแบรนด์) · `?byok` = โหมดให้ผู้ใช้ใส่ Gemini key เอง
-const PLATE_PLANNER_URL = "https://dr-gabrielle-lyon-plate-planner.vercel.app/?byok=1";
-
-export default async function PlatePlannerPage() {
+export default async function PlatePlannerPage({
+  searchParams,
+}: {
+  searchParams: { customer?: string };
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  // ── Optional prefill: ?customer=<id> → ดึงส่วนสูง + น้ำหนักล่าสุดมาเติมให้ในฟอร์ม ──
+  // (ห่อ try/catch ทั้งก้อน — หน้าไม่พังถ้า query/permission มีปัญหา · ไม่มี/ไม่เจอ = ใช้ค่า default ของ component)
+  let initialH: number | undefined;
+  let initialW: number | undefined;
+  const customerId = searchParams.customer;
+  if (customerId) {
+    try {
+      const admin = createAdminClient();
+      const [{ data: customer }, { data: latestM }] = await Promise.all([
+        admin.from("customers").select("height").eq("id", customerId).maybeSingle(),
+        admin
+          .from("measurements")
+          .select("weight, recorded_at")
+          .eq("customer_id", customerId)
+          .order("recorded_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      const h = customer?.height;
+      if (typeof h === "number" && h > 0) initialH = h;
+      const wRaw = latestM?.weight;
+      const w = typeof wRaw === "number" ? wRaw : wRaw != null ? Number(wRaw) : NaN;
+      if (Number.isFinite(w) && w > 0) initialW = w;
+    } catch {
+      /* prefill is best-effort — fall through with undefined */
+    }
+  }
 
   return (
     <main className="min-h-screen bg-surface">
@@ -35,17 +66,11 @@ export default async function PlatePlannerPage() {
           🍽️ Plate Planner <span className="text-base font-semibold text-ink-40 sm:text-lg">by Dr. Gabrielle Lyon</span>
         </h1>
         <p className="mt-2 max-w-2xl font-thai text-sm text-ink-60">
-          วางแผนมื้ออาหารตามหลักกล้ามเนื้อ (Forever Strong) · 3 เป้าหมายคำนวณแยก (ลด / longevity / กล้าม) · อาหารไทยไม่ซ้ำ + รูปจาน portion จริง · ใส่ Gemini API key ของคุณเองเพื่อสร้างภาพอาหาร
+          วางแผนมื้ออาหารตามหลักกล้ามเนื้อ (Forever Strong) · 3 เป้าหมายคำนวณแยก (ลด / longevity / กล้าม) · อาหารไทยไม่ซ้ำ + รูปจาน portion จริง · สร้างรูปอาหารได้เลยไม่ต้องตั้งค่า
         </p>
 
         <div className="mt-5 overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-[0_12px_40px_-20px_rgba(0,0,0,0.18)]">
-          <iframe
-            src={PLATE_PLANNER_URL}
-            title="Plate Planner by Dr. Gabrielle Lyon"
-            className="w-full"
-            style={{ height: "calc(100vh - 215px)", minHeight: 660, border: 0 }}
-            allow="clipboard-write"
-          />
+          <PlatePlanner initialW={initialW} initialH={initialH} />
         </div>
       </div>
     </main>
