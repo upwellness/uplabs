@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
   "/api/check",               // Public submit endpoint
   "/v2",                      // Design preview (static mockups · no real data)
   "/cgm-v1.html",             // CGM Analyzer static embed (iframe·does its own Supabase auth) — กัน middleware เด้ง iframe → /login → จอเปล่า
+  "/api/line/webhook",        // LINE bot webhook — called by LINE (no session) · auth = x-line-signature in the route
+  "/api/line/push-tomorrow",  // LINE bot cron push — called by Vercel Cron (no session) · auth = CRON_SECRET in the route
 ];
 
 const isPublic = (path: string) =>
