@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   "/metaflex",                // Public MetaFlex Quiz (lead capture)
   "/api/check",               // Public submit endpoint
   "/v2",                      // Design preview (static mockups · no real data)
+  "/cgm-v1.html",             // CGM Analyzer static embed (iframe·does its own Supabase auth) — กัน middleware เด้ง iframe → /login → จอเปล่า
 ];
 
 const isPublic = (path: string) =>
