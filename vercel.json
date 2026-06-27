@@ -4,5 +4,8 @@
   "buildCommand": "next build",
   "installCommand": "npm install",
   "devCommand": "next dev",
-  "regions": ["sin1"]
+  "regions": ["sin1"],
+  "crons": [
+    { "path": "/api/line/push-tomorrow", "schedule": "0 11 * * *" }
+  ]
 }
