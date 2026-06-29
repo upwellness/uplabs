@@ -19,6 +19,7 @@ import {
   ageLabel,
   genderLabel,
   genderGlyph,
+  genderLabelWithGlyph,
   heightLabel,
   initials,
   resolveAge,
@@ -45,11 +46,11 @@ function Field({
         <Icon size={15} strokeWidth={2} aria-hidden />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-40">{label}</div>
-        <div className={cn("font-head text-[14px] font-bold leading-tight", muted ? "text-ink-40" : "text-ink")}>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-60">{label}</div>
+        <div className={cn("font-head text-[15px] font-bold leading-tight", muted ? "text-ink-60" : "text-ink")}>
           {value}
         </div>
-        {sub && <div className="font-mono text-[10px] text-ink-40">{sub}</div>}
+        {sub && <div className="font-mono text-[10px] text-ink-60">{sub}</div>}
       </div>
     </div>
   );
@@ -62,9 +63,19 @@ export interface IdentityBlockProps {
   /** Where the "เพิ่มข้อมูล" link points (existing edit-customer flow). */
   editHref?: string;
   className?: string;
+  /** Slot rendered inline next to the name (e.g. status badge). panel variant only. */
+  headerExtra?: React.ReactNode;
+  /** Slot rendered under the name (e.g. recency chips). panel variant only. */
+  chips?: React.ReactNode;
+  /** Italic reason line under the chips (e.g. status reason). panel variant only. */
+  reason?: React.ReactNode;
+  /** Action bar rendered below the field grid (e.g. โทร / LINE / actions). panel variant only. */
+  actions?: React.ReactNode;
+  /** Avatar to render instead of initials (e.g. an icon). Defaults to initials(). */
+  avatar?: React.ReactNode;
 }
 
-export function IdentityBlock({ customer, variant = "panel", editHref, className }: IdentityBlockProps) {
+export function IdentityBlock({ customer, variant = "panel", editHref, className, headerExtra, chips, reason, actions, avatar }: IdentityBlockProps) {
   const ageMissing = resolveAge(customer) == null;
   const dobMissing = !customer.birth_date && customer.birth_year == null;
   const genderMissing = genderKey(customer.gender) == null;
@@ -75,18 +86,18 @@ export function IdentityBlock({ customer, variant = "panel", editHref, className
   if (variant === "compact") {
     return (
       <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-60", className)}>
-        <span className={dobMissing ? "text-ink-40" : ""}>
+        <span className={dobMissing ? "text-ink-60" : ""}>
           <CalendarDays size={12} strokeWidth={2.25} className="mr-1 inline -translate-y-px" aria-hidden />
           {birthDateLabel(customer)}
         </span>
         <span className="text-ink-20" aria-hidden>·</span>
-        <span className={ageMissing ? "text-ink-40" : ""}>{ageLabel(customer)}</span>
+        <span className={ageMissing ? "text-ink-60" : ""}>{ageLabel(customer)}</span>
         <span className="text-ink-20" aria-hidden>·</span>
-        <span className={genderMissing ? "text-ink-40" : ""}>
-          {genderLabel(customer.gender)} <span aria-hidden>{genderGlyph(customer.gender)}</span>
+        <span className={genderMissing ? "text-ink-60" : ""}>
+          {genderLabelWithGlyph(customer.gender)}
         </span>
         <span className="text-ink-20" aria-hidden>·</span>
-        <span className={heightMissing ? "text-ink-40" : ""}>
+        <span className={heightMissing ? "text-ink-60" : ""}>
           <Ruler size={12} strokeWidth={2.25} className="mr-1 inline -translate-y-px" aria-hidden />
           {heightLabel(customer.height)}
         </span>
@@ -101,33 +112,37 @@ export function IdentityBlock({ customer, variant = "panel", editHref, className
 
   return (
     <div className={cn("rounded-2xl border border-ink-10 bg-white p-4 lg:p-5", className)}>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-ultra to-amber-ultra font-head text-[18px] font-extrabold text-rose ring-1 ring-rose-pale/60">
-          {initials(customer.name)}
+          {avatar ?? initials(customer.name)}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-head text-[20px] font-extrabold leading-tight tracking-tight text-ink">
-            {displayName(customer)}
-          </h2>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-thai text-[12px] text-ink-60">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-head text-[22px] font-extrabold leading-tight tracking-tight text-ink">
+              {displayName(customer)}
+            </h2>
+            {headerExtra}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-thai text-[13px] text-ink-60">
             <span className={ageMissing ? "text-ink-40" : ""}>{ageLabel(customer)}</span>
             <span className="text-ink-20" aria-hidden>·</span>
-            <span className={genderMissing ? "text-ink-40" : ""}>
-              {genderLabel(customer.gender)} <span aria-hidden>{genderGlyph(customer.gender)}</span>
-            </span>
+            <span className={genderMissing ? "text-ink-40" : ""}>{genderLabelWithGlyph(customer.gender)}</span>
           </div>
+          {chips && <div className="mt-2 flex flex-wrap gap-1.5">{chips}</div>}
+          {reason && <div className="mt-1.5 font-thai text-[11.5px] italic leading-snug text-ink-60">{reason}</div>}
         </div>
         {anyMissing && editHref && (
           <Link
             href={editHref as any}
-            className="inline-flex items-center gap-1.5 rounded-full border border-rose/30 bg-rose-ultra px-3 py-1.5 text-[12px] font-semibold text-rose transition-colors hover:bg-rose hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-rose/30 bg-rose-ultra px-3 py-1.5 text-[12px] font-semibold text-rose transition-colors hover:bg-rose hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
           >
             <PencilLine size={13} strokeWidth={2.25} aria-hidden /> เพิ่มข้อมูลที่ยังว่าง
           </Link>
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 border-t border-ink-5 pt-4 sm:grid-cols-3">
+      {/* ★ Prominent identity grid (SPEC §4): DOB ค.ศ. · อายุ · เพศ · ส่วนสูง */}
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-ink-5 pt-4 sm:grid-cols-4">
         <Field
           icon={CalendarDays}
           label="วันเกิด (ค.ศ.)"
@@ -135,9 +150,12 @@ export function IdentityBlock({ customer, variant = "panel", editHref, className
           sub={buddhist || undefined}
           muted={dobMissing}
         />
-        <Field icon={User2} label="เพศ" value={`${genderLabel(customer.gender)} ${genderGlyph(customer.gender)}`} muted={genderMissing} />
+        <Field icon={CalendarDays} label="อายุ" value={ageLabel(customer)} muted={ageMissing} />
+        <Field icon={User2} label="เพศ" value={genderLabelWithGlyph(customer.gender)} muted={genderMissing} />
         <Field icon={Ruler} label="ส่วนสูง" value={heightLabel(customer.height)} muted={heightMissing} />
       </div>
+
+      {actions && <div className="mt-4 flex flex-wrap gap-2 border-t border-ink-5 pt-3.5">{actions}</div>}
     </div>
   );
 }

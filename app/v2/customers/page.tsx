@@ -13,9 +13,10 @@ import Link from "next/link";
 import { Search, Users, ChevronRight, X, RotateCw } from "lucide-react";
 import { Shell } from "../_components/Shell";
 import { LoadingState, EmptyState, ErrorState } from "@/lib/v2/ui";
-import { resolveAge, genderLabel, genderGlyph, initials } from "@/lib/v2/identity";
+import { resolveAge, genderLabelWithGlyph, initials } from "@/lib/v2/identity";
 import type { StatusLevel } from "@/lib/medical-status";
 import { statusClasses, statusHex, STATUS_LABEL_TH } from "@/lib/medical-status";
+import { statusTextClass } from "@/lib/v2/status";
 
 interface CustomerRow {
   id: string;
@@ -112,9 +113,9 @@ export default function V2CustomersPage() {
               type="button"
               onClick={() => setSearch("")}
               aria-label="ล้างคำค้น"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ink-40 hover:bg-ink-5 hover:text-ink"
+              className="absolute right-1.5 top-1/2 inline-flex h-[40px] w-[40px] -translate-y-1/2 items-center justify-center rounded-full text-ink-60 hover:bg-ink-5 hover:text-ink"
             >
-              <X size={14} strokeWidth={2.5} aria-hidden />
+              <X size={16} strokeWidth={2.5} aria-hidden />
             </button>
           )}
         </div>
@@ -161,7 +162,16 @@ function CustomerRowItem({ c }: { c: CustomerRow }) {
   const age = resolveAge(c);
   const comp = completenessLevel(c);
   const ringColor = c.gender === "male" ? "ring-science-pale" : c.gender === "female" ? "ring-rose-pale" : "ring-ink-10";
-  const avatarBg = c.gender === "male" ? "bg-science" : c.gender === "female" ? "bg-rose" : "bg-ink-40";
+  const avatarBg = c.gender === "male" ? "bg-science" : c.gender === "female" ? "bg-rose" : "bg-ink-60";
+
+  // Compact data badges: which capabilities are present (count visible everywhere).
+  const dataBadges = [
+    { label: "BCA", on: c.stats.bca > 0, value: c.stats.bca, tone: "science" as const },
+    { label: "CGM", on: c.stats.cgm > 0, value: c.stats.cgm, tone: "wellness" as const },
+    { label: "Pulse", on: c.stats.pulse?.status === "active", value: c.stats.pulse?.status === "active" ? "✓" : "—", tone: "amber" as const },
+    ...(c.stats.leads > 0 ? [{ label: "Lead", on: true, value: c.stats.leads, tone: "rose" as const }] : []),
+  ];
+  const activeBadgeCount = dataBadges.filter((b) => b.on).length;
 
   return (
     <li>
@@ -174,31 +184,43 @@ function CustomerRowItem({ c }: { c: CustomerRow }) {
           {initials(c.name)}
         </span>
 
-        {/* Name + meta */}
+        {/* Name + meta + (mobile) status */}
         <div className="min-w-0 flex-1">
           <div className="truncate font-head text-[15px] font-bold text-ink">{c.name}</div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-thai text-[12px] text-ink-60">
-            <span>{genderLabel(c.gender)} <span aria-hidden>{genderGlyph(c.gender)}</span></span>
+            <span>{genderLabelWithGlyph(c.gender)}</span>
             {age != null && <><span className="text-ink-20" aria-hidden>·</span><span>{age} ปี</span></>}
             {c.height != null && <><span className="text-ink-20" aria-hidden>·</span><span>{c.height} ซม.</span></>}
           </div>
+          {/* Mobile-only status dot + label (wraps under the name) + compact badge count */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:hidden">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClasses.bg[comp.level]} ${statusTextClass[comp.level]}`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusHex[comp.level] }} aria-hidden />
+              {comp.label}
+            </span>
+            {activeBadgeCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-ink-5 px-2 py-0.5 font-mono text-[10px] font-semibold text-ink-60">
+                <span className="h-1.5 w-1.5 rounded-full bg-science" aria-hidden />
+                {activeBadgeCount} ข้อมูล
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Health/data status pill */}
+        {/* Health/data status pill (sm+) */}
         <span
-          className={`hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex ${statusClasses.bg[comp.level]} ${statusClasses.text[comp.level]}`}
+          className={`hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex ${statusClasses.bg[comp.level]} ${statusTextClass[comp.level]}`}
           title={`ความครบของข้อมูล ${comp.score}/3 · ${STATUS_LABEL_TH[comp.level]}`}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusHex[comp.level] }} aria-hidden />
           {comp.label}
         </span>
 
-        {/* Badges */}
+        {/* Full badges (md+) */}
         <div className="hidden shrink-0 items-center gap-1.5 md:flex">
-          <Badge label="BCA" on={c.stats.bca > 0} value={c.stats.bca} tone="science" />
-          <Badge label="CGM" on={c.stats.cgm > 0} value={c.stats.cgm} tone="wellness" />
-          <Badge label="Pulse" on={c.stats.pulse?.status === "active"} value={c.stats.pulse?.status === "active" ? "✓" : "—"} tone="amber" />
-          {c.stats.leads > 0 && <Badge label="Lead" on value={c.stats.leads} tone="rose" />}
+          {dataBadges.map((b) => <Badge key={b.label} label={b.label} on={b.on} value={b.value} tone={b.tone} />)}
         </div>
 
         <ChevronRight size={18} strokeWidth={2.25} className="shrink-0 text-ink-20 transition-all group-hover:translate-x-0.5 group-hover:text-rose" aria-hidden />
@@ -216,9 +238,9 @@ const TONE_ON: Record<string, string> = {
 
 function Badge({ label, on, value, tone }: { label: string; on: boolean; value: number | string; tone: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${on ? TONE_ON[tone] : "bg-ink-5 text-ink-30"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${on ? TONE_ON[tone] : "bg-ink-5 text-ink-60"}`}>
       <span>{label}</span>
-      <span className={on ? "" : "opacity-60"}>{value}</span>
+      <span className={on ? "" : "opacity-70"}>{value}</span>
     </span>
   );
 }

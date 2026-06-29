@@ -17,6 +17,7 @@ import { FlaskConical } from "lucide-react";
 import { LoadingState, EmptyState, ErrorState } from "@/lib/v2/ui";
 import { classifyMetric } from "@/lib/v2/labs";
 import { statusClasses, statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
+import { statusTextClass } from "@/lib/v2/status";
 
 interface LabValue {
   metric_key: string;
@@ -118,7 +119,7 @@ export function LabsTab({ customerId, chronoAge }: { customerId: string; chronoA
           <div className="overflow-hidden rounded-xl border border-ink-10">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="bg-surface text-left text-[11px] font-semibold text-ink-40">
+                <tr className="bg-surface text-left text-[11px] font-semibold text-ink-60">
                   <th className="px-3 py-2">รายการ</th>
                   <th className="px-3 py-2">ค่า</th>
                   <th className="hidden px-3 py-2 sm:table-cell">ช่วงอ้างอิง</th>
@@ -133,20 +134,20 @@ export function LabsTab({ customerId, chronoAge }: { customerId: string; chronoA
                     <tr key={i} className="hover:bg-surface/60">
                       <td className="px-3 py-2 font-medium text-ink">{metricLabel(v)}</td>
                       <td className="px-3 py-2 font-mono text-ink-80">
-                        {v.value ?? v.value_num ?? "—"} {v.unit && <span className="text-ink-40">{v.unit}</span>}
+                        {v.value ?? v.value_num ?? "—"} {v.unit && <span className="text-ink-60">{v.unit}</span>}
                       </td>
-                      <td className="hidden px-3 py-2 font-mono text-[12px] text-ink-40 sm:table-cell">{refText(v) ?? "—"}</td>
+                      <td className="hidden px-3 py-2 font-mono text-[12px] text-ink-60 sm:table-cell">{refText(v) ?? "—"}</td>
                       <td className="px-3 py-2">
                         {lv ? (
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClasses.bg[lv]} ${statusClasses.text[lv]}`}>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClasses.bg[lv]} ${statusTextClass[lv]}`}>
                             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusHex[lv] }} aria-hidden />
                             {STATUS_LABEL_TH[lv]}
                           </span>
                         ) : (
-                          <span className="text-ink-30">—</span>
+                          <span className="text-ink-60">—</span>
                         )}
                       </td>
-                      <td className="hidden px-3 py-2 font-mono text-[11px] text-ink-40 md:table-cell">{fmtDate(v.recorded_at)}</td>
+                      <td className="hidden px-3 py-2 font-mono text-[11px] text-ink-60 md:table-cell">{fmtDate(v.recorded_at)}</td>
                     </tr>
                   );
                 })}
@@ -206,7 +207,7 @@ export function TrendsTab({ customerId, chronoAge }: { customerId: string; chron
           <div key={v.metric_key} className="rounded-xl border border-ink-10 bg-white p-3">
             <div className="mb-1 flex items-baseline justify-between">
               <span className="text-[13px] font-semibold text-ink">{metricLabel(v)}</span>
-              <span className="font-mono text-[11px] text-ink-40">{v.unit ?? ""}</span>
+              <span className="font-mono text-[11px] text-ink-60">{v.unit ?? ""}</span>
             </div>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
@@ -225,7 +226,7 @@ export function TrendsTab({ customerId, chronoAge }: { customerId: string; chron
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            {refText(v) && <div className="mt-1 font-mono text-[10px] text-ink-40">ช่วงอ้างอิง {refText(v)}</div>}
+            {refText(v) && <div className="mt-1 font-mono text-[10px] text-ink-60">ช่วงอ้างอิง {refText(v)}</div>}
           </div>
         );
       })}

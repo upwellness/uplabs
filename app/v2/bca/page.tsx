@@ -8,25 +8,45 @@
  * Mandatory identity block (§4) incl. height at the top. Measurement form POSTs to
  * /measurements. 6 gauges + trend charts. BMI computed from weight+height; metrics
  * classified via /api/bca/classify.
+ *
+ * Parity with v1 /bca (SPEC §7.4): measurement HISTORY table/card-list · EDIT
+ * (PATCH /api/measurements/[id]) · DELETE (DELETE /api/measurements/[id]) · report
+ * builder (reuses the v1 ReportBuilder, lazy-loaded so its recharts/html-to-image
+ * deps stay out of this route's First-Load JS).
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-} from "recharts";
-import {
   Search, Scale, Plus, X, ChevronRight, Save, Loader2, ArrowRight, Users, Calendar,
+  FileText, Pencil, Trash2, History,
 } from "lucide-react";
 import { Shell } from "../_components/Shell";
 import { IdentityBlock } from "@/lib/v2/IdentityBlock";
 import { Card, LoadingState, EmptyState, ErrorState, MetricGauge } from "@/lib/v2/ui";
-import { initials, genderLabel, resolveAge } from "@/lib/v2/identity";
+import { initials, genderLabelWithGlyph, resolveAge } from "@/lib/v2/identity";
 import { statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
-import { deriveBMI, deriveChronoAge } from "@/lib/bca-derive";
+import { statusTextHex } from "@/lib/v2/status";
+import { deriveBMI, deriveChronoAge, enrichMeasurement } from "@/lib/bca-derive";
 import { classifyBMI, classifyVisceralFat, classifyBodyFat, classifyMusclePct, classifyBodyAge } from "@/lib/medical-status";
-import type { Customer, Measurement } from "@/lib/types";
+import type { Customer, Measurement, MeasurementWithDerived } from "@/lib/types";
+
+/**
+ * Trends (recharts) + ReportBuilder (recharts + html-to-image) are loaded on demand
+ * (SPEC §8 "กราฟ lazy/conditional"). Trends only renders with ≥2 points; the report
+ * only mounts when the user opens it — so neither pulls its heavy deps into the
+ * route's First-Load JS.
+ */
+const TrendPanel = dynamic(() => import("./_trends").then((m) => m.TrendPanel), {
+  ssr: false,
+  loading: () => <Card className="p-4 lg:p-5"><LoadingState label="กำลังโหลดกราฟแนวโน้ม…" /></Card>,
+});
+const ReportBuilder = dynamic(() => import("@/app/bca/_components/ReportBuilder").then((m) => m.ReportBuilder), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface ListRow {
   id: string;
@@ -125,13 +145,13 @@ function PickCustomer({ onPick }: { onPick: (id: string) => void }) {
                   <button
                     type="button"
                     onClick={() => onPick(r.id)}
-                    className="group flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose"
+                    className="group flex min-h-[44px] w-full items-center gap-3 px-2 py-2.5 text-left transition-colors hover:bg-surface focus:outline-none focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose"
                   >
                     <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-5 text-[12px] font-bold text-ink-60">{initials(r.name)}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-head text-[14px] font-bold text-ink">{r.name}</span>
                       <span className="block font-thai text-[11px] text-ink-60">
-                        {genderLabel(r.gender)} {age != null ? `· ${age} ปี` : ""} {r.height != null ? `· ${r.height} ซม.` : ""} {r.stats?.bca ? `· BCA ${r.stats.bca} ครั้ง` : "· ยังไม่มี BCA"}
+                        {genderLabelWithGlyph(r.gender)} {age != null ? `· ${age} ปี` : ""} {r.height != null ? `· ${r.height} ซม.` : ""} {r.stats?.bca ? `· BCA ${r.stats.bca} ครั้ง` : "· ยังไม่มี BCA"}
                       </span>
                     </span>
                     <ChevronRight size={16} strokeWidth={2.25} className="text-ink-20 group-hover:text-rose" aria-hidden />
@@ -154,6 +174,9 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Measurement | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportFocus, setReportFocus] = useState<MeasurementWithDerived | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -176,7 +199,16 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
 
   useEffect(() => { load(); }, [load]);
 
-  const latest = measurements[0];
+  // Sorted newest-first + enriched (bmi / fat-mass / muscle-mass / chrono-age) for
+  // the history table, gauges and the report builder.
+  const enriched = useMemo<MeasurementWithDerived[]>(() => {
+    if (!customer) return [];
+    return [...measurements]
+      .sort((a, b) => +new Date(b.recorded_at) - +new Date(a.recorded_at))
+      .map((m) => enrichMeasurement(m, customer));
+  }, [measurements, customer]);
+
+  const latest = enriched[0];
 
   // Classify latest via the server endpoint (keeps thresholds server-side · SPEC §7.4)
   const [classified, setClassified] = useState<any | null>(null);
@@ -197,6 +229,23 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
       .catch(() => setClassified(null));
   }, [latest, customer]);
 
+  const handleEdit = (m: MeasurementWithDerived) => {
+    setEditing(m);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (m: MeasurementWithDerived) => {
+    if (!confirm(`ยืนยันการลบผลวัดวันที่ ${new Date(m.recorded_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}?`)) return;
+    try {
+      const res = await fetch(`/api/measurements/${m.id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "ลบไม่สำเร็จ");
+      await load();
+    } catch (e: any) {
+      alert(e.message ?? "ลบไม่สำเร็จ");
+    }
+  };
+
   if (loading) return <Card><LoadingState label="กำลังโหลดข้อมูลลูกค้า…" /></Card>;
   if (error) return <Card><ErrorState message={error} onRetry={load} /></Card>;
   if (!customer) return <Card><EmptyState title="ไม่พบลูกค้า" /></Card>;
@@ -210,10 +259,10 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
           <h1 className="font-head text-[20px] font-extrabold tracking-tight text-ink">BCA Tracker</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/v2/customers/${customerId}`} className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-60 hover:text-rose">
+          <Link href={`/v2/customers/${customerId}`} className="inline-flex min-h-[44px] items-center gap-1 text-[12px] font-semibold text-ink-60 hover:text-rose">
             ดูโปรไฟล์ 360 <ArrowRight size={12} strokeWidth={2.5} aria-hidden />
           </Link>
-          <button type="button" onClick={onClear} className="inline-flex items-center gap-1 rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink">
+          <button type="button" onClick={onClear} className="inline-flex min-h-[44px] items-center gap-1 rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-60 hover:border-ink-20 hover:text-ink">
             <X size={13} strokeWidth={2.25} aria-hidden /> เปลี่ยนลูกค้า
           </button>
         </div>
@@ -222,26 +271,37 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
       {/* ★ Identity block (SPEC §4) — incl. height for BMI */}
       <IdentityBlock customer={customer} editHref={`/customers/${customerId}`} />
 
-      {/* Quick add */}
-      <div className="flex items-center justify-between">
+      {/* Quick actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-thai text-[13px] text-ink-60">
           {measurements.length > 0 ? `มีผลวัด ${measurements.length} ครั้ง` : "ยังไม่มีผลวัด"}
         </span>
-        <button
-          type="button"
-          onClick={() => setFormOpen((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-rose px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-rose-mid focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
-        >
-          {formOpen ? <X size={15} strokeWidth={2.25} aria-hidden /> : <Plus size={15} strokeWidth={2.25} aria-hidden />}
-          {formOpen ? "ปิดฟอร์ม" : "บันทึกค่าใหม่"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => { setReportFocus(null); setReportOpen(true); }}
+            disabled={measurements.length === 0}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+          >
+            <FileText size={15} strokeWidth={2.25} aria-hidden /> สร้างรายงาน
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditing(null); setFormOpen((v) => !v); }}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-rose-mid focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+          >
+            {formOpen && !editing ? <X size={15} strokeWidth={2.25} aria-hidden /> : <Plus size={15} strokeWidth={2.25} aria-hidden />}
+            {formOpen && !editing ? "ปิดฟอร์ม" : "บันทึกค่าใหม่"}
+          </button>
+        </div>
       </div>
 
       {formOpen && (
         <MeasurementForm
           customer={customer}
-          onSaved={() => { setFormOpen(false); load(); }}
-          onCancel={() => setFormOpen(false)}
+          initial={editing ?? undefined}
+          onSaved={() => { setFormOpen(false); setEditing(null); load(); }}
+          onCancel={() => { setFormOpen(false); setEditing(null); }}
         />
       )}
 
@@ -252,24 +312,46 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
         <Card><EmptyState icon={Scale} title="ยังไม่มีผลวัด BCA" hint="กด “บันทึกค่าใหม่” เพื่อเริ่มบันทึกครั้งแรก" /></Card>
       )}
 
-      {/* Trends */}
-      {measurements.length >= 2 && <TrendPanel measurements={measurements} />}
+      {/* Trends (lazy) */}
+      {enriched.length >= 2 && <TrendPanel measurements={enriched} />}
+
+      {/* History (table desktop · card list mobile) */}
+      {enriched.length > 0 && (
+        <HistoryPanel
+          measurements={enriched}
+          gender={customer.gender}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* Report builder (reuses v1 component · lazy-loaded) */}
+      {reportOpen && (
+        <ReportBuilder
+          customer={customer}
+          measurements={enriched}
+          highlight={reportFocus}
+          onClose={() => { setReportOpen(false); setReportFocus(null); }}
+        />
+      )}
     </div>
   );
 }
 
-/* ── Measurement form (inline, clinical-warm) ── */
+/* ── Measurement form (inline, clinical-warm) — handles create (POST) + edit (PATCH) ── */
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const toDateInput = (iso?: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : todayISO());
 
-function MeasurementForm({ customer, onSaved, onCancel }: { customer: Customer; onSaved: () => void; onCancel: () => void }) {
-  const [date, setDate] = useState(todayISO());
-  const [weight, setWeight] = useState("");
-  const [fat, setFat] = useState("");
-  const [visceral, setVisceral] = useState("");
-  const [muscle, setMuscle] = useState("");
-  const [bodyAge, setBodyAge] = useState("");
-  const [bmr, setBmr] = useState("");
+function MeasurementForm({ customer, initial, onSaved, onCancel }: { customer: Customer; initial?: Partial<Measurement>; onSaved: () => void; onCancel: () => void }) {
+  const isEdit = Boolean(initial?.id);
+  const [date, setDate] = useState(toDateInput(initial?.recorded_at));
+  const [weight, setWeight] = useState(initial?.weight != null ? String(initial.weight) : "");
+  const [fat, setFat] = useState(initial?.fat_pct != null ? String(initial.fat_pct) : "");
+  const [visceral, setVisceral] = useState(initial?.visceral != null ? String(initial.visceral) : "");
+  const [muscle, setMuscle] = useState(initial?.muscle_pct != null ? String(initial.muscle_pct) : "");
+  const [bodyAge, setBodyAge] = useState(initial?.body_age != null ? String(initial.body_age) : "");
+  const [bmr, setBmr] = useState(initial?.bmr != null ? String(initial.bmr) : "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -280,20 +362,27 @@ function MeasurementForm({ customer, onSaved, onCancel }: { customer: Customer; 
     e.preventDefault();
     if (!weight) { setErr("กรุณากรอกน้ำหนัก"); return; }
     setSaving(true); setErr(null);
+    const payload = {
+      recorded_at: new Date(date).toISOString(),
+      weight: Number(weight),
+      fat_pct: num(fat),
+      visceral: num(visceral),
+      muscle_pct: num(muscle),
+      body_age: num(bodyAge),
+      bmr: num(bmr),
+    };
     try {
-      const res = await fetch(`/api/customers/${customer.id}/measurements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recorded_at: new Date(date).toISOString(),
-          weight: Number(weight),
-          fat_pct: num(fat),
-          visceral: num(visceral),
-          muscle_pct: num(muscle),
-          body_age: num(bodyAge),
-          bmr: num(bmr),
-        }),
-      });
+      const res = isEdit
+        ? await fetch(`/api/measurements/${initial!.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch(`/api/customers/${customer.id}/measurements`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
       onSaved();
@@ -309,7 +398,7 @@ function MeasurementForm({ customer, onSaved, onCancel }: { customer: Customer; 
       <form onSubmit={submit}>
         <div className="mb-3 flex items-center gap-1.5">
           <Calendar size={15} strokeWidth={2.25} className="text-rose" aria-hidden />
-          <h2 className="font-head text-[15px] font-bold text-ink">บันทึกค่าการวัด</h2>
+          <h2 className="font-head text-[15px] font-bold text-ink">{isEdit ? "แก้ไขค่าการวัด" : "บันทึกค่าการวัด"}</h2>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <FormField label="วันที่วัด" type="date" value={date} onChange={setDate} full />
@@ -327,19 +416,19 @@ function MeasurementForm({ customer, onSaved, onCancel }: { customer: Customer; 
           {customer.height == null ? (
             <span className="text-status-caution">ต้องมีส่วนสูงก่อนจึงคำนวณ BMI ได้</span>
           ) : livePreviewBMI != null ? (
-            <span className="font-mono font-bold text-ink">{livePreviewBMI} <span className="font-semibold" style={{ color: statusHex[classifyBMI(livePreviewBMI)] }}>· {STATUS_LABEL_TH[classifyBMI(livePreviewBMI)]}</span></span>
+            <span className="font-mono font-bold text-ink">{livePreviewBMI} <span className="font-semibold" style={{ color: statusTextHex[classifyBMI(livePreviewBMI)] }}>· {STATUS_LABEL_TH[classifyBMI(livePreviewBMI)]}</span></span>
           ) : (
-            <span className="text-ink-40">กรอกน้ำหนักเพื่อดู BMI</span>
+            <span className="text-ink-60">กรอกน้ำหนักเพื่อดู BMI</span>
           )}
         </div>
 
         {err && <div className="mt-3 rounded-xl bg-status-bg-danger px-3 py-2 text-[13px] text-status-danger">{err}</div>}
 
         <div className="mt-4 flex items-center justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-full bg-surface px-4 py-2 text-[13px] font-semibold text-ink-60 hover:bg-ink-5">ยกเลิก</button>
-          <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 rounded-full bg-rose px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-rose-mid disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+          <button type="button" onClick={onCancel} className="min-h-[44px] rounded-full bg-surface px-4 py-2 text-[13px] font-semibold text-ink-60 hover:bg-ink-5">ยกเลิก</button>
+          <button type="submit" disabled={saving} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-rose-mid disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
             {saving ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Save size={15} strokeWidth={2.25} aria-hidden />}
-            {saving ? "กำลังบันทึก…" : "บันทึกการวัด"}
+            {saving ? "กำลังบันทึก…" : isEdit ? "บันทึกการแก้ไข" : "บันทึกการวัด"}
           </button>
         </div>
       </form>
@@ -362,7 +451,7 @@ function FormField({ label, value, onChange, placeholder, type = "text", require
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="min-h-[44px] w-full rounded-xl border border-ink-10 bg-white px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors placeholder:text-ink-20 focus:border-rose focus:ring-2 focus:ring-rose-ultra"
+        className="min-h-[44px] w-full rounded-xl border border-ink-10 bg-white px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors placeholder:text-ink-30 focus:border-rose focus:ring-2 focus:ring-rose-ultra"
       />
     </label>
   );
@@ -370,14 +459,15 @@ function FormField({ label, value, onChange, placeholder, type = "text", require
 
 /* ── Gauges ── */
 
-function GaugePanel({ customer, latest, classified }: { customer: Customer; latest: Measurement; classified: any | null }) {
-  const bmi = deriveBMI(latest.weight, customer.height);
-  const chrono = deriveChronoAge(customer.birth_date ?? customer.birth_year, latest.recorded_at);
+function GaugePanel({ customer, latest, classified }: { customer: Customer; latest: MeasurementWithDerived; classified: any | null }) {
+  const bmi = latest.bmi ?? deriveBMI(latest.weight, customer.height);
+  const chrono = latest.chrono_age ?? deriveChronoAge(customer.birth_date ?? customer.birth_year, latest.recorded_at);
+  const knownGender = customer.gender === "male" || customer.gender === "female";
 
   // Prefer server classification; fall back to local libs so the panel never blanks.
   const bmiLevel: StatusLevel | null = classified?.bmi?.level ?? (bmi != null ? classifyBMI(bmi) : null);
-  const fatLevel: StatusLevel | null = classified?.fat?.level ?? (latest.fat_pct != null && (customer.gender === "male" || customer.gender === "female") ? classifyBodyFat(latest.fat_pct, customer.gender) : null);
-  const muscleLevel: StatusLevel | null = classified?.muscle?.level ?? (latest.muscle_pct != null && (customer.gender === "male" || customer.gender === "female") ? classifyMusclePct(latest.muscle_pct, customer.gender) : null);
+  const fatLevel: StatusLevel | null = classified?.fat?.level ?? (latest.fat_pct != null && knownGender ? classifyBodyFat(latest.fat_pct, customer.gender) : null);
+  const muscleLevel: StatusLevel | null = classified?.muscle?.level ?? (latest.muscle_pct != null && knownGender ? classifyMusclePct(latest.muscle_pct, customer.gender) : null);
   const visceralLevel: StatusLevel | null = classified?.visceral?.level ?? (latest.visceral != null ? classifyVisceralFat(latest.visceral) : null);
   const bodyAgeLevel: StatusLevel | null = classified?.body_age?.level ?? (latest.body_age != null && chrono != null ? classifyBodyAge(latest.body_age, chrono) : null);
 
@@ -394,13 +484,13 @@ function GaugePanel({ customer, latest, classified }: { customer: Customer; late
     <Card className="p-4 lg:p-5">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="font-head text-[15px] font-bold text-ink">ผลล่าสุด</h2>
-        <span className="font-mono text-[11px] text-ink-40">{new Date(latest.recorded_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}</span>
+        <span className="font-mono text-[11px] text-ink-60">{new Date(latest.recorded_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}</span>
       </div>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
         {gauges.map((g) => (
           <div key={g.label}>
             <MetricGauge value={g.value} display={g.display} unit={g.unit} label={g.label} level={g.level ?? "caution"} size={88} />
-            {g.level && <div className="mt-0.5 text-center text-[10px] font-semibold" style={{ color: statusHex[g.level] }}>{STATUS_LABEL_TH[g.level]}</div>}
+            {g.level && <div className="mt-0.5 text-center text-[10px] font-semibold" style={{ color: statusTextHex[g.level] }}>{STATUS_LABEL_TH[g.level]}</div>}
           </div>
         ))}
       </div>
@@ -417,46 +507,125 @@ function pct(v: number | null, max: number): number {
   return Math.max(0, Math.min(1, v / max));
 }
 
-/* ── Trends ── */
+/* ── History (parity with v1 · table desktop / card list mobile · edit + delete) ── */
 
-const TREND_METRICS: { key: keyof Measurement; label: string; color: string; unit: string }[] = [
-  { key: "weight", label: "น้ำหนัก (kg)", color: "#8C4C4C", unit: "kg" },
-  { key: "fat_pct", label: "Body fat %", color: "#C47A2A", unit: "%" },
-  { key: "muscle_pct", label: "Muscle %", color: "#396755", unit: "%" },
-  { key: "visceral", label: "Visceral", color: "#2A7B8F", unit: "lv" },
-];
+const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+const numOr = (v: number | null, digits = 1, suffix = "") => (v != null ? `${v.toFixed(digits)}${suffix}` : "—");
 
-function TrendPanel({ measurements }: { measurements: Measurement[] }) {
-  const asc = useMemo(() => [...measurements].sort((a, b) => +new Date(a.recorded_at) - +new Date(b.recorded_at)), [measurements]);
-  const labelOf = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" });
-
+function HistoryPanel({ measurements, gender, onEdit, onDelete }: {
+  measurements: MeasurementWithDerived[];
+  gender: string | null;
+  onEdit: (m: MeasurementWithDerived) => void;
+  onDelete: (m: MeasurementWithDerived) => void;
+}) {
+  const knownGender = gender === "male" || gender === "female";
   return (
     <Card className="p-4 lg:p-5">
-      <h2 className="mb-3 font-head text-[15px] font-bold text-ink">แนวโน้ม</h2>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {TREND_METRICS.map((m) => {
-          const points = asc
-            .map((x) => ({ date: labelOf(x.recorded_at), value: x[m.key] as number | null }))
-            .filter((p) => p.value != null);
-          if (points.length < 2) return null;
-          return (
-            <div key={String(m.key)} className="rounded-xl border border-ink-10 bg-white p-3">
-              <div className="mb-1 text-[13px] font-semibold text-ink">{m.label}</div>
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={points} margin={{ top: 6, right: 8, bottom: 0, left: -16 }}>
-                    <CartesianGrid stroke="#F2F0F3" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#8A838E" }} tickLine={false} axisLine={{ stroke: "#DDD9DF" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#8A838E" }} tickLine={false} axisLine={false} width={36} domain={["auto", "auto"]} />
-                    <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #DDD9DF", fontSize: 12 }} labelStyle={{ color: "#5C5660" }} />
-                    <Line type="monotone" dataKey="value" stroke={m.color} strokeWidth={2.25} dot={{ r: 2.5, fill: m.color }} activeDot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          );
-        })}
+      <div className="mb-3 flex items-center gap-1.5">
+        <History size={15} strokeWidth={2.25} className="text-rose" aria-hidden />
+        <h2 className="font-head text-[15px] font-bold text-ink">ประวัติการวัด</h2>
+        <span className="ml-auto font-mono text-[10px] text-ink-60">ใหม่ → เก่า</span>
       </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full text-[13px]">
+          <thead>
+            <tr className="border-b border-ink-10 text-left text-[11px] font-semibold text-ink-60">
+              <th className="px-3 py-2">วันที่</th>
+              <th className="px-3 py-2 text-right">น้ำหนัก</th>
+              <th className="px-3 py-2 text-right">BMI</th>
+              <th className="px-3 py-2 text-right">Fat %</th>
+              <th className="px-3 py-2 text-right">Muscle %</th>
+              <th className="px-3 py-2 text-right">Visceral</th>
+              <th className="px-3 py-2 text-right">Body age</th>
+              <th className="px-3 py-2 text-right">BMR</th>
+              <th className="px-3 py-2 text-right">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ink-5">
+            {measurements.map((m) => (
+              <tr key={m.id} className="hover:bg-surface/60">
+                <td className="px-3 py-2.5 font-thai text-ink">{fmtDay(m.recorded_at)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-ink">{numOr(m.weight, 1)} <span className="text-ink-60">kg</span></td>
+                <ColoredCell value={m.bmi} level={m.bmi != null ? classifyBMI(m.bmi) : null} />
+                <ColoredCell value={m.fat_pct} level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any) : null} suffix="%" />
+                <ColoredCell value={m.muscle_pct} level={m.muscle_pct != null && knownGender ? classifyMusclePct(m.muscle_pct, gender as any) : null} suffix="%" />
+                <ColoredCell value={m.visceral} level={m.visceral != null ? classifyVisceralFat(m.visceral) : null} digits={0} />
+                <td className="px-3 py-2.5 text-right font-mono text-ink">{numOr(m.body_age, 0)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-ink">{numOr(m.bmr, 0)}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                  <RowActions m={m} onEdit={onEdit} onDelete={onDelete} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile card list */}
+      <ul className="space-y-2.5 sm:hidden">
+        {measurements.map((m) => (
+          <li key={m.id} className="rounded-xl border border-ink-10 bg-white p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-thai text-[13px] font-bold text-ink">{fmtDay(m.recorded_at)}</span>
+              <RowActions m={m} onEdit={onEdit} onDelete={onDelete} />
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[12px]">
+              <MiniStat label="นน." value={numOr(m.weight, 1)} unit="kg" />
+              <MiniStat label="BMI" value={numOr(m.bmi, 1)} level={m.bmi != null ? classifyBMI(m.bmi) : null} />
+              <MiniStat label="Fat" value={numOr(m.fat_pct, 1)} unit="%" level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any) : null} />
+              <MiniStat label="Muscle" value={numOr(m.muscle_pct, 1)} unit="%" level={m.muscle_pct != null && knownGender ? classifyMusclePct(m.muscle_pct, gender as any) : null} />
+              <MiniStat label="Visceral" value={numOr(m.visceral, 0)} level={m.visceral != null ? classifyVisceralFat(m.visceral) : null} />
+              <MiniStat label="Body age" value={numOr(m.body_age, 0)} unit="ปี" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </Card>
+  );
+}
+
+function RowActions({ m, onEdit, onDelete }: { m: MeasurementWithDerived; onEdit: (m: MeasurementWithDerived) => void; onDelete: (m: MeasurementWithDerived) => void }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onEdit(m)}
+        aria-label={`แก้ไขผลวัดวันที่ ${fmtDay(m.recorded_at)}`}
+        className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-lg text-rose transition-colors hover:bg-rose-ultra focus:outline-none focus-visible:ring-2 focus-visible:ring-rose"
+      >
+        <Pencil size={15} strokeWidth={2.25} aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => onDelete(m)}
+        aria-label={`ลบผลวัดวันที่ ${fmtDay(m.recorded_at)}`}
+        className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-lg text-status-danger transition-colors hover:bg-status-bg-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger"
+      >
+        <Trash2 size={15} strokeWidth={2.25} aria-hidden />
+      </button>
+    </span>
+  );
+}
+
+function ColoredCell({ value, level, suffix = "", digits = 1 }: { value: number | null; level: StatusLevel | null; suffix?: string; digits?: number }) {
+  return (
+    <td className="px-3 py-2.5 text-right font-mono">
+      <span style={{ color: level ? statusTextHex[level] : "#5C5660", fontWeight: level ? 700 : 400 }}>
+        {numOr(value, digits, suffix)}
+      </span>
+    </td>
+  );
+}
+
+function MiniStat({ label, value, unit, level }: { label: string; value: string; unit?: string; level?: StatusLevel | null }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold text-ink-60">{label}</div>
+      <div className="font-bold" style={{ color: level ? statusTextHex[level] : "#18151A" }}>
+        {value}{unit && value !== "—" && <span className="ml-0.5 font-normal text-ink-60">{unit}</span>}
+      </div>
+    </div>
   );
 }

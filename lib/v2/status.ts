@@ -15,6 +15,32 @@ import type { CustomerStatus } from "@/lib/customers/status-classifier";
 
 export type { StatusLevel };
 
+/**
+ * ★ Accessible status TEXT colors (SPEC §8 · WCAG 2.2 AA, ≥4.5:1 on white/tinted bg).
+ * ──────────────────────────────────────────────────────────────────────────────────
+ * The bright `statusHex` (lib/medical-status) is tuned for *graphics* — dots, gauge
+ * rings, chart strokes — where 3:1 (non-text) is enough. As small text it fails 4.5:1.
+ * Use `statusTextHex` (or the Tailwind classes in `statusTextClass`) for any status
+ * LABEL/TEXT; keep `statusHex` for dots/rings/graphics only. v2-scoped — does not
+ * change the global tailwind tokens or v1.
+ */
+export const statusTextHex: Record<StatusLevel, string> = {
+  optimal: "#15803D", // green-700
+  good:    "#3F6212", // lime-800
+  caution: "#854D0E", // amber-800
+  warning: "#9A3412", // orange-800
+  danger:  "#991B1B", // red-800
+};
+
+/** Tailwind arbitrary-value text classes mirroring statusTextHex (for className use). */
+export const statusTextClass: Record<StatusLevel, string> = {
+  optimal: "text-[#15803D]",
+  good:    "text-[#3F6212]",
+  caution: "text-[#854D0E]",
+  warning: "text-[#9A3412]",
+  danger:  "text-[#991B1B]",
+};
+
 /** Tailwind classes for a clinical metric level (text + bg + ring). */
 export function levelChip(level: StatusLevel): { text: string; bg: string; ring: string; label: string } {
   return {

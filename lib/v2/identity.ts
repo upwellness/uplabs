@@ -104,11 +104,22 @@ export function genderLabel(g?: string | null): string {
   return DASH;
 }
 
+/**
+ * Sex symbol — emitted ONLY when the gender is known (♂ / ♀).
+ * Returns "" for "other"/null so call-sites don't render a stray "○"
+ * (e.g. "อื่นๆ ○" / "— ○"). Concatenation call-sites should guard the space.
+ */
 export function genderGlyph(g?: string | null): string {
   const k = genderKey(g);
   if (k === "male") return "♂";
   if (k === "female") return "♀";
-  return "○";
+  return "";
+}
+
+/** "ชาย ♂" / "หญิง ♀" / "อื่นๆ" / "—" — label + glyph, no trailing space when glyph empty. */
+export function genderLabelWithGlyph(g?: string | null): string {
+  const glyph = genderGlyph(g);
+  return glyph ? `${genderLabel(g)} ${glyph}` : genderLabel(g);
 }
 
 /** "165 ซม." or "—" */

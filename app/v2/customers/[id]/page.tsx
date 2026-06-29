@@ -11,6 +11,7 @@
  */
 
 import { use, useEffect, useId, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   Phone, MessageCircle, PlusCircle, Scale, Pill, Network, FlaskConical, Link2, Check,
@@ -19,16 +20,31 @@ import {
 } from "lucide-react";
 import { Shell } from "../../_components/Shell";
 import { Card, LoadingState, ErrorState, EmptyState, MetricGauge, TrendArrow } from "@/lib/v2/ui";
+import { IdentityBlock } from "@/lib/v2/IdentityBlock";
 import {
-  displayName, genderGlyph, birthDateLabel, ageLabel, genderLabel, heightLabel, resolveAge,
+  displayName, resolveAge, genderKey,
 } from "@/lib/v2/identity";
-import { scoreLevel, customerStatusLevel } from "@/lib/v2/status";
+import { scoreLevel, customerStatusLevel, statusTextHex, statusTextClass } from "@/lib/v2/status";
 import {
   classifyHbA1c, classifyLDL, classifyFBS, classifyVisceralFat, classifyBodyAge, classifyBMI, trendDir,
 } from "@/lib/v2/labs";
 import { statusClasses, statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 import { deriveBMI } from "@/lib/bca-derive";
-import { LabsTab, TrendsTab } from "./_v2/LabTabs";
+
+/**
+ * Labs/Trends tabs are loaded on demand (SPEC §8 "กราฟ lazy/conditional").
+ * They live in one module that statically imports recharts (~100kB); the initial
+ * 360 tab is "body" (no charts), so deferring both keeps recharts out of the
+ * route's First-Load JS until the user opens Labs/Trends.
+ */
+const LabsTab = dynamic(() => import("./_v2/LabTabs").then((m) => m.LabsTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลดผลแล็บ…" />,
+});
+const TrendsTab = dynamic(() => import("./_v2/LabTabs").then((m) => m.TrendsTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลดแนวโน้ม…" />,
+});
 
 /* ── 360 response shape (subset we render) ── */
 interface Customer360 {
@@ -120,117 +136,96 @@ function IdentityBar({ data, customerId }: { data: Customer360; customerId: stri
   const st = data.status;
   const stLevel = customerStatusLevel(st.status as any);
   const phone = c.phone ? String(c.phone).replace(/[^0-9+]/g, "") : null;
-  const dobGregorian = birthDateLabel(c); // ค.ศ. (Gregorian) — SPEC §4
+
+  // Status badge shown inline with the name (same prominent IdentityBlock as BCA · SPEC §4).
+  const statusBadge = (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${statusClasses.bg[stLevel]} ${statusTextClass[stLevel]}`}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusHex[stLevel] }} aria-hidden />
+      {st.label}
+    </span>
+  );
+
+  const chips = (
+    <>
+      <RecencyChip icon={Activity} text={recencyLabel(data.meta.bcaLapseDays, "BCA")} />
+      <RecencyChip icon={FlaskConical} text={recencyLabel(data.meta.labLapseDays, "แล็บ")} />
+      <RecencyChip icon={MessageCircle} text={recencyLabel(data.meta.orderLapseDays, "ทักล่าสุด")} />
+      {c.phone && (
+        <a href={`tel:${phone}`} className="inline-flex min-h-[28px] items-center gap-1 rounded-full border border-ink-10 bg-surface px-2.5 py-1 font-mono text-[10.5px] text-ink-60 hover:text-rose">
+          <Phone size={11} strokeWidth={2.25} aria-hidden /> {c.phone}
+        </a>
+      )}
+    </>
+  );
+
+  const actions = (
+    <>
+      {phone && (
+        <a href={`tel:${phone}`} aria-label={`โทรหา ${c.name}`} className="btn-primary"><Phone size={14} strokeWidth={2.25} aria-hidden /> โทร</a>
+      )}
+      {(c.line_id || phone) && (
+        <a
+          href={c.line_id ? `https://line.me/R/ti/p/${encodeURIComponent(c.line_id)}` : `https://line.me/R/ti/p/~${phone}`}
+          target="_blank" rel="noopener" aria-label="ส่งข้อความผ่าน LINE"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          style={{ background: "#06C755" }}
+        >
+          <MessageCircle size={14} strokeWidth={2.25} aria-hidden /> LINE
+        </a>
+      )}
+      <Link href={`/customers/${customerId}/records/new`} className="btn-ghost"><PlusCircle size={14} strokeWidth={2.25} aria-hidden /> เพิ่มผลตรวจ</Link>
+      <Link href={`/v2/bca?customer=${customerId}`} className="btn-ghost"><Scale size={14} strokeWidth={2.25} aria-hidden /> BCA</Link>
+      <Link href={`/customers/${customerId}/allergies/new`} className="btn-ghost"><Pill size={14} strokeWidth={2.25} aria-hidden /> Allergy</Link>
+      {data.meta.hasMedMap && (
+        <a href={`/api/customers/${customerId}/med-map`} target="_blank" rel="noopener" aria-label="เปิดแผนผังยาและอาหารเสริม"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-rose/20 bg-rose-ultra px-3.5 py-1.5 text-[12px] font-semibold text-rose transition-colors hover:bg-rose hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
+          <Network size={14} strokeWidth={2.25} aria-hidden /> แผนผังยา &amp; อาหารเสริม
+        </a>
+      )}
+      {data.meta.hasLabReport && (
+        <a href={`/api/customers/${customerId}/lab-report`} target="_blank" rel="noopener" aria-label="เปิดรายงานสุขภาพ Longevity"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-wellness/20 bg-wellness-ultra px-3.5 py-1.5 text-[12px] font-semibold text-wellness transition-colors hover:bg-wellness hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2">
+          <FlaskConical size={14} strokeWidth={2.25} aria-hidden /> Longevity Report
+        </a>
+      )}
+      {data.meta.hasLabReport && data.meta.labReportToken && (
+        <CopyLinkButton token={data.meta.labReportToken} />
+      )}
+      <Link href={`/customers/${customerId}`} className="ml-auto inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-ink-5 px-3 py-1.5 text-[11px] font-semibold text-ink-60 transition-colors hover:bg-ink-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2" title="ไปหน้าเวอร์ชันปัจจุบัน (Legacy)">
+        <ExternalLink size={12} strokeWidth={2.25} aria-hidden /> มุมมองเดิม
+      </Link>
+    </>
+  );
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 lg:p-5">
-        {/* Row 1: avatar + name + status */}
-        <div className="flex flex-wrap items-start gap-4">
-          <span
-            className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl ring-1"
-            style={{ background: `${st.bg}`, color: st.color, borderColor: `${st.color}30` }}
-            aria-hidden
-          >
-            {genderGlyph(c.gender)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-head text-[22px] font-extrabold tracking-tight text-ink">{displayName(c)}</h1>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${statusClasses.bg[stLevel]} ${statusClasses.text[stLevel]}`}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusHex[stLevel] }} aria-hidden />
-                {st.label}
-              </span>
-            </div>
-            {/* Identity line (ค.ศ. DOB · age · gender · height) — SPEC §4 */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-thai text-[12.5px] text-ink-60">
-              <span className="inline-flex items-center gap-1">
-                <CalendarClock size={13} strokeWidth={2.25} className="text-ink-40" aria-hidden />
-                <span className={!c.birth_date && c.birth_year == null ? "text-ink-40" : ""}>{dobGregorian}</span>
-              </span>
-              <span className="text-ink-20" aria-hidden>·</span>
-              <span className={resolveAge(c) == null ? "text-ink-40" : ""}>{ageLabel(c)}</span>
-              <span className="text-ink-20" aria-hidden>·</span>
-              <span>{genderLabel(c.gender)} <span aria-hidden>{genderGlyph(c.gender)}</span></span>
-              <span className="text-ink-20" aria-hidden>·</span>
-              <span className={c.height == null ? "text-ink-40" : ""}>ส่วนสูง {heightLabel(c.height)}</span>
-              {c.phone && (
-                <>
-                  <span className="text-ink-20" aria-hidden>·</span>
-                  <a href={`tel:${phone}`} className="hover:text-rose">{c.phone}</a>
-                </>
-              )}
-            </div>
-            {st.reason && <div className="mt-1 font-thai text-[11.5px] italic leading-snug text-ink-40">{st.reason}</div>}
-          </div>
-
-          {/* Recency chips */}
-          <div className="flex flex-wrap gap-1.5">
-            <RecencyChip icon={Activity} text={recencyLabel(data.meta.bcaLapseDays, "BCA")} />
-            <RecencyChip icon={FlaskConical} text={recencyLabel(data.meta.labLapseDays, "แล็บ")} />
-            <RecencyChip icon={MessageCircle} text={recencyLabel(data.meta.orderLapseDays, "ทักล่าสุด")} />
-          </div>
-        </div>
-
-        {/* Row 2: action bar */}
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-ink-5 pt-3.5">
-          {phone && (
-            <a href={`tel:${phone}`} aria-label={`โทรหา ${c.name}`} className="btn-primary"><Phone size={14} strokeWidth={2.25} aria-hidden /> โทร</a>
-          )}
-          {(c.line_id || phone) && (
-            <a
-              href={c.line_id ? `https://line.me/R/ti/p/${encodeURIComponent(c.line_id)}` : `https://line.me/R/ti/p/~${phone}`}
-              target="_blank" rel="noopener" aria-label="ส่งข้อความผ่าน LINE"
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-              style={{ background: "#06C755" }}
-            >
-              <MessageCircle size={14} strokeWidth={2.25} aria-hidden /> LINE
-            </a>
-          )}
-          <Link href={`/customers/${customerId}/records/new`} className="btn-ghost"><PlusCircle size={14} strokeWidth={2.25} aria-hidden /> เพิ่มผลตรวจ</Link>
-          <Link href={`/v2/bca?customer=${customerId}`} className="btn-ghost"><Scale size={14} strokeWidth={2.25} aria-hidden /> BCA</Link>
-          <Link href={`/customers/${customerId}/allergies/new`} className="btn-ghost"><Pill size={14} strokeWidth={2.25} aria-hidden /> Allergy</Link>
-          {data.meta.hasMedMap && (
-            <a href={`/api/customers/${customerId}/med-map`} target="_blank" rel="noopener" aria-label="เปิดแผนผังยาและอาหารเสริม"
-              className="inline-flex items-center gap-1.5 rounded-full border border-rose/20 bg-rose-ultra px-3.5 py-1.5 text-[12px] font-semibold text-rose transition-colors hover:bg-rose hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
-              <Network size={14} strokeWidth={2.25} aria-hidden /> แผนผังยา &amp; อาหารเสริม
-            </a>
-          )}
-          {data.meta.hasLabReport && (
-            <a href={`/api/customers/${customerId}/lab-report`} target="_blank" rel="noopener" aria-label="เปิดรายงานสุขภาพ Longevity"
-              className="inline-flex items-center gap-1.5 rounded-full border border-wellness/20 bg-wellness-ultra px-3.5 py-1.5 text-[12px] font-semibold text-wellness transition-colors hover:bg-wellness hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2">
-              <FlaskConical size={14} strokeWidth={2.25} aria-hidden /> Longevity Report
-            </a>
-          )}
-          {data.meta.hasLabReport && data.meta.labReportToken && (
-            <CopyLinkButton token={data.meta.labReportToken} />
-          )}
-          <Link href={`/customers/${customerId}`} className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-ink-5 px-3 py-1.5 text-[11px] font-semibold text-ink-60 transition-colors hover:bg-ink-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2" title="ไปหน้าเวอร์ชันปัจจุบัน (Legacy)">
-            <ExternalLink size={12} strokeWidth={2.25} aria-hidden /> มุมมองเดิม
-          </Link>
-        </div>
-      </div>
-
+    <>
+      {/* ★ Same prominent IdentityBlock as BCA (SPEC §4): name · DOB ค.ศ. · age · gender · height */}
+      <IdentityBlock
+        customer={c}
+        editHref={`/customers/${customerId}`}
+        headerExtra={statusBadge}
+        chips={chips}
+        reason={st.reason || undefined}
+        actions={actions}
+      />
       {/* button utility classes (scoped) */}
-      <style jsx>{`
-        :global(.btn-primary) {
-          display: inline-flex; align-items: center; gap: 0.375rem;
+      <style jsx global>{`
+        .btn-primary {
+          display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px;
           border-radius: 9999px; padding: 0.375rem 0.875rem;
           font-size: 12px; font-weight: 600; color: #fff; background: #18151A;
           transition: background-color 0.15s;
         }
-        :global(.btn-primary:hover) { background: #8C4C4C; }
-        :global(.btn-ghost) {
-          display: inline-flex; align-items: center; gap: 0.375rem;
+        .btn-primary:hover { background: #8C4C4C; }
+        .btn-ghost {
+          display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px;
           border-radius: 9999px; padding: 0.375rem 0.875rem;
           font-size: 12px; font-weight: 600; color: #18151A;
           background: #fff; border: 1px solid #DDD9DF; transition: border-color 0.15s, color 0.15s;
         }
-        :global(.btn-ghost:hover) { border-color: #8C4C4C; color: #8C4C4C; }
+        .btn-ghost:hover { border-color: #8C4C4C; color: #8C4C4C; }
       `}</style>
-    </Card>
+    </>
   );
 }
 
@@ -304,12 +299,12 @@ function VitalDashboard({ data }: { data: Customer360 }) {
               BCA · ผลแล็บ · ความสม่ำเสมอ รวมเป็น 0–100
             </p>
             {delta != null && delta !== 0 && (
-              <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${delta > 0 ? "bg-status-bg-optimal text-status-optimal" : "bg-status-bg-warning text-status-warning"}`}>
+              <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${delta > 0 ? `bg-status-bg-optimal ${statusTextClass.optimal}` : `bg-status-bg-warning ${statusTextClass.warning}`}`}>
                 <TrendArrow dir={delta > 0 ? "up" : "down"} />
                 {delta > 0 ? "+" : ""}{delta} จากครั้งก่อน
               </div>
             )}
-            {data.score.deltaReason && <div className="mt-1 font-mono text-[10px] text-ink-40">{data.score.deltaReason}</div>}
+            {data.score.deltaReason && <div className="mt-1 font-mono text-[10px] text-ink-60">{data.score.deltaReason}</div>}
           </div>
         </div>
       </div>
@@ -338,8 +333,8 @@ function MetricCard({ label, value, unit, level, betterDir, series }: MetricCard
   const dir = series && series.length >= 2 ? trendDir(series) : "flat";
   // For "lower is better", a downward trend is good (green), upward is caution.
   const trendColor =
-    dir === "flat" ? "text-ink-40"
-      : (betterDir === "lower" ? dir === "down" : dir === "up") ? "text-status-optimal" : "text-status-warning";
+    dir === "flat" ? "text-ink-60"
+      : (betterDir === "lower" ? dir === "down" : dir === "up") ? statusTextClass.optimal : statusTextClass.warning;
 
   return (
     <div className="rounded-xl border border-ink-10 bg-white p-3">
@@ -349,12 +344,12 @@ function MetricCard({ label, value, unit, level, betterDir, series }: MetricCard
       </div>
       <div className="mt-1 flex items-baseline gap-1">
         <span className="font-head text-[20px] font-extrabold leading-none text-ink">{value != null ? value : "—"}</span>
-        {value != null && unit && <span className="font-mono text-[10px] text-ink-40">{unit}</span>}
+        {value != null && unit && <span className="font-mono text-[10px] text-ink-60">{unit}</span>}
         {series && series.length >= 2 && (
           <span className={`ml-auto ${trendColor}`}><TrendArrow dir={dir} /></span>
         )}
       </div>
-      {level && <div className="mt-1 text-[10px] font-semibold" style={{ color: statusHex[level] }}>{STATUS_LABEL_TH[level]}</div>}
+      {level && <div className="mt-1 text-[10px] font-semibold" style={{ color: statusTextHex[level] }}>{STATUS_LABEL_TH[level]}</div>}
     </div>
   );
 }
@@ -362,9 +357,9 @@ function MetricCard({ label, value, unit, level, betterDir, series }: MetricCard
 /* ─────────────────────────── Insights Panel ─────────────────────────── */
 
 const SEV_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  critical: { bg: "bg-status-bg-danger", text: "text-status-danger", border: "border-status-danger/20" },
-  watch: { bg: "bg-status-bg-caution", text: "text-status-caution", border: "border-status-caution/20" },
-  info: { bg: "bg-status-bg-optimal", text: "text-status-optimal", border: "border-status-optimal/20" },
+  critical: { bg: "bg-status-bg-danger", text: statusTextClass.danger, border: "border-status-danger/20" },
+  watch: { bg: "bg-status-bg-caution", text: statusTextClass.caution, border: "border-status-caution/20" },
+  info: { bg: "bg-status-bg-optimal", text: statusTextClass.optimal, border: "border-status-optimal/20" },
 };
 
 function InsightItem({ ins }: { ins: any }) {
@@ -372,8 +367,8 @@ function InsightItem({ ins }: { ins: any }) {
   return (
     <div className={`rounded-xl border ${s.border} ${s.bg} p-3`}>
       <div className={`font-thai text-[13px] font-semibold leading-snug ${s.text}`}>{ins.title}</div>
-      {ins.detail && <p className={`mt-1 text-[11.5px] leading-snug ${s.text} opacity-80`}>{ins.detail}</p>}
-      {ins.metric && <div className="mt-1 font-mono text-[9.5px] uppercase tracking-wide text-ink-40">{ins.metric}</div>}
+      {ins.detail && <p className={`mt-1 text-[11.5px] leading-snug ${s.text} opacity-90`}>{ins.detail}</p>}
+      {ins.metric && <div className="mt-1 font-mono text-[9.5px] uppercase tracking-wide text-ink-60">{ins.metric}</div>}
       {ins.action && (
         ins.href ? (
           <a href={ins.href} className={`mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-semibold ${s.text}`}>
@@ -400,12 +395,12 @@ function InsightsPanel({ insights }: { insights: Customer360["insights"] }) {
       {total === 0 ? (
         <div className="rounded-xl border border-status-optimal/20 bg-status-bg-optimal p-5 text-center">
           <Sparkles size={24} strokeWidth={1.75} className="mx-auto text-status-optimal" aria-hidden />
-          <p className="mt-2 font-thai text-[12.5px] text-status-optimal">ไม่มีสัญญาณที่ต้องกังวลตอนนี้</p>
+          <p className={`mt-2 font-thai text-[12.5px] ${statusTextClass.optimal}`}>ไม่มีสัญญาณที่ต้องกังวลตอนนี้</p>
         </div>
       ) : (
         <div className="space-y-4">
           {insights.alerts.length > 0 && (
-            <Group icon={AlertTriangle} label="จุดที่ควรดู" count={insights.alerts.length} tone="text-status-danger">
+            <Group icon={AlertTriangle} label="จุดที่ควรดู" count={insights.alerts.length} tone={statusTextClass.danger}>
               {insights.alerts.map((ins) => <InsightItem key={ins.id} ins={ins} />)}
             </Group>
           )}
@@ -422,7 +417,7 @@ function InsightsPanel({ insights }: { insights: Customer360["insights"] }) {
         </div>
       )}
 
-      <p className="mt-5 border-t border-ink-5 pt-4 font-thai text-[10.5px] leading-relaxed text-ink-40">
+      <p className="mt-5 border-t border-ink-5 pt-4 font-thai text-[10.5px] leading-relaxed text-ink-60">
         ข้อมูลนี้ใช้สำหรับ wellness coaching เท่านั้น · ไม่ใช่การวินิจฉัยทางการแพทย์ · ค่าผิดปกติควรปรึกษาแพทย์เพื่อยืนยัน
       </p>
     </Card>
@@ -457,7 +452,7 @@ function TimelinePanel({ events }: { events: Customer360["timeline"] }) {
       <div className="mb-3 flex items-center gap-1.5">
         <Clock size={15} strokeWidth={2.25} className="text-rose" aria-hidden />
         <h2 className="font-head text-[15px] font-bold tracking-tight text-ink">ไทม์ไลน์ 90 วัน</h2>
-        <span className="ml-auto font-mono text-[10px] text-ink-40">ใหม่ → เก่า</span>
+        <span className="ml-auto font-mono text-[10px] text-ink-60">ใหม่ → เก่า</span>
       </div>
       {events.length === 0 ? (
         <EmptyState icon={Inbox} title="ยังไม่มีความเคลื่อนไหวใน 90 วัน" hint="ลองทักทายเพื่อเริ่มต้นความสัมพันธ์" />
@@ -470,7 +465,7 @@ function TimelinePanel({ events }: { events: Customer360["timeline"] }) {
                 <span className="relative z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink-10 bg-white text-base">{e.icon}</span>
                 <div className="min-w-0 flex-1 pt-1.5">
                   <div className="font-thai text-[13px] leading-snug text-ink">{e.title}</div>
-                  <div className="mt-0.5 font-mono text-[10px] text-ink-40">
+                  <div className="mt-0.5 font-mono text-[10px] text-ink-60">
                     {new Date(e.date).toLocaleDateString("th-TH", { day: "numeric", month: "short" })} · {relDays(e.date)}
                   </div>
                 </div>
@@ -536,7 +531,7 @@ function DetailTabs({ data, customerId }: { data: Customer360; customerId: strin
               type="button"
               onClick={() => setTab(t.key)}
               onKeyDown={(e) => onKeyDown(e, i)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2 ${
+              className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2 ${
                 active ? "bg-ink text-white" : "border border-ink-10 bg-white text-ink-60 hover:border-ink-20 hover:text-ink"
               }`}
             >

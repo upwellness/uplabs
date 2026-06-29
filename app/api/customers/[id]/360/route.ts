@@ -5,6 +5,7 @@ import { isAssignedToCustomer } from "@/lib/customers/access";
 import { healthScore } from "@/lib/customers/health-score";
 import { classifyStatus } from "@/lib/customers/status-classifier";
 import { generateInsights } from "@/lib/customers/insight-rules";
+import { deriveChronoAge } from "@/lib/bca-derive";
 
 /**
  * Customer 360 aggregated endpoint
@@ -118,7 +119,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const last3 = (arr: number[] | undefined) => arr ? arr.slice(-3) : [];
 
     // ─── Health Score ───
-    const chronoAge = customer.birth_year ? new Date().getFullYear() - customer.birth_year : null;
+    // Day-accurate age from birth_date (falls back to birth_year inside deriveChronoAge);
+    // this keeps body-age classification aligned with the identity age shown in the UI.
+    const chronoAge =
+      deriveChronoAge(customer.birth_date ?? customer.birth_year, new Date().toISOString())
+      ?? (customer.birth_year ? new Date().getFullYear() - customer.birth_year : null);
     const score = healthScore({
       bca: bcaLatest ? {
         visceral:   bcaLatest.visceral,

@@ -11,6 +11,7 @@ import type { LucideIcon } from "lucide-react";
 import { Loader2, Inbox, AlertTriangle, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { StatusLevel } from "@/lib/medical-status";
 import { STATUS_LABEL_TH, statusClasses, statusHex } from "@/lib/medical-status";
+import { statusTextClass } from "@/lib/v2/status";
 import { cn } from "@/lib/utils";
 
 /** Soft clinical-warm card surface. */
@@ -39,7 +40,7 @@ export function LevelBadge({ level, label, className }: { level: StatusLevel; la
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold",
         statusClasses.bg[level],
-        statusClasses.text[level],
+        statusTextClass[level], // ★ AA-contrast text (≥4.5:1); dot keeps bright statusHex
         className,
       )}
     >
@@ -179,7 +180,7 @@ export function MetricGauge({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-head text-[19px] font-extrabold leading-none text-ink">{display}</span>
-          {unit && <span className="mt-0.5 font-mono text-[10px] text-ink-40">{unit}</span>}
+          {unit && <span className="mt-0.5 font-mono text-[10px] text-ink-60">{unit}</span>}
         </div>
       </div>
       <div className="text-center">

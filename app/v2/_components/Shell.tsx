@@ -98,7 +98,7 @@ export function Shell({
               aria-haspopup="menu"
               aria-expanded={switcherOpen}
               aria-label="สลับแอป"
-              className="inline-flex items-center gap-1.5 rounded-full border border-ink-10 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:border-ink-20 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:border-ink-20 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
             >
               <LayoutGrid size={14} strokeWidth={2.25} aria-hidden />
               <span className="hidden sm:inline">แอป</span>
@@ -113,8 +113,8 @@ export function Shell({
               >
                 <div className="flex items-center justify-between px-2 py-1.5">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-40">UP Labs v2</span>
-                  <button type="button" onClick={() => setSwitcherOpen(false)} aria-label="ปิด" className="rounded-md p-0.5 text-ink-40 hover:bg-ink-5 hover:text-ink">
-                    <X size={14} strokeWidth={2.25} aria-hidden />
+                  <button type="button" onClick={() => setSwitcherOpen(false)} aria-label="ปิด" className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-60 hover:bg-ink-5 hover:text-ink">
+                    <X size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 </div>
                 {V2_LINKS.map((l) => (
