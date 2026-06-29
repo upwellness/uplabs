@@ -7,6 +7,7 @@ const nextConfig = {
     outputFileTracingIncludes: {
       "/api/customers/[id]/med-map": ["./lib/reports/med-map/**/*"],
       "/api/customers/[id]/lab-report": ["./lib/reports/lab-report/**/*"],
+      "/r/lab/[token]": ["./lib/reports/lab-report/**/*"],
     },
   },
 };

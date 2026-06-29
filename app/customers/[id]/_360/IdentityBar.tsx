@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Phone, MessageCircle, PlusCircle, Activity, FlaskConical, ArrowUpRight, LineChart, Pill, Network } from "lucide-react";
 import type { StatusResult } from "@/lib/customers/status-classifier";
+import { ShareLabLinkButton } from "./ShareLabLinkButton";
 
 interface IdentityBarProps {
   customer: {
@@ -22,6 +23,7 @@ interface IdentityBarProps {
     lastTouch:      string | null;
     hasMedMap?:     boolean;
     hasLabReport?:  boolean;
+    labReportToken?: string | null;
   };
 }
 
@@ -149,6 +151,9 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
               className="inline-flex items-center gap-1.5 rounded-full bg-wellness-ultra border border-wellness/20 px-3.5 py-1.5 text-[12px] font-semibold text-wellness hover:bg-wellness hover:text-white transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2">
               <FlaskConical size={14} strokeWidth={2.25} aria-hidden="true" /> Longevity Report
             </a>
+          )}
+          {meta.hasLabReport && meta.labReportToken && (
+            <ShareLabLinkButton token={meta.labReportToken} />
           )}
           <Link href={`/customers/${customer.id}?legacy=1`}
             className="ml-auto inline-flex items-center gap-1 rounded-full bg-ink/8 px-3 py-1.5 text-[11px] font-mono text-ink-60 hover:bg-ink/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"

@@ -68,7 +68,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         .order("recorded_at", { ascending: false })
         .limit(50),
       admin.from("customer_lab_values").select("metric_key, value_num, recorded_at").eq("customer_id", params.id).order("recorded_at", { ascending: true }).limit(200),
-      admin.from("customer_records").select("recorded_at, source, document_type, notes").eq("customer_id", params.id).order("recorded_at", { ascending: false }).limit(10),
+      admin.from("customer_records").select("recorded_at, source, document_type, notes, source_id").eq("customer_id", params.id).order("recorded_at", { ascending: false }).limit(10),
       admin.from("customer_allergy_tests").select("id, test_type, test_lab, tested_at, panel_size").eq("customer_id", params.id).order("tested_at", { ascending: false }).limit(1),
       admin.from("customer_supplement_safety").select("status, product_th, product_key, conflicting_ingredients").eq("customer_id", params.id),
       admin.from("pulse_assessments").select("*", { count: "exact", head: true }).eq("customer_id", params.id),
@@ -254,7 +254,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       timeline,
       meta: { bcaLapseDays, labLapseDays, orderLapseDays, lastTouch,
         hasMedMap: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "med_map"),
-        hasLabReport: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "lab_report") },
+        hasLabReport: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "lab_report"),
+        labReportToken: (Array.isArray(latestRecord) ? latestRecord.find((r: any) => r.document_type === "lab_report")?.source_id : null) ?? null },
       // Tab data
       cgmProfiles: customer.cgm_profile_names ?? [],
       pulseAssessments: assessmentsList ?? [],
