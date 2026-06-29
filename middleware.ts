@@ -16,7 +16,8 @@ const PUBLIC_PATHS = [
   "/check",                   // Public Health Check form (lead capture)
   "/metaflex",                // Public MetaFlex Quiz (lead capture)
   "/api/check",               // Public submit endpoint
-  "/v2",                      // Design preview (static mockups · no real data)
+  // NOTE: "/v2" is intentionally NOT public — v2 now renders real customer data and
+  // must require login like the rest of the app (was public only while it was a static mockup).
   "/cgm-v1.html",             // CGM Analyzer static embed (iframe·does its own Supabase auth) — กัน middleware เด้ง iframe → /login → จอเปล่า
   "/api/line/webhook",        // LINE bot webhook — called by LINE (no session) · auth = x-line-signature in the route
   "/api/line/push-tomorrow",  // LINE bot cron push — called by Vercel Cron (no session) · auth = CRON_SECRET in the route

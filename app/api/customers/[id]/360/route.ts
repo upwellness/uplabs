@@ -249,6 +249,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       insights,
       labVals,
       bcaLatest,
+      bcaHistory: bcaHistory ?? [],   // additive: v2 Body-tab trends (v1 ignores this field)
       bcaCount: bcaCount ?? 0,
       pulseCount: pulseCount ?? 0,
       allergyTests: allergyTests ?? [],
