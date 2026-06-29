@@ -253,7 +253,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       allergyTests: allergyTests ?? [],
       timeline,
       meta: { bcaLapseDays, labLapseDays, orderLapseDays, lastTouch,
-        hasMedMap: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "med_map") },
+        hasMedMap: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "med_map"),
+        hasLabReport: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "lab_report") },
       // Tab data
       cgmProfiles: customer.cgm_profile_names ?? [],
       pulseAssessments: assessmentsList ?? [],

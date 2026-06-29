@@ -21,6 +21,7 @@ interface IdentityBarProps {
     orderLapseDays: number | null;
     lastTouch:      string | null;
     hasMedMap?:     boolean;
+    hasLabReport?:  boolean;
   };
 }
 
@@ -140,6 +141,13 @@ export function IdentityBar({ customer, status, meta }: IdentityBarProps) {
               aria-label="เปิดแผนผังยาและอาหารเสริม"
               className="inline-flex items-center gap-1.5 rounded-full bg-rose-ultra border border-rose/20 px-3.5 py-1.5 text-[12px] font-semibold text-rose hover:bg-rose hover:text-white transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2">
               <Network size={14} strokeWidth={2.25} aria-hidden="true" /> แผนผังยา &amp; อาหารเสริม
+            </a>
+          )}
+          {meta.hasLabReport && (
+            <a href={`/api/customers/${customer.id}/lab-report`} target="_blank" rel="noopener"
+              aria-label="เปิดรายงานสุขภาพ Longevity"
+              className="inline-flex items-center gap-1.5 rounded-full bg-wellness-ultra border border-wellness/20 px-3.5 py-1.5 text-[12px] font-semibold text-wellness hover:bg-wellness hover:text-white transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2">
+              <FlaskConical size={14} strokeWidth={2.25} aria-hidden="true" /> Longevity Report
             </a>
           )}
           <Link href={`/customers/${customer.id}?legacy=1`}
