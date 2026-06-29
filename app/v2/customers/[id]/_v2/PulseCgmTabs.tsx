@@ -222,7 +222,7 @@ export function PulseTab({
                         target="_blank"
                         rel="noopener"
                         aria-label="ดูผลประเมินฉบับเต็ม"
-                        className="inline-flex min-h-[36px] w-9 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-60 transition-colors hover:border-ink-20 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-60 transition-colors hover:border-ink-20 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
                       >
                         <Eye size={13} strokeWidth={2.25} aria-hidden />
                       </Link>

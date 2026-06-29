@@ -178,7 +178,7 @@ export function NotesTab({ customerId }: { customerId: string }) {
                       type="button"
                       onClick={() => remove(n.id)}
                       aria-label="ลบบันทึกนี้"
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-40 transition-colors hover:bg-status-bg-danger hover:text-status-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-60 transition-colors hover:bg-status-bg-danger hover:text-status-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2"
                     >
                       <Trash2 size={14} strokeWidth={2.25} aria-hidden />
                     </button>

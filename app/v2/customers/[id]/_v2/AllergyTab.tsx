@@ -19,7 +19,7 @@ import {
   ArrowDownRight, ShieldQuestion, CheckCircle2, Lightbulb,
 } from "lucide-react";
 import { LoadingState, ErrorState, EmptyState } from "@/lib/v2/ui";
-import { statusTextClass } from "@/lib/v2/status";
+import { statusTextClass, statusTextHex } from "@/lib/v2/status";
 import { statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 
 interface AllergyTest {
@@ -177,7 +177,7 @@ export function AllergyTab({ customerId }: { customerId: string }) {
               onClick={() => deleteTest(latest.id)}
               disabled={deleting}
               aria-label="ลบผลตรวจล่าสุด"
-              className="inline-flex min-h-[36px] w-9 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-40 transition-colors hover:border-status-danger/40 hover:text-status-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 disabled:opacity-50"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink-10 bg-white text-ink-60 transition-colors hover:border-status-danger/40 hover:text-status-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2 disabled:opacity-50"
             >
               <Trash2 size={13} strokeWidth={2.25} aria-hidden />
             </button>
@@ -281,7 +281,7 @@ export function AllergyTab({ customerId }: { customerId: string }) {
                           )}
                         </div>
                         {a.score != null && (
-                          <span className="shrink-0 font-mono text-[12px] font-bold" style={{ color: statusHex[m.level] }}>{a.score}</span>
+                          <span className="shrink-0 font-mono text-[12px] font-bold" style={{ color: statusTextHex[m.level] }}>{a.score}</span>
                         )}
                       </div>
                     ))}
