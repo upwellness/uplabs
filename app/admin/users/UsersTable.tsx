@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { UserRow } from "./UserRow";
-import { type UserListRow } from "./actions";
+import { type UserListRow, type AssignableCustomer } from "./actions";
 import type { Role } from "@/lib/auth/roles";
 
-export function UsersTable({ users }: { users: UserListRow[] }) {
+export function UsersTable({ users, allCustomers }: { users: UserListRow[]; allCustomers: AssignableCustomer[] }) {
   const [filter, setFilter] = useState<"all" | Role>("all");
   const [query, setQuery] = useState("");
 
@@ -54,7 +54,7 @@ export function UsersTable({ users }: { users: UserListRow[] }) {
         </thead>
         <tbody>
           {filtered.map((u) => (
-            <UserRow key={u.id} user={u} />
+            <UserRow key={u.id} user={u} allCustomers={allCustomers} />
           ))}
         </tbody>
       </table>

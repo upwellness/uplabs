@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { runAssessment } from "@/lib/pulse/assess";
 
 /** Coach triggers AI assessment — pulls ALL data sources */
@@ -18,7 +19,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     if (!customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

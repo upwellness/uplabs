@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { assignedCustomerIds } from "@/lib/customers/access";
 
 /**
  * Customer list with cross-app stats (BCA count · CGM linked · Pulse connected · leads).
@@ -21,7 +22,13 @@ const fetchCustomersList = unstable_cache(
     let custQuery = admin.from("customers")
       .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
       .order("name");
-    if (!isAdmin) custQuery = custQuery.eq("coach_id", coachId);
+    if (!isAdmin) {
+      // owner's own customers + any assigned to them (co-coach)
+      const assigned = await assignedCustomerIds(coachId!);
+      custQuery = assigned.length
+        ? custQuery.or(`coach_id.eq.${coachId},id.in.(${assigned.join(",")})`)
+        : custQuery.eq("coach_id", coachId!);
+    }
     const { data: customers, error } = await custQuery;
     if (error) throw error;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /**
  * น้องจาน · per-customer supplement schedule (vitamins per meal slot).
@@ -24,7 +25,7 @@ async function authCustomer(customerId: string, session: { profile: { role: stri
     .maybeSingle();
   if (!customer) return { ok: false as const, status: 404, error: "customer not found" };
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id) {
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customerId))) {
     return { ok: false as const, status: 403, error: "forbidden" };
   }
   return { ok: true as const, admin, customer };

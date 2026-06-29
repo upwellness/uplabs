@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMasterSnapshot } from "@/lib/pulse/master-data";
 import { Logo } from "@/components/ui/Logo";
@@ -20,7 +21,7 @@ export default async function MasterPage({ params }: { params: { id: string } })
   if (!customer) redirect("/pulse");
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id) redirect("/pulse");
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) redirect("/pulse");
 
   const cgmProfiles: string[] = (customer.cgm_profile_names as string[] | null) ?? [];
 

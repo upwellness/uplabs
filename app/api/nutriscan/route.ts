@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { analyzeFood, type NutriScanResult } from "@/lib/nutriscan/gemini-vision";
 
 export const runtime = "nodejs";
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       const { data: c } = await supa.from("customers").select("coach_id").eq("id", customer_id).maybeSingle();
       if (!c) return NextResponse.json({ error: "customer not found" }, { status: 404 });
       const isAdmin = session.profile.role === "admin";
-      if (!isAdmin && c.coach_id !== session.user.id) {
+      if (!isAdmin && c.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customer_id))) {
         return NextResponse.json({ error: "forbidden" }, { status: 403 });
       }
     }

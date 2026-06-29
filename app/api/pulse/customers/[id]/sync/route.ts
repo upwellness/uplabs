@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { decryptToken, encryptToken } from "@/lib/pulse/crypto";
 import { fetch7DaySummary, refreshAccessToken } from "@/lib/pulse/google-fit";
 
@@ -20,7 +21,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     if (cErr || !customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

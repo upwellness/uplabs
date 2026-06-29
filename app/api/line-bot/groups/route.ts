@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /**
  * น้องจาน · LINE bot group ↔ customer mappings.
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (!customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customerId))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
           .select("coach_id")
           .eq("id", existing.customer_id)
           .maybeSingle();
-        if (prevCust && prevCust.coach_id !== session.user.id) {
+        if (prevCust && prevCust.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, existing.customer_id))) {
           return NextResponse.json({ error: "กลุ่มนี้ถูกผูกกับลูกค้าของโค้ชคนอื่นแล้ว" }, { status: 403 });
         }
       }

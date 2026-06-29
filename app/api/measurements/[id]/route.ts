@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /**
  * PATCH/DELETE a single measurement.
@@ -21,7 +22,7 @@ async function authorize(measurementId: string) {
 
   const isAdmin = session.profile.role === "admin";
   const coachId = (m.customers as any).coach_id;
-  if (!isAdmin && coachId !== session.user.id) {
+  if (!isAdmin && coachId !== session.user.id && !(await isAssignedToCustomer(session.user.id, m.customer_id))) {
     return { error: "forbidden", status: 403 as const };
   }
   return { supa };

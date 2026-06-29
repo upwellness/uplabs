@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 async function verifyAccess(customerId: string, session: any, admin: any) {
   const { data: customer } = await admin
     .from("customers").select("id, coach_id").eq("id", customerId).maybeSingle();
   if (!customer) return { ok: false, status: 404, error: "customer not found" };
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id) {
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customerId))) {
     return { ok: false, status: 403, error: "forbidden" };
   }
   return { ok: true };

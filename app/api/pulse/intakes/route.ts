@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /** Coach creates an intake link for a customer */
 export async function POST(req: Request) {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     if (!customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customer_id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /** Coach/admin updates the CGM profile_name → customer linkage */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -17,7 +18,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (!customer) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

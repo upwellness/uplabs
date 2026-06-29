@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { NewAllergyTestForm } from "./NewAllergyTestForm";
@@ -17,7 +18,7 @@ export default async function NewAllergyTestPage({ params }: { params: { id: str
   if (!customer) redirect("/customers");
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id) redirect("/customers");
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) redirect("/customers");
 
   return (
     <main className="min-h-screen bg-surface">

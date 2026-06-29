@@ -1,11 +1,11 @@
-import { listUsers } from "./actions";
+import { listUsers, listAssignableCustomers } from "./actions";
 import { UsersTable } from "./UsersTable";
 import { NewUserButton } from "./NewUserButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const users = await listUsers();
+  const [users, allCustomers] = await Promise.all([listUsers(), listAssignableCustomers()]);
 
   return (
     <div className="mx-auto max-w-content px-10 py-10">
@@ -18,7 +18,7 @@ export default async function AdminUsersPage() {
         <NewUserButton />
       </header>
 
-      <UsersTable users={users} />
+      <UsersTable users={users} allCustomers={allCustomers} />
     </div>
   );
 }

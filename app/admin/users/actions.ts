@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
@@ -21,6 +21,13 @@ export interface UserListRow {
   last_sign_in_at: string | null;
   granted_app_slugs: string[];
   managed_customers: ManagedCustomer[];
+  assigned_customers: ManagedCustomer[];
+}
+
+export interface AssignableCustomer {
+  id: string;
+  name: string;
+  coach_id: string | null;
 }
 
 function siteUrl() {
@@ -35,10 +42,11 @@ export async function listUsers(): Promise<UserListRow[]> {
   const { data: authList, error: aErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (aErr) throw aErr;
 
-  const [{ data: profiles }, { data: grants }, { data: customers }] = await Promise.all([
+  const [{ data: profiles }, { data: grants }, { data: customers }, { data: assignments }] = await Promise.all([
     admin.from("profiles").select("id, email, display_name, role, abo_number, phone"),
     admin.from("user_app_grants").select("user_id, app_slug"),
     admin.from("customers").select("id, name, coach_id").not("coach_id", "is", null).order("name"),
+    admin.from("customer_assignments").select("user_id, customer_id"),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -49,11 +57,20 @@ export async function listUsers(): Promise<UserListRow[]> {
     grantsMap.set(g.user_id, arr);
   }
   const customersByCoach = new Map<string, ManagedCustomer[]>();
+  const customerName = new Map<string, string>();
   for (const c of customers ?? []) {
+    customerName.set(c.id, c.name);
     if (!c.coach_id) continue;
     const arr = customersByCoach.get(c.coach_id) ?? [];
     arr.push({ id: c.id, name: c.name });
     customersByCoach.set(c.coach_id, arr);
+  }
+  // Customers explicitly shared with a user (co-coach), keyed by user_id.
+  const assignedByUser = new Map<string, ManagedCustomer[]>();
+  for (const a of assignments ?? []) {
+    const arr = assignedByUser.get(a.user_id) ?? [];
+    arr.push({ id: a.customer_id, name: customerName.get(a.customer_id) ?? "—" });
+    assignedByUser.set(a.user_id, arr);
   }
 
   return authList.users.map((u) => {
@@ -69,6 +86,7 @@ export async function listUsers(): Promise<UserListRow[]> {
       last_sign_in_at: u.last_sign_in_at ?? null,
       granted_app_slugs: grantsMap.get(u.id) ?? [],
       managed_customers: customersByCoach.get(u.id) ?? [],
+      assigned_customers: assignedByUser.get(u.id) ?? [],
     };
   }).sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
 }
@@ -180,5 +198,42 @@ export async function createUser(email: string, password: string, role: Role, di
     await admin.from("profiles").update({ role, display_name }).eq("id", data.user.id);
   }
   revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+/** All customers (id · name · owner) — for the admin's "assign customer" picker. */
+export async function listAssignableCustomers(): Promise<AssignableCustomer[]> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data } = await admin.from("customers").select("id, name, coach_id").order("name");
+  return (data ?? []) as AssignableCustomer[];
+}
+
+/** Share a customer with an additional user (co-coach): they can see + edit it. */
+export async function assignCustomer(userId: string, customerId: string) {
+  const session = await requireAdmin();
+  if (!userId || !customerId) return { error: "ข้อมูลไม่ครบ" };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("customer_assignments")
+    .upsert({ customer_id: customerId, user_id: userId, assigned_by: session.user.id });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/users");
+  revalidateTag("dashboard"); // refresh the assigned user's customer-list cache
+  return { ok: true };
+}
+
+/** Revoke a co-coach assignment (does NOT touch ownership or any customer data). */
+export async function unassignCustomer(userId: string, customerId: string) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("customer_assignments")
+    .delete()
+    .eq("user_id", userId)
+    .eq("customer_id", customerId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/users");
+  revalidateTag("dashboard");
   return { ok: true };
 }

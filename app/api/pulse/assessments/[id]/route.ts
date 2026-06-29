@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 
 /** Coach view single assessment (with edit) */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -16,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (error || !data) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && (data.customers as any).coach_id !== session.user.id) {
+    if (!isAdmin && (data.customers as any).coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, (data.customers as any).id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
     return NextResponse.json({ assessment: data });

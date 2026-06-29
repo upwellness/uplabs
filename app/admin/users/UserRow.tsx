@@ -11,10 +11,11 @@ import {
   updateUserRole, updateUserEmail, updateDisplayName,
   updateAboNumber, updatePhone,
   sendResetEmail, generateResetLink, toggleAppGrant,
-  type UserListRow,
+  assignCustomer, unassignCustomer,
+  type UserListRow, type AssignableCustomer,
 } from "./actions";
 
-export function UserRow({ user }: { user: UserListRow }) {
+export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomers: AssignableCustomer[] }) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [linkOut, setLinkOut] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export function UserRow({ user }: { user: UserListRow }) {
   const [nameEdit,  setNameEdit]  = useState(user.display_name ?? "");
   const [aboEdit,   setAboEdit]   = useState(user.abo_number ?? "");
   const [phoneEdit, setPhoneEdit] = useState(user.phone ?? "");
+  const [assignQuery, setAssignQuery] = useState("");
   const [, start] = useTransition();
   const router = useRouter();
 
@@ -69,6 +71,14 @@ export function UserRow({ user }: { user: UserListRow }) {
     });
   };
 
+  const q = assignQuery.trim().toLowerCase();
+  const assignCandidates = q
+    ? allCustomers.filter((c) =>
+        c.coach_id !== user.id &&                              // not their own customer
+        !user.assigned_customers.some((a) => a.id === c.id) && // not already shared
+        c.name.toLowerCase().includes(q)).slice(0, 8)
+    : [];
+
   return (
     <>
       <tr className="border-b border-ink-5 hover:bg-surface transition-colors">
@@ -101,6 +111,11 @@ export function UserRow({ user }: { user: UserListRow }) {
             {user.managed_customers.length > 0 && (
               <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-rose-ultra px-1.5 py-0.5 text-[10px] font-bold text-rose">
                 👥 {user.managed_customers.length}
+              </span>
+            )}
+            {user.assigned_customers.length > 0 && (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-wellness/10 px-1.5 py-0.5 text-[10px] font-bold text-wellness">
+                +{user.assigned_customers.length} แชร์
               </span>
             )}
           </div>
@@ -264,6 +279,55 @@ export function UserRow({ user }: { user: UserListRow }) {
                     <div className="flex items-center justify-center rounded-lg border border-dashed border-ink-10 px-2 py-2 font-mono text-[11px] text-ink-40">
                       +{user.managed_customers.length - 12} more
                     </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Assigned Customers (co-coach · เห็น + แก้ได้) ── */}
+            <div className="mt-6 rounded-2xl border border-ink-10 bg-white p-5">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-40">Assigned Customers · แชร์ให้ช่วยดูแล</div>
+              <p className="mb-3 font-thai text-[12px] text-ink-60">
+                แชร์ลูกค้าของคนอื่นให้ user คนนี้ <strong>เห็น + แก้ไขได้</strong> (co-coach) — เจ้าของเดิมยังเห็นเหมือนเดิม · ลบสิทธิ์ได้ทุกเมื่อ
+              </p>
+
+              {user.assigned_customers.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {user.assigned_customers.map((c) => (
+                    <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full border border-wellness/20 bg-wellness/10 px-2.5 py-1 text-[12px] font-semibold text-wellness">
+                      <Link href={`/customers/${c.id}`} className="hover:underline">{c.name}</Link>
+                      <button
+                        onClick={() => run(`unassign-${c.id}`, () => unassignCustomer(user.id, c.id))}
+                        disabled={busy !== null}
+                        aria-label={`ยกเลิกสิทธิ์ ${c.name}`}
+                        className="text-wellness/60 hover:text-status-danger disabled:opacity-40"
+                      >✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <input
+                value={assignQuery}
+                onChange={(e) => setAssignQuery(e.target.value)}
+                placeholder="ค้นหาลูกค้าเพื่อแชร์ให้ user คนนี้..."
+                className="w-full rounded-lg border border-ink-10 bg-white px-3 py-2 text-sm outline-none focus:border-wellness placeholder:text-ink-20"
+              />
+              {q && (
+                <div className="mt-2 flex flex-col gap-1">
+                  {assignCandidates.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { run(`assign-${c.id}`, () => assignCustomer(user.id, c.id)); setAssignQuery(""); }}
+                      disabled={busy !== null}
+                      className="flex items-center justify-between rounded-lg border border-ink-10 bg-white px-3 py-2 text-left text-[12px] transition-colors hover:border-wellness/40 hover:bg-wellness/5 disabled:opacity-50"
+                    >
+                      <span className="font-thai font-semibold text-ink">{c.name}</span>
+                      <span className="font-mono text-[10px] font-bold text-wellness">+ assign</span>
+                    </button>
+                  ))}
+                  {assignCandidates.length === 0 && (
+                    <div className="px-3 py-2 font-thai text-[12px] text-ink-40">ไม่พบลูกค้า (หรือแชร์ไปแล้ว)</div>
                   )}
                 </div>
               )}

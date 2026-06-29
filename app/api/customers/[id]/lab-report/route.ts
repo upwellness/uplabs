@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 import { getSession } from "@/lib/auth/session";
+import { isAssignedToCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!customer) return new NextResponse("customer not found", { status: 404 });
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id) {
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
     return new NextResponse("forbidden", { status: 403 });
   }
 
