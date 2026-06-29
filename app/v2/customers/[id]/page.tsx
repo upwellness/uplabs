@@ -46,6 +46,32 @@ const TrendsTab = dynamic(() => import("./_v2/LabTabs").then((m) => m.TrendsTab)
   loading: () => <LoadingState label="กำลังโหลดแนวโน้ม…" />,
 });
 
+/**
+ * The remaining detail tabs are also loaded on demand: each owns its own fetch
+ * and/or client state, so deferring them keeps page.tsx lean and their code out
+ * of the route's First-Load JS until the matching tab is opened.
+ */
+const AllergyTab = dynamic(() => import("./_v2/AllergyTab").then((m) => m.AllergyTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลดผลตรวจภูมิแพ้…" />,
+});
+const SupplementsTab = dynamic(() => import("./_v2/SupplementsTab").then((m) => m.SupplementsTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลดรายการอาหารเสริม…" />,
+});
+const NotesTab = dynamic(() => import("./_v2/NotesTab").then((m) => m.NotesTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลดบันทึก…" />,
+});
+const CgmTab = dynamic(() => import("./_v2/PulseCgmTabs").then((m) => m.CgmTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลด CGM…" />,
+});
+const PulseTab = dynamic(() => import("./_v2/PulseCgmTabs").then((m) => m.PulseTab), {
+  ssr: false,
+  loading: () => <LoadingState label="กำลังโหลด Pulse…" />,
+});
+
 /* ── 360 response shape (subset we render) ── */
 interface Customer360 {
   customer: any;
@@ -545,11 +571,11 @@ function DetailTabs({ data, customerId }: { data: Customer360; customerId: strin
         {tab === "body" && <BodyTab data={data} />}
         {tab === "labs" && <LabsTab customerId={customerId} chronoAge={chronoAge} />}
         {tab === "trends" && <TrendsTab customerId={customerId} chronoAge={chronoAge} />}
-        {tab === "allergy" && <TabPlaceholder customerId={customerId} title="Allergy & Sensitivity" legacy />}
-        {tab === "cgm" && <TabPlaceholder customerId={customerId} title="CGM (น้ำตาลต่อเนื่อง)" legacy />}
-        {tab === "supplements" && <TabPlaceholder customerId={customerId} title="Supplements (Nutrilite)" legacy />}
-        {tab === "pulse" && <TabPlaceholder customerId={customerId} title="UP Pulse (Wearable)" legacy />}
-        {tab === "notes" && <TabPlaceholder customerId={customerId} title="Notes (บันทึกโค้ช)" legacy />}
+        {tab === "allergy" && <AllergyTab customerId={customerId} />}
+        {tab === "cgm" && <CgmTab customerId={customerId} profiles={data.cgmProfiles} />}
+        {tab === "supplements" && <SupplementsTab customerId={customerId} />}
+        {tab === "pulse" && <PulseTab customerId={customerId} assessments={data.pulseAssessments} intake={data.pulseIntake} />}
+        {tab === "notes" && <NotesTab customerId={customerId} />}
       </div>
     </Card>
   );
@@ -621,27 +647,6 @@ function BodyTab({ data }: { data: Customer360 }) {
             ))}
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Placeholder for tabs landing in the next iteration ── */
-
-function TabPlaceholder({ customerId, title, legacy }: { customerId: string; title: string; legacy?: boolean }) {
-  return (
-    <div className="rounded-xl border border-dashed border-ink-10 bg-surface/40 px-6 py-12 text-center">
-      <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-ink-5 text-ink-40">
-        <Clock size={20} strokeWidth={2} aria-hidden />
-      </span>
-      <div className="mt-3 font-head text-[15px] font-bold text-ink">{title}</div>
-      <p className="mx-auto mt-1 max-w-sm font-thai text-[12.5px] leading-[1.6] text-ink-60">
-        แท็บนี้อยู่ใน iteration ถัดไปของ v2 — เวอร์ชันปัจจุบัน (Legacy) ยังใช้งานได้เต็มรูปแบบ
-      </p>
-      {legacy && (
-        <Link href={`/customers/${customerId}`} className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-1.5 text-[12px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose">
-          <ExternalLink size={13} strokeWidth={2.25} aria-hidden /> เปิดในมุมมองเดิม
-        </Link>
       )}
     </div>
   );
