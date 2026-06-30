@@ -97,7 +97,7 @@ export default async function V2LineBotCustomerPage({
           <AlertTriangle size={16} strokeWidth={2.25} className="mt-0.5 shrink-0" aria-hidden />
           <span>
             บอทคำนวณเมนูไม่ได้จนกว่าจะมี <b>ส่วนสูง</b> และ <b>น้ำหนักล่าสุด</b> ของลูกค้า — เพิ่มได้ที่หน้า{" "}
-            <Link href={`/customers/${customer.id}`} className="inline-flex items-center gap-1 font-semibold underline">
+            <Link href={`/v2/customers/${customer.id}`} className="inline-flex items-center gap-1 font-semibold underline">
               <PencilLine size={12} strokeWidth={2.25} aria-hidden /> โปรไฟล์ลูกค้า
             </Link>{" "}
             (ส่วนสูง) และ BCA/measurements (น้ำหนัก)

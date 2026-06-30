@@ -53,6 +53,14 @@ const V2_LINKS: { href: string; label: string; icon: typeof Users; adminOnly?: b
   { href: "/v2/admin/users", label: "Admin · ผู้ใช้", icon: Shield, adminOnly: true },
 ];
 
+/** Registry slug → v2 route (so the "all apps" list prefers v2 where it exists). */
+const V2_ROUTE: Record<string, string> = {
+  customers: "/v2/customers", bca: "/v2/bca", pulse: "/v2/pulse",
+  checkform: "/v2/checkform", prospects: "/v2/prospects", healthcheck: "/v2/healthcheck",
+  nutriscan: "/v2/nutriscan", foodlog: "/v2/nutriscan/log",
+  "plate-planner": "/v2/plate-planner", designer: "/v2/designer", "line-bot": "/v2/line-bot",
+};
+
 function initialsOf(name?: string | null, email?: string | null): string {
   const src = (name || email || "?").trim();
   return src.slice(0, 2).toUpperCase();
@@ -143,10 +151,11 @@ export function Shell({
                 ))}
 
                 <div className="my-1.5 border-t border-ink-5" />
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-40">แอปทั้งหมด (เวอร์ชันปัจจุบัน)</div>
+                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-40">แอปทั้งหมด</div>
                 <div className="grid grid-cols-1 gap-0.5">
                   {liveApps.map((a) => {
-                    const external = a.href.startsWith("http");
+                    const target = V2_ROUTE[a.slug] ?? a.href;
+                    const external = target.startsWith("http");
                     const inner = (
                       <span className="flex items-center gap-2.5">
                         <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink-5 text-[13px]">{a.icon}</span>
@@ -156,11 +165,11 @@ export function Shell({
                     );
                     const cls = "rounded-xl px-2 py-1.5 text-[13px] font-medium text-ink-80 transition-colors hover:bg-surface";
                     return external ? (
-                      <a key={a.slug} href={a.href} target="_blank" rel="noopener noreferrer" role="menuitem" onClick={() => setSwitcherOpen(false)} className={cls}>
+                      <a key={a.slug} href={target} target="_blank" rel="noopener noreferrer" role="menuitem" onClick={() => setSwitcherOpen(false)} className={cls}>
                         {inner}
                       </a>
                     ) : (
-                      <Link key={a.slug} href={a.href as any} role="menuitem" onClick={() => setSwitcherOpen(false)} className={cls}>
+                      <Link key={a.slug} href={target as any} role="menuitem" onClick={() => setSwitcherOpen(false)} className={cls}>
                         {inner}
                       </Link>
                     );

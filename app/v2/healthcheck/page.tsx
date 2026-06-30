@@ -57,6 +57,12 @@ const RISK_META: Record<Lead["risk_level"], { level: StatusLevel; label: string 
   very_high: { level: "danger", label: "สูงมาก" },
 };
 
+/** Defensive lookup — metaflex leads store non-standard risk_level strings
+ *  (e.g. "WARNING ZONE ⚠️"), so fall back to the raw label instead of crashing. */
+function riskMeta(level: string | null | undefined): { level: StatusLevel; label: string } {
+  return RISK_META[level as Lead["risk_level"]] ?? { level: "caution", label: level || "—" };
+}
+
 const STATUS_META: Record<string, { label: string; level: StatusLevel | "neutral" }> = {
   new:       { label: "ใหม่", level: "good" },
   contacted: { label: "ติดต่อแล้ว", level: "caution" },
@@ -353,7 +359,7 @@ function QuizBadge({ type }: { type: string }) {
 }
 
 function RiskBadge({ level, score }: { level: Lead["risk_level"]; score: number }) {
-  const m = RISK_META[level];
+  const m = riskMeta(level);
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusBgClass(m.level)} ${statusTextClass[m.level]}`}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusTextHex[m.level] }} aria-hidden />
@@ -425,7 +431,7 @@ function LeadDetailModal({ lead, onClose, onUpdate, onConvert }: {
   onConvert: (id: string) => void;
 }) {
   const [notes, setNotes] = useState(lead.notes ?? "");
-  const risk = RISK_META[lead.risk_level];
+  const risk = riskMeta(lead.risk_level);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
