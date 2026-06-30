@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   CalendarDays, Plus, Sunrise, Sun, Moon, Apple, UtensilsCrossed, Loader2, Leaf,
+  Pencil, Trash2, X, Save,
 } from "lucide-react";
 import { Shell } from "../../_components/Shell";
 import { Card, SectionLabel, LoadingState, EmptyState, ErrorState, IconChip } from "@/lib/v2/ui";
@@ -46,9 +47,17 @@ interface ScanRow {
   glucose_impact_score: number | null;
   health_score: number | null;
   created_at: string;
+  eaten_on: string | null;
   customer_id: string | null;
   notes: string | null;
 }
+
+const MEAL_EDIT_OPTIONS = [
+  { value: "breakfast", label: "เช้า" },
+  { value: "lunch", label: "กลางวัน" },
+  { value: "dinner", label: "เย็น" },
+  { value: "snack", label: "ของว่าง" },
+];
 
 const MEAL_ORDER: Record<string, number> = { breakfast: 1, lunch: 2, dinner: 3, snack: 4 };
 const MEAL_META: Record<string, { label: string; icon: typeof Sun }> = {
@@ -92,6 +101,8 @@ function FoodLogInner() {
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<ScanRow | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadCustomers = useCallback(async () => {
     try {
@@ -120,6 +131,36 @@ function FoodLogInner() {
       setLoading(false);
     }
   }, [date, customerId]);
+
+  const handleDelete = useCallback(async (row: ScanRow) => {
+    if (typeof window !== "undefined" && !window.confirm(`ลบบันทึก "${row.food_identified ?? "มื้อนี้"}" ?`)) return;
+    setDeletingId(row.id);
+    // Optimistic remove; restore on failure.
+    const prev = scans;
+    setScans((s) => s.filter((r) => r.id !== row.id));
+    try {
+      const res = await fetch(`/api/nutriscan/${row.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "ลบไม่สำเร็จ");
+      }
+    } catch (e: any) {
+      setScans(prev);
+      if (typeof window !== "undefined") window.alert(e.message ?? "ลบไม่สำเร็จ");
+    } finally {
+      setDeletingId(null);
+    }
+  }, [scans]);
+
+  const handleSaveEdit = useCallback((updated: ScanRow) => {
+    // PATCH may move the row to a different day → drop it if it no longer matches the filter.
+    const effDate = updated.eaten_on ?? updated.created_at.slice(0, 10);
+    setScans((s) => {
+      const next = s.map((r) => (r.id === updated.id ? updated : r));
+      return effDate === date ? next : next.filter((r) => r.id !== updated.id);
+    });
+    setEditing(null);
+  }, [date]);
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
   useEffect(() => { loadScans(); }, [loadScans]);
@@ -217,11 +258,15 @@ function FoodLogInner() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {Array.from(grouped.entries()).map(([meal, rows]) => <MealGroup key={meal} meal={meal} rows={rows} />)}
+              {Array.from(grouped.entries()).map(([meal, rows]) => (
+                <MealGroup key={meal} meal={meal} rows={rows} onEdit={setEditing} onDelete={handleDelete} deletingId={deletingId} />
+              ))}
             </div>
           )}
         </div>
       )}
+
+      {editing && <EditMealModal row={editing} onClose={() => setEditing(null)} onSaved={handleSaveEdit} />}
     </Shell>
   );
 }
@@ -293,7 +338,9 @@ function MacroSummaryRow({ label, g, pct, color }: { label: string; g: number; p
   );
 }
 
-function MealGroup({ meal, rows }: { meal: string; rows: ScanRow[] }) {
+function MealGroup({ meal, rows, onEdit, onDelete, deletingId }: {
+  meal: string; rows: ScanRow[]; onEdit: (r: ScanRow) => void; onDelete: (r: ScanRow) => void; deletingId: string | null;
+}) {
   const meta = MEAL_META[meal] ?? MEAL_META.other;
   const totalKcal = rows.reduce((s, r) => s + (r.calories_estimate ?? 0), 0);
   return (
@@ -306,13 +353,13 @@ function MealGroup({ meal, rows }: { meal: string; rows: ScanRow[] }) {
         <div className="font-mono text-[11px] text-ink-60">{rows.length} มื้อ · {totalKcal} kcal</div>
       </div>
       <div className="mt-3 space-y-2.5">
-        {rows.map((r) => <MealCard key={r.id} row={r} />)}
+        {rows.map((r) => <MealCard key={r.id} row={r} onEdit={() => onEdit(r)} onDelete={() => onDelete(r)} deleting={deletingId === r.id} />)}
       </div>
     </Card>
   );
 }
 
-function MealCard({ row }: { row: ScanRow }) {
+function MealCard({ row, onEdit, onDelete, deleting }: { row: ScanRow; onEdit: () => void; onDelete: () => void; deleting: boolean }) {
   const b = macroBreakdown({ carb_g: row.carb_g ?? 0, protein_g: row.protein_g ?? 0, fat_g: row.fat_g ?? 0 });
   const time = new Date(row.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   const gi = row.glucose_impact_score;
@@ -346,6 +393,180 @@ function MealCard({ row }: { row: ScanRow }) {
           </div>
         </div>
       )}
+
+      {/* Edit / delete */}
+      <div className="mt-3 flex items-center justify-end gap-2 border-t border-ink-10 pt-2.5">
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={deleting}
+          className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+        >
+          <Pencil size={13} strokeWidth={2.25} aria-hidden /> แก้ไข
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={deleting}
+          className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-ink-10 bg-white px-3 py-1.5 text-[12px] font-semibold text-ink-80 transition-colors hover:border-status-danger hover:text-status-danger disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-status-danger focus-visible:ring-offset-2"
+        >
+          {deleting ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Trash2 size={13} strokeWidth={2.25} aria-hidden />} ลบ
+        </button>
+      </div>
     </div>
+  );
+}
+
+/** Edit modal — meal_type, notes, eaten_on, macro grams. Calories recompute from macros. */
+function EditMealModal({ row, onClose, onSaved }: { row: ScanRow; onClose: () => void; onSaved: (r: ScanRow) => void }) {
+  const [mealType, setMealType] = useState<string>(row.meal_type ?? "");
+  const [notes, setNotes] = useState<string>(row.notes ?? "");
+  const [eatenOn, setEatenOn] = useState<string>(row.eaten_on ?? row.created_at.slice(0, 10));
+  const [carb, setCarb] = useState<string>(row.carb_g != null ? String(row.carb_g) : "");
+  const [protein, setProtein] = useState<string>(row.protein_g != null ? String(row.protein_g) : "");
+  const [fat, setFat] = useState<string>(row.fat_g != null ? String(row.fat_g) : "");
+  const [fiber, setFiber] = useState<string>(row.fiber_g != null ? String(row.fiber_g) : "");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Live calorie preview from the macro inputs (C·P = 4, F = 9).
+  const liveKcal = Math.round((Number(carb) || 0) * 4 + (Number(protein) || 0) * 4 + (Number(fat) || 0) * 9);
+
+  const numOrNull = (v: string) => {
+    const t = v.trim();
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+
+  const save = async () => {
+    setSaving(true); setErr(null);
+    try {
+      const body = {
+        meal_type: mealType || null,
+        notes: notes.trim() || null,
+        eaten_on: eatenOn || null,
+        carb_g: numOrNull(carb),
+        protein_g: numOrNull(protein),
+        fat_g: numOrNull(fat),
+        fiber_g: numOrNull(fiber),
+      };
+      const res = await fetch(`/api/nutriscan/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
+      onSaved(json.scan as ScanRow);
+    } catch (e: any) {
+      setErr(e.message ?? "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldCls = "min-h-[44px] w-full rounded-xl border border-ink-10 bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-rose focus:ring-2 focus:ring-rose-ultra";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="แก้ไขมื้ออาหาร" onClick={onClose}>
+      <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <Pencil size={15} strokeWidth={2.25} className="text-rose" aria-hidden />
+            <h2 className="font-head text-[16px] font-bold text-ink">แก้ไขมื้ออาหาร</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="ปิด"
+            className="inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full text-ink-60 transition-colors hover:bg-surface hover:text-rose focus:outline-none focus-visible:ring-2 focus-visible:ring-rose"
+          >
+            <X size={18} strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
+
+        <p className="mb-3 font-thai text-[13px] font-semibold text-ink">{row.food_identified ?? "—"}</p>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-semibold text-ink-60">มื้อ</span>
+              <select value={mealType} onChange={(e) => setMealType(e.target.value)} className={fieldCls}>
+                <option value="">ไม่ระบุ</option>
+                {MEAL_EDIT_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-semibold text-ink-60">วันที่กิน</span>
+              <input type="date" value={eatenOn} onChange={(e) => setEatenOn(e.target.value)} className={fieldCls} />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-semibold text-ink-60">หมายเหตุ</span>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="เช่น กินที่ทำงาน" className={`${fieldCls} placeholder:text-ink-30`} />
+          </label>
+
+          <div>
+            <span className="mb-1 block text-[12px] font-semibold text-ink-60">Macros (กรัม)</span>
+            <div className="grid grid-cols-4 gap-2">
+              <MacroInput label="คาร์บ" color="text-rose" value={carb} onChange={setCarb} />
+              <MacroInput label="โปรตีน" color="text-wellness" value={protein} onChange={setProtein} />
+              <MacroInput label="ไขมัน" color="text-amber" value={fat} onChange={setFat} />
+              <MacroInput label="ไฟเบอร์" color="text-science" value={fiber} onChange={setFiber} />
+            </div>
+            <p className="mt-2 font-mono text-[11px] text-ink-40">
+              พลังงานคำนวณใหม่จาก macros = <span className="font-bold text-ink-60">{liveKcal} kcal</span> · ไฟเบอร์ไม่นับในพลังงาน
+            </p>
+          </div>
+
+          {err && <div className="rounded-xl bg-status-bg-danger px-3.5 py-2.5 font-thai text-[13px] text-status-danger" role="alert">{err}</div>}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full bg-rose px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-rose-mid disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Save size={16} strokeWidth={2.25} aria-hidden />}
+              {saving ? "กำลังบันทึก…" : "บันทึกการแก้ไข"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-surface px-4 py-2.5 text-[13px] font-semibold text-ink-60 transition-colors hover:bg-ink-5 disabled:opacity-50"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MacroInput({ label, color, value, onChange }: { label: string; color: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className={`mb-1 block text-center text-[10px] font-semibold ${color}`}>{label}</span>
+      <input
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step="any"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-[44px] w-full rounded-xl border border-ink-10 bg-white px-2 py-2.5 text-center text-[14px] text-ink outline-none transition-colors focus:border-rose focus:ring-2 focus:ring-rose-ultra"
+      />
+    </label>
   );
 }

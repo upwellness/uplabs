@@ -9,9 +9,11 @@
  */
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Wifi, Activity, ArrowRight, ExternalLink, ShieldAlert, CheckCircle2,
   FileText, ClipboardList, Target, Wallet, Smartphone, Upload, Eye,
+  KeyRound, Loader2, Check,
 } from "lucide-react";
 import { EmptyState } from "@/lib/v2/ui";
 import { statusTextClass } from "@/lib/v2/status";
@@ -76,6 +78,9 @@ export function CgmTab({ customerId, profiles }: { customerId: string; profiles:
         )}
       </div>
 
+      {/* Admin-only: reset a CGM profile's passcode (hashed → can't recover, only reset) */}
+      <CgmPasscodeManager />
+
       <div className="rounded-xl border border-status-optimal/20 bg-status-bg-optimal p-4">
         <div className={`flex items-center gap-1.5 text-[13px] font-semibold ${statusTextClass.optimal}`}>
           <CheckCircle2 size={15} strokeWidth={2.25} aria-hidden /> ฟีเจอร์ CGM ที่กำลังพัฒนา
@@ -84,6 +89,94 @@ export function CgmTab({ customerId, profiles }: { customerId: string; profiles:
           เร็วๆ นี้: เวลาที่น้ำตาลอยู่ในเกณฑ์ดี (Time-in-Range) · จับ pattern น้ำตาลพุ่ง · เชื่อมกับมื้ออาหาร · ตรวจ dawn phenomenon
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Admin-only CGM passcode reset. Hidden for non-admins (API returns 403). */
+function CgmPasscodeManager() {
+  const [profiles, setProfiles] = useState<{ profile_name: string; customer_id: string | null; has_passcode: boolean }[] | null>(null);
+  const [allowed, setAllowed] = useState(true);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/cgm/passcode")
+      .then(async (r) => {
+        if (r.status === 401 || r.status === 403) { if (alive) setAllowed(false); return null; }
+        return r.json();
+      })
+      .then((d) => { if (alive && d?.profiles) setProfiles(d.profiles); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  if (!allowed) return null;
+
+  const save = async (name: string) => {
+    const passcode = (drafts[name] ?? "").trim();
+    if (passcode.length < 4) { setErr("รหัสผ่านอย่างน้อย 4 ตัว"); return; }
+    setBusy(name); setErr(null); setDone(null);
+    try {
+      const r = await fetch("/api/cgm/passcode", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ profile: name, passcode }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setErr(d.error ?? "ตั้งรหัสไม่สำเร็จ"); return; }
+      setProfiles((ps) => ps?.map((p) => (p.profile_name === name ? { ...p, has_passcode: true } : p)) ?? ps);
+      setDrafts((dd) => ({ ...dd, [name]: "" }));
+      setDone(name);
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div className="rounded-xl border border-ink-10 bg-white p-4 lg:p-5">
+      <div className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
+        <KeyRound size={15} strokeWidth={2.25} className="text-rose" aria-hidden /> จัดการรหัสผ่าน CGM (admin)
+      </div>
+      <p className="mt-1 text-[12px] leading-[1.6] text-ink-60">
+        รหัสผ่านเก็บเป็น hash — ลืมแล้วกู้คืนไม่ได้ ตั้งรหัสใหม่ทับได้เลย แล้วใช้รหัสนั้นเปิดใน CGM Analyzer
+      </p>
+      {err && <div className="mt-2 text-[12px] font-semibold text-status-danger">{err}</div>}
+      {profiles === null ? (
+        <div className="mt-3 text-[12px] text-ink-40">กำลังโหลด…</div>
+      ) : profiles.length === 0 ? (
+        <div className="mt-3 text-[12px] text-ink-40">ยังไม่มี CGM profile</div>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {profiles.map((p) => (
+            <li key={p.profile_name} className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex min-w-[96px] items-center gap-1.5 font-mono text-[12px] font-semibold text-ink-80">
+                <Wifi size={12} strokeWidth={2.25} className="text-science" aria-hidden /> {p.profile_name}
+              </span>
+              <span className={`text-[11px] ${p.has_passcode ? "text-ink-40" : statusTextClass.warning}`}>
+                {p.has_passcode ? "มีรหัสแล้ว" : "ยังไม่มีรหัส"}
+              </span>
+              <input
+                type="text"
+                value={drafts[p.profile_name] ?? ""}
+                onChange={(e) => setDrafts((dd) => ({ ...dd, [p.profile_name]: e.target.value }))}
+                placeholder="ตั้งรหัสใหม่"
+                aria-label={`ตั้งรหัสใหม่สำหรับ ${p.profile_name}`}
+                className="min-h-[40px] min-w-[120px] flex-1 rounded-lg border border-ink-10 bg-white px-3 text-[13px] outline-none focus:border-rose placeholder:text-ink-20"
+              />
+              <button
+                type="button"
+                onClick={() => save(p.profile_name)}
+                disabled={busy === p.profile_name}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-rose px-3 text-[12px] font-semibold text-white transition-colors hover:bg-rose-mid disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+              >
+                {busy === p.profile_name ? <Loader2 size={13} className="animate-spin" aria-hidden /> : done === p.profile_name ? <Check size={13} strokeWidth={2.5} aria-hidden /> : <KeyRound size={13} strokeWidth={2.25} aria-hidden />}
+                {done === p.profile_name ? "ตั้งแล้ว" : "ตั้งรหัส"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

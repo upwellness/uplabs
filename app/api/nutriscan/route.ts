@@ -14,10 +14,15 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const body = await req.json();
-    const { image_base64, mime_type, text_description, customer_id, meal_type, notes, apiKey } = body;
+    const { image_base64, mime_type, text_description, customer_id, meal_type, notes, eaten_on, save, apiKey } = body;
     if (!image_base64 && !text_description) {
       return NextResponse.json({ error: "image_base64 หรือ text_description (อย่างน้อย 1)" }, { status: 400 });
     }
+    // Save to history? default true (only an explicit false skips the insert — "temp" scan).
+    const shouldSave = save !== false;
+    // Validate optional eaten_on (yyyy-mm-dd) — ignore anything malformed.
+    const eatenOn: string | null =
+      typeof eaten_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(eaten_on) ? eaten_on : null;
     // BYO key เท่านั้น — ไม่มี fallback คีย์ระบบ
     const userKey: string = typeof apiKey === "string" ? apiKey.trim() : "";
     if (!userKey) {
@@ -39,7 +44,11 @@ export async function POST(req: Request) {
     let result: NutriScanResult;
     try {
       const args: Parameters<typeof analyzeFood>[0] = {
-        context: { meal_time: meal_type },
+        context: {
+          meal_time: meal_type,
+          // The user's "หมายเหตุ/hint" — helps the AI when the photo's proportions aren't exact.
+          customer_note: typeof notes === "string" ? notes : undefined,
+        },
       };
       if (image_base64) {
         args.imageBase64 = image_base64.replace(/^data:image\/\w+;base64,/, "");
@@ -59,6 +68,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ result, saved: false }, { status: 200 });
     }
 
+    // "บันทึกเข้าประวัติ" toggle OFF → analyze only, never touch the DB.
+    if (!shouldSave) {
+      return NextResponse.json({ result, saved: false });
+    }
+
     // Save to DB
     const supa = createClient();
     const { data: row, error: insErr } = await supa
@@ -69,6 +83,7 @@ export async function POST(req: Request) {
         food_identified: result.food_identified,
         meal_type: meal_type ?? null,
         notes: notes ?? null,
+        eaten_on: eatenOn,
         raw_analysis: result,
         calories_estimate:    result.calories_estimate ?? null,
         carb_g:               result.macros?.carb_g ?? null,
@@ -110,17 +125,19 @@ export async function GET(req: Request) {
   const supa = createClient();
   let q = supa
     .from("nutriscan_scans")
-    .select("id, food_identified, meal_type, calories_estimate, carb_g, protein_g, fat_g, fiber_g, glucose_impact_score, health_score, created_at, customer_id, notes")
+    .select("id, food_identified, meal_type, calories_estimate, carb_g, protein_g, fat_g, fiber_g, glucose_impact_score, health_score, created_at, eaten_on, customer_id, notes")
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (customer_id) q = q.eq("customer_id", customer_id);
 
-  if (date) {
-    // Bangkok TZ window
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Effective eaten date = eaten_on ?? created_at (Bangkok day). Match rows where EITHER
+    //  • eaten_on = <date> (explicit), OR
+    //  • eaten_on is null AND created_at falls within the Bangkok day window.
     const start = new Date(`${date}T00:00:00+07:00`).toISOString();
     const end   = new Date(`${date}T23:59:59.999+07:00`).toISOString();
-    q = q.gte("created_at", start).lte("created_at", end);
+    q = q.or(`eaten_on.eq.${date},and(eaten_on.is.null,created_at.gte.${start},created_at.lte.${end})`);
   }
 
   const { data, error } = await q;

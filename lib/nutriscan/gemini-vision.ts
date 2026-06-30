@@ -37,10 +37,21 @@ Nutrilite SKU แนะนำได้เฉพาะรายการนี้
 - Probiotic (gut · ตอนท้องว่าง)
 - DoubleX (multi-vitamin · กับมื้อ)
 
+"components" = แยกแต่ละองค์ประกอบของจานนี้พร้อมสัดส่วน:
+- name = ชื่อองค์ประกอบ (เช่น ข้าวสวย · หมูสับผัด · ไข่ดาว · ผัก)
+- pct  = สัดส่วนโดยประมาณของทั้งจาน (% โดยน้ำหนัก/ปริมาณ) · รวมทุก component ควรใกล้ 100
+- carb_g / protein_g / fat_g = macros โดยประมาณของ component นั้น (ถ้าประเมินได้ · ไม่บังคับ)
+ผลรวม carb_g/protein_g/fat_g ของทุก component ควรสอดคล้องกับ macros รวมด้านล่าง
+
 OUTPUT: JSON เท่านั้น
 {
   "food_identified":   "ชื่ออาหารหลัก",
   "food_components":   ["อาหารส่วนประกอบที่เห็น 1", "..."],
+  "components": [
+    { "name": "ข้าวสวย",     "pct": 45, "carb_g": 55, "protein_g": 4,  "fat_g": 1 },
+    { "name": "หมูสับผัด",   "pct": 35, "carb_g": 3,  "protein_g": 20, "fat_g": 18 },
+    { "name": "ไข่ดาว",      "pct": 20, "carb_g": 1,  "protein_g": 7,  "fat_g": 9 }
+  ],
   "estimated_portion": "ขนาดมื้อโดยประมาณ",
   "calories_estimate": 650,
   "macros": {
@@ -73,9 +84,19 @@ OUTPUT: JSON เท่านั้น
   "error": "เหตุผล"
 }`;
 
+/** One food component of the dish with its estimated share (% of the dish). */
+export interface NutriScanComponent {
+  name:       string;
+  pct:        number;       // % of the dish (by weight/volume)
+  carb_g?:    number;
+  protein_g?: number;
+  fat_g?:     number;
+}
+
 export interface NutriScanResult {
   food_identified:   string;
-  food_components?:  string[];
+  food_components?:  string[];          // legacy: flat list of components (kept for backward-compat)
+  components?:       NutriScanComponent[]; // per-ingredient breakdown with % share
   estimated_portion?: string;
   calories_estimate?: number;
   macros?: {
@@ -118,8 +139,12 @@ export async function analyzeFood(input: NutriScanInput, apiKey: string): Promis
     throw new Error("ต้องมี imageBase64 หรือ textDescription อย่างน้อย 1 อย่าง");
   }
 
+  const note = input.context?.customer_note?.trim();
+  const noteLine = note
+    ? `\n- ข้อมูลเพิ่มเติมจากผู้ใช้ (ใช้ช่วยประเมินเมื่อรูปกะสัดส่วนไม่เป๊ะ): ${note}`
+    : "";
   const contextNote = input.context
-    ? `\n\nบริบทเพิ่มเติม:\n- เวลามื้อ: ${input.context.meal_time ?? "ไม่ระบุ"}\n- บันทึก: ${input.context.customer_note ?? "ไม่มี"}`
+    ? `\n\nบริบทเพิ่มเติม:\n- เวลามื้อ: ${input.context.meal_time ?? "ไม่ระบุ"}${noteLine}`
     : "";
 
   const inputDescriber = input.imageBase64

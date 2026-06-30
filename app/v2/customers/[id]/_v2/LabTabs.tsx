@@ -18,6 +18,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/lib/v2/ui";
 import { classifyMetric } from "@/lib/v2/labs";
 import { statusClasses, statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 import { statusTextClass } from "@/lib/v2/status";
+import { BodyMapButton } from "./BodyMapModal";
 
 interface LabValue {
   metric_key: string;
@@ -74,7 +75,7 @@ function fmtDate(iso: string): string {
 }
 
 /* ── Labs tab ── */
-export function LabsTab({ customerId, chronoAge }: { customerId: string; chronoAge: number | null }) {
+export function LabsTab({ customerId, chronoAge, gender }: { customerId: string; chronoAge: number | null; gender?: string | null }) {
   const [values, setValues] = useState<LabValue[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,6 +114,14 @@ export function LabsTab({ customerId, chronoAge }: { customerId: string; chronoA
 
   return (
     <div className="space-y-5">
+      {/* Link to the v1 anatomical body map (latest value per metric on the figure) */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[12px] text-ink-60">
+          อยากเห็นว่าแต่ละค่าอยู่ที่อวัยวะไหน? เปิดภาพร่างกายได้เลย
+        </div>
+        <BodyMapButton values={values} gender={gender} />
+      </div>
+
       {byCategory.map(([cat, items]) => (
         <div key={cat}>
           <div className="mb-2 text-[12px] font-semibold text-ink-60">{CAT_LABEL[cat] ?? cat}</div>

@@ -569,7 +569,7 @@ function DetailTabs({ data, customerId }: { data: Customer360; customerId: strin
 
       <div role="tabpanel" id={`${baseId}-panel-${tab}`} aria-labelledby={`${baseId}-tab-${tab}`} tabIndex={0}>
         {tab === "body" && <BodyTab data={data} />}
-        {tab === "labs" && <LabsTab customerId={customerId} chronoAge={chronoAge} />}
+        {tab === "labs" && <LabsTab customerId={customerId} chronoAge={chronoAge} gender={data.customer.gender} />}
         {tab === "trends" && <TrendsTab customerId={customerId} chronoAge={chronoAge} />}
         {tab === "allergy" && <AllergyTab customerId={customerId} />}
         {tab === "cgm" && <CgmTab customerId={customerId} profiles={data.cgmProfiles} />}
