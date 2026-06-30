@@ -230,7 +230,7 @@ function PulseWorkspace({ customerId, onClear }: { customerId: string; onClear: 
   if (!data) return <Card><EmptyState title="ไม่พบลูกค้า" /></Card>;
 
   const c = data.customer;
-  const connected = data.connection?.status === "connected";
+  const connected = data.connection?.status === "active";  // DB stores "active" (not "connected")
   const intakeDone = !!data.latest_intake?.submitted_at;
   const hasReadings = (data.readings?.length ?? 0) > 0;
 

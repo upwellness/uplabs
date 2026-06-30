@@ -157,7 +157,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
   const [busy, setBusy] = useState<null | "connect" | "sync">(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const connected = connection?.status === "connected";
+  const connected = connection?.status === "active";  // DB stores "active" (not "connected")
 
   const connect = async () => {
     setBusy("connect"); setErr(null); setMsg(null);

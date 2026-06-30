@@ -132,7 +132,7 @@ export function PulseTab({
           นำเข้า/จัดการข้อมูล wearable ของลูกค้าคนนี้
         </div>
         <Link
-          href={`/pulse/master/${customerId}`}
+          href={`/v2/pulse/master/${customerId}`}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-3.5 py-1.5 text-[12px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
         >
           <Upload size={13} strokeWidth={2.25} aria-hidden /> นำเข้า / จัดการ Pulse
@@ -181,7 +181,7 @@ export function PulseTab({
             hint="ส่งแบบประเมินให้ลูกค้าทำ หรือ นำเข้าข้อมูล wearable ได้จากหน้า Pulse"
             action={
               <Link
-                href={`/pulse/master/${customerId}`}
+                href={`/v2/pulse/master/${customerId}`}
                 className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-rose-mid focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
               >
                 <Upload size={13} strokeWidth={2.25} aria-hidden /> ไปหน้า Pulse
@@ -209,7 +209,7 @@ export function PulseTab({
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <Link
-                        href={`/pulse/report/${a.id}` as any}
+                        href={`/v2/pulse/report/${a.id}` as any}
                         target="_blank"
                         rel="noopener"
                         aria-label="เปิดรายงาน wearable"
@@ -218,7 +218,7 @@ export function PulseTab({
                         <FileText size={12} strokeWidth={2.25} aria-hidden /> รายงาน
                       </Link>
                       <Link
-                        href={`/pulse/assessments/${a.id}` as any}
+                        href={`/v2/pulse/assessments/${a.id}` as any}
                         target="_blank"
                         rel="noopener"
                         aria-label="ดูผลประเมินฉบับเต็ม"
@@ -234,7 +234,7 @@ export function PulseTab({
             {assessments.length > 5 && (
               <li className="pt-1 text-center font-mono text-[11px] text-ink-60">
                 แสดง 5 จาก {assessments.length} ·{" "}
-                <Link href={`/pulse/master/${customerId}`} className="font-semibold text-rose hover:underline">
+                <Link href={`/v2/pulse/master/${customerId}`} className="font-semibold text-rose hover:underline">
                   ดูทั้งหมด
                 </Link>
               </li>

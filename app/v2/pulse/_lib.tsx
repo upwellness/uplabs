@@ -13,7 +13,7 @@ import { statusTextClass } from "@/lib/v2/status";
 
 /** Connection summary chip used in the picker rows + hub. */
 export function ConnChip({ pulse }: { pulse: { provider: string; status: string; last_sync_at: string | null } | null }) {
-  const connected = pulse?.status === "connected";
+  const connected = pulse?.status === "active";  // DB stores "active" (not "connected")
   return connected ? (
     <span className={`inline-flex items-center gap-1 rounded-full bg-status-bg-optimal px-2 py-0.5 text-[11px] font-semibold ${statusTextClass.optimal}`}>
       <Wifi size={11} strokeWidth={2.5} aria-hidden /> เชื่อมแล้ว
