@@ -22,13 +22,16 @@
  *   - AI meal-photo generation → ./_MealImage (lazy) reusing the SAME /api/plate-image flow
  *     and the SAME v1 cache protocol (IndexedDB "plateplanner/img" + Supabase "meal-images")
  *     ported in ./_imageCache so photos are shared between v1 and v2.
- * Plus two new asks: 7/14/30-day menus, and a "บันทึก PDF" customer food table (./_printTable).
+ * Plus two new asks: 7/14/30-day menus, and a "บันทึก PDF" customer food report — a designed
+ *     off-canvas report (./_PlateReport, with the CPFPie macro donut) rasterized to a multi-page
+ *     A4 PDF via ./_exportPdf (html-to-image + jspdf, both lazy). Direct download, NO popup/print
+ *     dialog (the old ./_printTable window.open path was being blocked by browsers).
  *
  * Clinical-warm: lib/v2/ui primitives, Lucide icons, status TEXT colors, empty/loading/error,
  * ≥44px touch, keyboard-accessible.
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -45,7 +48,7 @@ import {
 } from "@/lib/plate-planner/engine";
 import { MacroBar } from "./_MacroBar";
 import { mealSplit, energySplit, sumDay, planDailyAverage, itemSplit, avgVsTarget } from "./_macros";
-import { printFoodTable } from "./_printTable";
+import type { PlateReportMeta } from "./_PlateReport";
 
 /** AI meal-photo view is lazy — keeps the image cache / SubtleCrypto / IndexedDB code out of first-load JS. */
 const MealImage = dynamic(() => import("./_MealImage"), {
@@ -56,6 +59,23 @@ const MealImage = dynamic(() => import("./_MealImage"), {
     </div>
   ),
 });
+
+/** CPFPie is pure SVG but lazy-loaded per SPEC §8 ("กราฟ lazy") — same pattern as nutriscan. */
+const CPFPie = dynamic(() => import("@/components/CPFPie").then((m) => m.CPFPie), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center" style={{ width: 132, height: 132 }}>
+      <Loader2 size={18} className="animate-spin text-wellness" aria-hidden />
+    </div>
+  ),
+});
+
+/**
+ * The offscreen PDF report (recharts via CPFPie + the whole report DOM) is lazy-loaded —
+ * it only mounts when the user has a plan, and its heavy deps stay out of first-load JS.
+ * `_exportPdf` (html-to-image + jspdf) is dynamic-imported inside the click handler.
+ */
+const PlateReport = dynamic(() => import("./_PlateReport").then((m) => m.PlateReport), { ssr: false });
 
 /* ── Goal config (labels + accent + one-line rationale from calcTargets) ── */
 const GOALS: { id: Goal; label: string; sub: string; icon: typeof Flame; tone: "rose" | "wellness" | "science" }[] = [
@@ -183,18 +203,39 @@ function PlatePlannerInner() {
   const [activeDay, setActiveDay] = useState(0);
   useEffect(() => { if (activeDay >= days) setActiveDay(0); }, [days, activeDay]);
 
-  const onPrint = useCallback(() => {
-    if (!plan || !targets) return;
-    const ok = printFoodTable(plan, {
+  // ── PDF export (direct download — no popup, no print dialog) ──
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  // Metadata for the offscreen report (engine targets passed straight through).
+  const reportMeta = useMemo<PlateReportMeta | null>(
+    () => (targets ? {
       goal,
       targets,
       customerName,
       diet: DIET_LABEL[diet],
-    });
-    if (!ok && typeof window !== "undefined") {
-      window.alert("เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาต pop-up ของเว็บนี้แล้วลองอีกครั้ง");
+      ageGender: null,            // age/gender not collected on this screen — header omits when null
+      manualMode: !customerId,    // header reads "ข้อมูลที่กรอก" unless a ?customer prefill is active
+    } : null),
+    [targets, goal, customerName, diet, customerId],
+  );
+
+  const onExportPdf = useCallback(async () => {
+    if (!plan || !plan.length || !reportRef.current || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      // Lazy — html-to-image + jspdf load only on click (out of first-load JS).
+      const { exportPlatePdf } = await import("./_exportPdf");
+      const who = customerName || new Date().toISOString().slice(0, 10);
+      await exportPlatePdf(reportRef.current, who);
+    } catch (e) {
+      if (typeof window !== "undefined") {
+        window.alert("สร้าง PDF ไม่สำเร็จ ลองอีกครั้งนะคะ" + (e instanceof Error ? `\n(${e.message})` : ""));
+      }
+    } finally {
+      setPdfBusy(false);
     }
-  }, [plan, targets, goal, customerName, diet]);
+  }, [plan, customerName, pdfBusy]);
 
   return (
     <Shell breadcrumb={[{ label: "หน้าแรก", href: "/v2" }, ...(customerId ? [{ label: "ลูกค้า", href: "/v2/customers" }] : []), { label: "Plate Planner" }]}>
@@ -389,14 +430,27 @@ function PlatePlannerInner() {
                     </div>
                     <button
                       type="button"
-                      onClick={onPrint}
-                      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border border-wellness-pale bg-wellness-ultra px-4 py-1.5 text-[13px] font-semibold text-wellness transition-colors hover:bg-wellness-pale focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2"
+                      onClick={onExportPdf}
+                      disabled={pdfBusy}
+                      aria-busy={pdfBusy}
+                      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border border-wellness-pale bg-wellness-ultra px-4 py-1.5 text-[13px] font-semibold text-wellness transition-colors hover:bg-wellness-pale disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2"
                     >
-                      <FileDown size={14} strokeWidth={2.25} aria-hidden /> บันทึก PDF (ตารางอาหาร)
+                      {pdfBusy
+                        ? <><Loader2 size={14} className="animate-spin" aria-hidden /> กำลังสร้าง PDF…</>
+                        : <><FileDown size={14} strokeWidth={2.25} aria-hidden /> บันทึก PDF (ตารางอาหาร)</>}
                     </button>
                   </div>
 
                   <DayCard day={plan[activeDay] ?? plan[0]} showImages={showImages} />
+
+                  {/* Off-canvas designed report for PDF capture (rendered, not visible).
+                      aria-hidden + pointer-events:none — present in the DOM only as the
+                      html-to-image source for the multi-page A4 export above. */}
+                  {reportMeta && (
+                    <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", opacity: 0, zIndex: -1 }}>
+                      <PlateReport ref={reportRef} plan={plan} meta={reportMeta} />
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -463,23 +517,36 @@ function TargetsCard({
         </div>
       </div>
 
-      {/* Plan daily-average vs target */}
-      {avgSplit && delta && days > 1 && (
+      {/* Plan daily-average vs target — donut (C:P:F like v1) + bar side by side */}
+      {avgSplit && delta && dailyAvg && days > 1 && (
         <div className="mt-3 rounded-xl border border-ink-10 bg-surface px-3.5 py-3">
           <div className="flex items-center justify-between">
             <SectionLabel>ค่าเฉลี่ยจริงต่อวัน ({days} วัน)</SectionLabel>
             <span className="font-mono text-[11px] text-ink-60">
-              {Math.round(dailyAvg!.kcal).toLocaleString()} kcal
+              {Math.round(dailyAvg.kcal).toLocaleString()} kcal
               <b className="ml-1" style={{ color: statusTextHex[Math.abs(delta.kcal) <= targets.kcal * 0.05 ? "optimal" : Math.abs(delta.kcal) <= targets.kcal * 0.1 ? "caution" : "warning"] }}>
                 {delta.kcal >= 0 ? "+" : ""}{delta.kcal}
               </b>
             </span>
           </div>
-          <div className="mt-2">
-            <MacroBar split={avgSplit} />
-          </div>
-          <div className="mt-2 font-mono text-[11px] text-ink-40">
-            เทียบเป้า · โปรตีน {delta.p >= 0 ? "+" : ""}{delta.p}g · คาร์บ {delta.c >= 0 ? "+" : ""}{delta.c}g · ไขมัน {delta.f >= 0 ? "+" : ""}{delta.f}g
+          <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="shrink-0 self-center sm:self-auto">
+              <CPFPie
+                carb_pct={avgSplit.cPct}
+                protein_pct={avgSplit.pPct}
+                fat_pct={avgSplit.fPct}
+                total_kcal={Math.round(dailyAvg.kcal)}
+                size={132}
+                thickness={26}
+                showLegend={false}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <MacroBar split={avgSplit} />
+              <div className="mt-2 font-mono text-[11px] text-ink-40">
+                เทียบเป้า · โปรตีน {delta.p >= 0 ? "+" : ""}{delta.p}g · คาร์บ {delta.c >= 0 ? "+" : ""}{delta.c}g · ไขมัน {delta.f >= 0 ? "+" : ""}{delta.f}g
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -520,7 +587,7 @@ function DayCard({ day, showImages }: { day: DayPlan; showImages: boolean }) {
     <div className="space-y-4">
       {day.map((meal, i) => <MealCard key={i} meal={meal} showImages={showImages} />)}
 
-      {/* Day total + proportion */}
+      {/* Day total + proportion (donut like v1 on a light inset + bar/readout) */}
       <Card className="bg-ink p-4 text-white lg:p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -529,16 +596,32 @@ function DayCard({ day, showImages }: { day: DayPlan; showImages: boolean }) {
           </div>
           <span className="font-head text-[20px] font-extrabold">{Math.round(dayTot.kcal).toLocaleString()}<span className="ml-0.5 text-[11px] font-normal text-white/55">kcal</span></span>
         </div>
-        {/* proportion bar (light segments on dark card) */}
-        <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-white/15" role="img" aria-label={`สัดส่วนพลังงานทั้งวัน คาร์บ ${split.cPct}% โปรตีน ${split.pPct}% ไขมัน ${split.fPct}%`}>
-          <span style={{ width: `${split.cPct}%`, backgroundColor: "#E0A35C" }} title={`คาร์บ ${split.cPct}%`} />
-          <span style={{ width: `${split.pPct}%`, backgroundColor: "#CC8A8A" }} title={`โปรตีน ${split.pPct}%`} />
-          <span style={{ width: `${split.fPct}%`, backgroundColor: "#6BB8CC" }} title={`ไขมัน ${split.fPct}%`} />
-        </div>
-        <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[12px]">
-          <span className="text-white/85">คาร์บ {split.c}g · {split.cPct}%</span>
-          <span className="text-white/85">โปรตีน {split.p}g · {split.pPct}%</span>
-          <span className="text-white/85">ไขมัน {split.f}g · {split.fPct}%</span>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          {/* CPFPie on a warm-white inset so the dark center kcal text stays legible */}
+          <div className="shrink-0 self-center rounded-2xl bg-white px-3 py-2 sm:self-auto">
+            <CPFPie
+              carb_pct={split.cPct}
+              protein_pct={split.pPct}
+              fat_pct={split.fPct}
+              total_kcal={Math.round(dayTot.kcal)}
+              size={128}
+              thickness={26}
+              showLegend={false}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            {/* proportion bar (light segments on dark card) */}
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/15" role="img" aria-label={`สัดส่วนพลังงานทั้งวัน คาร์บ ${split.cPct}% โปรตีน ${split.pPct}% ไขมัน ${split.fPct}%`}>
+              <span style={{ width: `${split.cPct}%`, backgroundColor: "#E0A35C" }} title={`คาร์บ ${split.cPct}%`} />
+              <span style={{ width: `${split.pPct}%`, backgroundColor: "#CC8A8A" }} title={`โปรตีน ${split.pPct}%`} />
+              <span style={{ width: `${split.fPct}%`, backgroundColor: "#6BB8CC" }} title={`ไขมัน ${split.fPct}%`} />
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[12px]">
+              <span className="text-white/85">คาร์บ {split.c}g · {split.cPct}%</span>
+              <span className="text-white/85">โปรตีน {split.p}g · {split.pPct}%</span>
+              <span className="text-white/85">ไขมัน {split.f}g · {split.fPct}%</span>
+            </div>
+          </div>
         </div>
       </Card>
     </div>
