@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UP Labs — SPEC v2 (Redesign)</title>
+<title>UP Labs — SPEC v2.1 (Built)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
     --rose:#8C4C4C; --rose-deep:#6B3535; --rose-ultra:#FAF3F2; --rose-pale:#F0E0DE;
     --wellness:#396755; --wellness-ultra:#F0F8F4; --wellness-pale:#D6EDE4;
     --science:#2A7B8F; --science-ultra:#EDF7FA; --amber:#C47A2A;
+    --olive:#3D5826; --gold:#C99D2F; --cream:#F7F4EE;
     --ink:#18151A; --ink80:#3D3840; --ink60:#5C5660; --ink40:#8A838E; --ink20:#BAB5BD; --ink10:#DDD9DF; --ink5:#F2F0F3;
     --surface:#F7F5F3; --warm:#FDFCFB;
     --ok:#16A34A; --good:#65A30D; --caution:#CA8A04; --warn:#EA580C; --danger:#DC2626;
@@ -21,8 +22,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:20px}
   body{font-family:var(--thai);background:var(--warm);color:var(--ink);line-height:1.65;font-size:15px}
-  .wrap{display:grid;grid-template-columns:280px 1fr;max-width:1320px;margin:0 auto}
-  /* sidebar */
+  .wrap{display:grid;grid-template-columns:280px 1fr;max-width:1340px;margin:0 auto}
   nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px;border-right:1px solid var(--ink10);background:var(--surface)}
   nav.toc .brand{font-family:var(--head);font-weight:800;font-size:18px;color:var(--rose);letter-spacing:-.02em}
   nav.toc .ver{font-family:var(--mono);font-size:11px;color:var(--ink40);margin-top:2px}
@@ -30,7 +30,6 @@
   nav.toc a:hover{background:var(--rose-ultra);color:var(--rose)}
   nav.toc a.grp{font-family:var(--head);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink40);margin-top:16px;padding-left:10px}
   main{padding:46px 56px;min-width:0}
-  /* type */
   h1{font-family:var(--head);font-weight:800;font-size:34px;letter-spacing:-.02em;line-height:1.15}
   h2{font-family:var(--head);font-weight:800;font-size:23px;margin:14px 0 14px;letter-spacing:-.01em;scroll-margin-top:16px}
   h3{font-family:var(--head);font-weight:700;font-size:17px;margin:22px 0 8px;color:var(--ink80)}
@@ -38,422 +37,443 @@
   p{margin:8px 0;color:var(--ink80)}
   section{padding:30px 0;border-top:1px solid var(--ink10)}
   section:first-of-type{border-top:none}
-  a.ref{color:var(--science);text-decoration:none;border-bottom:1px dotted var(--science)}
   code{font-family:var(--mono);font-size:.86em;background:var(--ink5);padding:1px 6px;border-radius:5px;color:var(--rose-deep)}
   ul,ol{margin:8px 0 8px 22px}li{margin:4px 0;color:var(--ink80)}
   strong{color:var(--ink)}
-  /* components */
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;font-family:var(--head)}
-  .pill.rose{background:var(--rose-ultra);color:var(--rose)}
-  .pill.well{background:var(--wellness-ultra);color:var(--wellness)}
-  .pill.sci{background:var(--science-ultra);color:var(--science)}
+  .pill.rose{background:var(--rose-ultra);color:var(--rose)} .pill.well{background:var(--wellness-ultra);color:var(--wellness)}
+  .pill.sci{background:var(--science-ultra);color:var(--science)} .pill.ok{background:var(--okbg);color:var(--ok)}
   .pill.warn{background:var(--cautionbg);color:var(--caution)}
-  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
   .hero{background:linear-gradient(135deg,var(--rose-ultra),var(--wellness-ultra));border:1px solid var(--ink10);border-radius:22px;padding:34px 36px;margin-bottom:10px}
   .hero .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .card{background:var(--warm);border:1px solid var(--ink10);border-radius:16px;padding:20px 22px;margin:14px 0;box-shadow:0 1px 2px rgba(24,21,26,.04),0 14px 34px -26px rgba(24,21,26,.22)}
-  .card.tint{background:var(--rose-ultra);border-color:var(--rose-pale)}
-  .card.tintw{background:var(--wellness-ultra);border-color:var(--wellness-pale)}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
   table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
   th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--ink10);vertical-align:top}
   th{font-family:var(--head);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink40);background:var(--surface)}
   tr:hover td{background:var(--rose-ultra)}
-  .v1v2{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink10);border-radius:12px;overflow:hidden;margin:12px 0}
-  .v1v2>div{padding:14px 16px}
-  .v1v2 .v1{background:var(--ink5);border-right:1px solid var(--ink10)}
-  .v1v2 .v2{background:var(--wellness-ultra)}
-  .v1v2 .lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink40);margin-bottom:6px}
-  .chk{list-style:none;margin-left:0}
-  .chk li{padding-left:26px;position:relative;margin:5px 0}
-  .chk li:before{content:"☐";position:absolute;left:0;color:var(--wellness);font-weight:700}
+  .chk{list-style:none;margin-left:0}.chk li{padding-left:26px;position:relative;margin:5px 0}
+  .chk li:before{content:"✓";position:absolute;left:0;color:var(--wellness);font-weight:800}
   .must{background:var(--rose-ultra);border-left:4px solid var(--rose);border-radius:0 12px 12px 0;padding:16px 20px;margin:16px 0}
   .must h4{color:var(--rose);margin-top:0}
   .note{background:var(--science-ultra);border-left:4px solid var(--science);border-radius:0 12px 12px 0;padding:14px 18px;margin:14px 0;font-size:13.5px}
-  .kpi{display:flex;gap:14px;flex-wrap:wrap}
-  .kpi .b{flex:1;min-width:130px;background:var(--warm);border:1px solid var(--ink10);border-radius:14px;padding:14px 16px}
-  .kpi .n{font-family:var(--head);font-weight:800;font-size:26px;color:var(--rose)}
-  .kpi .l{font-size:12px;color:var(--ink60)}
+  .diagram{background:var(--warm);border:1px solid var(--ink10);border-radius:18px;padding:22px;margin:16px 0;overflow-x:auto;box-shadow:var(--shadow)}
+  .diagram svg{display:block;width:100%;height:auto;min-width:680px}
   .tag{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--ink5);color:var(--ink60);margin:1px 2px}
-  .tag.live{background:var(--okbg);color:var(--ok)} .tag.beta{background:var(--cautionbg);color:var(--caution)} .tag.soon{background:var(--ink5);color:var(--ink40)}
+  .tag.live{background:var(--okbg);color:var(--ok)} .tag.new{background:var(--cautionbg);color:var(--caution)}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap}
+  .kpi .b{flex:1;min-width:120px;background:var(--warm);border:1px solid var(--ink10);border-radius:14px;padding:14px 16px}
+  .kpi .n{font-family:var(--head);font-weight:800;font-size:24px;color:var(--rose)} .kpi .l{font-size:12px;color:var(--ink60)}
   footer{padding:40px 56px;color:var(--ink40);font-size:12px;border-top:1px solid var(--ink10)}
-  @media(max-width:900px){.wrap{grid-template-columns:1fr}nav.toc{display:none}main{padding:28px 20px}.grid2,.grid3,.v1v2{grid-template-columns:1fr}}
-  @media print{nav.toc{display:none}.wrap{grid-template-columns:1fr}.card{break-inside:avoid}}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}nav.toc{display:none}main{padding:28px 20px}.grid2,.grid3{grid-template-columns:1fr}}
+  @media print{nav.toc{display:none}.wrap{grid-template-columns:1fr}.card,.diagram{break-inside:avoid}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <nav class="toc">
   <div class="brand">UP Labs</div>
-  <div class="ver">SPEC v2 · Redesign · 2026-06-29</div>
-  <a class="grp">ภาพรวม</a>
+  <div class="ver">SPEC v2.1 · BUILT · 2026-06-30</div>
   <a href="#summary">1 · Executive Summary</a>
-  <a href="#goals">2 · Goals & Non-Goals</a>
-  <a href="#strategy">3 · กลยุทธ์ v2 (parallel)</a>
-  <a href="#identity">4 · ★ Identity Block (บังคับ)</a>
-  <a class="grp">ระบบกลาง</a>
-  <a href="#design">5 · Design System v2</a>
+  <a class="grp">Diagrams</a>
+  <a href="#d-userstory">2.1 User Story Diagram</a>
+  <a href="#d-stack">2.2 System Stack Diagram</a>
+  <a href="#d-module">2.3 Module Diagram</a>
+  <a class="grp">รากฐาน</a>
+  <a href="#strategy">3 · กลยุทธ์ /v2 + cutover</a>
+  <a href="#identity">4 · ★ Identity Block</a>
+  <a href="#design">5 · Design System</a>
   <a href="#patterns">6 · Global Patterns</a>
-  <a class="grp">Feature Spec</a>
-  <a href="#f-hub">7.1 Hub / Home</a>
-  <a href="#f-customers">7.2 Customers List</a>
-  <a href="#f-360">7.3 ★ Customer Profile 360</a>
-  <a href="#f-bca">7.4 ★ BCA Tracker</a>
-  <a href="#f-labs">7.5 Labs · Trends · Allergy · Supp · CGM</a>
-  <a href="#f-pulse">7.6 UP Pulse (Wearables)</a>
-  <a href="#f-checkform">7.7 CheckForm + STP</a>
-  <a href="#f-prospects">7.8 Prospects + Leads</a>
-  <a href="#f-nutri">7.9 NutriScan · Plate · Designer</a>
-  <a href="#f-line">7.10 LINE Bot</a>
-  <a href="#f-reports">7.11 Reports + Share</a>
-  <a href="#f-admin">7.12 Admin + RBAC</a>
-  <a href="#f-content">7.13 Content / Soon</a>
-  <a class="grp">คุณภาพ & ส่งมอบ</a>
-  <a href="#nfr">8 · Non-Functional + Perf</a>
-  <a href="#test">9 · Test Plan</a>
-  <a href="#parity">10 · Parity Process</a>
-  <a href="#delivery">11 · Delivery + Agents</a>
+  <a class="grp">Feature (built)</a>
+  <a href="#f-core">7.1 Hub · Customers · 360</a>
+  <a href="#f-bca">7.2 BCA + Labs body-map</a>
+  <a href="#f-pulse">7.3 UP Pulse + Report</a>
+  <a href="#f-nutri">7.4 NutriScan · Plate · Designer</a>
+  <a href="#f-leads">7.5 CheckForm · Prospects · Leads</a>
+  <a href="#f-line">7.6 LINE Bot</a>
+  <a href="#f-cgm">7.7 CGM</a>
+  <a href="#f-reports">7.8 Reports</a>
+  <a href="#f-admin">7.9 Admin · RBAC · Co-coach</a>
+  <a class="grp">เทคนิค</a>
+  <a href="#stack">8 · Tech Stack</a>
+  <a href="#data">9 · Data Model</a>
+  <a href="#nfr">10 · Non-Functional</a>
+  <a href="#changelog">11 · Changelog & Gotchas</a>
+  <a href="#status">12 · Status & Remaining</a>
 </nav>
-
 <main>
+
 <div class="hero">
-  <span class="pill rose">SPEC · v2.0 DRAFT</span>
-  <h1 style="margin-top:14px">UP Labs — Redesign Specification (v2)</h1>
-  <p style="font-size:16px;color:var(--ink80);margin-top:8px">เป้าหมาย: <strong>คงทุกฟีเจอร์ + โครงสร้างเดิม</strong> แต่ <strong>ออกแบบ UI ใหม่ให้ใช้ง่ายขึ้น</strong> (clinical-warm) — ลด glass/aurora ที่รก เพิ่มความชัด ความอุ่น และ navigation ที่หาง่าย</p>
+  <span class="pill rose">SPEC · v2.1 · BUILT</span>
+  <h1 style="margin-top:14px">UP Labs — Redesign Specification (v2.1)</h1>
+  <p style="font-size:16px;margin-top:8px">v2 ถูก <strong>สร้างครบทุก module แล้ว</strong> และ live บน production ใต้ <code>/v2/*</code> (clinical-warm redesign) — คงทุกฟีเจอร์ v1 + structure เดิม + เพิ่มฟีเจอร์ตามที่ใช้งานจริง (Labs body-map · NutriScan ครบชุด · CGM passcode admin · Pulse report แบบ Pook · co-coach sharing)</p>
   <div class="meta">
-    <span class="pill well">26 Apps</span><span class="pill sci">95+ Routes</span>
-    <span class="pill rose">13 Modules</span><span class="pill warn">โครงสร้าง: ไม่เปลี่ยน</span>
-    <span class="pill well">Data/API: ไม่ break</span>
+    <span class="pill ok">All modules live</span><span class="pill sci">Next 14 · Supabase · Vercel</span>
+    <span class="pill well">parity ✓ + extras</span><span class="pill warn">cutover: pending Toni</span>
   </div>
 </div>
 
 <!-- 1 -->
 <section id="summary">
   <h2>1 · Executive Summary</h2>
-  <p>UP Labs คือแพลตฟอร์มสุขภาพ-longevity ของ UP Wellness (Next.js 14 + Supabase) ที่รวมเครื่องมือ 26 ตัว: จัดการลูกค้า (Customer 360), วัดองค์ประกอบร่างกาย (BCA), wearable intelligence (UP Pulse), คัดกรอง prospect (CheckForm + STP), รายงาน (Med-Map / Longevity Lab Report), โภชนาการ (NutriScan / Plate Planner), LINE Bot, Admin/RBAC ฯลฯ</p>
-  <p><strong>ปัญหาที่ v2 แก้:</strong> v1 ถูกติว่า "ไม่สวย ใช้ยาก" — รากของปัญหาคือ UI ไม่ตรงกับ brand ของตัวเอง (Sage + Everyman + Caregiver / "หมอที่เป็นเพื่อน") เพราะใช้ glassmorphism + aurora เคลื่อนไหวหนัก, emoji เป็นไอคอน, label ตัวพิมพ์ใหญ่ monospace, ตัวอักษรเล็ก (9–13px), ระบบสีสถานะซ้อน 3 ชุด, ไม่มี nav ข้ามแอป, และลูกค้า 1 คนมี 2 หน้า (/customers vs /pulse/master)</p>
+  <p>UP Labs = แพลตฟอร์มสุขภาพ-longevity ของ UP Wellness (Next.js 14 App Router + Supabase + Vercel). v1 ถูกติว่า "ไม่สวย/ใช้ยาก" เพราะ UI ไม่ตรง brand ตัวเอง (glass/aurora/emoji/mono-uppercase). <strong>v2 = redesign "clinical-warm"</strong> สร้างขนานใต้ <code>/v2/*</code> โดยใช้ API + data เดิม แล้วค่อย cutover.</p>
   <div class="kpi">
-    <div class="b"><div class="n">100%</div><div class="l">ฟีเจอร์เดิมต้องอยู่ครบ (parity)</div></div>
-    <div class="b"><div class="n">0</div><div class="l">การเปลี่ยน data model / API contract</div></div>
-    <div class="b"><div class="n">/v2</div><div class="l">สร้างขนานกับ v1 → สลับเมื่อ parity ผ่าน</div></div>
-    <div class="b"><div class="n">AA</div><div class="l">WCAG 2.2 AA</div></div>
+    <div class="b"><div class="n">14</div><div class="l">modules สร้างครบ + live</div></div>
+    <div class="b"><div class="n">100%</div><div class="l">parity v1 + ฟีเจอร์เพิ่ม</div></div>
+    <div class="b"><div class="n">0</div><div class="l">schema/API breaking change</div></div>
+    <div class="b"><div class="n">/v2</div><div class="l">auth-gated · พร้อม cutover</div></div>
   </div>
+  <p style="margin-top:12px"><strong>กระบวนการสร้าง:</strong> Dev (multi-agent) → Tester (functional) + Tester (non-functional/perf) → User + BA (parity v1↔v2) ต่อ module → fix → ship. UAT จริงพบ runtime bugs ที่ static ไม่จับ (ดู §11) แก้ครบแล้ว.</p>
 </section>
 
-<!-- 2 -->
-<section id="goals">
-  <h2>2 · Goals &amp; Non-Goals</h2>
-  <h4>Goals (P0)</h4>
-  <ul>
-    <li><strong>คงฟีเจอร์ครบ 100%</strong> — ทุกหน้า/ปุ่ม/ฟังก์ชันของ v1 ต้องมีใน v2 (ตรวจด้วย parity matrix ทุก module)</li>
-    <li><strong>โครงสร้าง/เส้นทางข้อมูลเดิม</strong> — ใช้ Supabase schema เดิม + API routes เดิม (เปลี่ยนแค่ presentation layer)</li>
-    <li><strong>Redesign UI ให้ใช้ง่าย</strong> — clinical-warm: สะอาด คม อ่านชัด อุ่น มี nav/breadcrumb ชัด ลดของตกแต่งที่กลบเนื้อหา</li>
-    <li><strong>★ Customer Profile + BCA ต้องโชว์ identity block</strong>: ชื่อ · วันเกิด (ค.ศ.) · อายุ · เพศ · ส่วนสูง (ดู §4)</li>
-    <li><strong>เข้าถึงง่าย/มือถือดี</strong> — responsive, touch ≥44px, loading/empty/error ครบทุก state</li>
-  </ul>
-  <h4>Non-Goals (ไม่ทำในรอบนี้)</h4>
-  <ul>
-    <li>ไม่เปลี่ยน schema / ไม่ migrate data / ไม่แตะ RLS (รวม co-coach assignment ที่เพิ่งทำ)</li>
-    <li>ไม่ลบฟีเจอร์ใด ไม่เปลี่ยน business logic (การคำนวณ score/BCA/PV ฯลฯ เหมือนเดิม)</li>
-    <li>ไม่ทำฟีเจอร์ใหม่ที่ไม่มีใน v1 (ยกเว้น identity block + การจัดวาง/nav ที่ช่วยให้ใช้ง่าย)</li>
-    <li>ไม่เปลี่ยน auth provider / ไม่เพิ่ม dependency หนักโดยไม่จำเป็น</li>
-  </ul>
+<!-- 2.1 USER STORY -->
+<section id="d-userstory">
+  <h2>2 · Diagrams</h2>
+  <h3 id="d-userstory-h">2.1 · User Story Diagram</h3>
+  <p>4 บทบาท (admin · coach/ABO · co-coach · ลูกค้า/public) → เส้นทางหลักแบบลำดับขั้น</p>
+  <div class="diagram">
+  <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" font-family="Manrope,sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8A838E"/></marker>
+    </defs>
+    <!-- lanes -->
+    <text x="20" y="34" font-size="14" font-weight="800" fill="#8C4C4C">👤 Coach (ABO) — เส้นทางหลัก</text>
+    <g font-size="12.5" fill="#18151A" font-weight="600">
+      <rect x="20" y="48" width="135" height="52" rx="11" fill="#FAF3F2" stroke="#F0E0DE"/><text x="87" y="71" text-anchor="middle">เข้าสู่ระบบ</text><text x="87" y="88" text-anchor="middle" font-size="10.5" fill="#5C5660">/login</text>
+      <rect x="185" y="48" width="150" height="52" rx="11" fill="#FAF3F2" stroke="#F0E0DE"/><text x="260" y="71" text-anchor="middle">เปิด /v2 (hub)</text><text x="260" y="88" text-anchor="middle" font-size="10.5" fill="#5C5660">app launcher ตาม role</text>
+      <rect x="365" y="48" width="160" height="52" rx="11" fill="#FAF3F2" stroke="#F0E0DE"/><text x="445" y="71" text-anchor="middle">รายชื่อลูกค้า</text><text x="445" y="88" text-anchor="middle" font-size="10.5" fill="#5C5660">/v2/customers</text>
+      <rect x="555" y="48" width="175" height="52" rx="11" fill="#8C4C4C" stroke="#6B3535"/><text x="642" y="71" text-anchor="middle" fill="#fff">Customer 360</text><text x="642" y="88" text-anchor="middle" font-size="10.5" fill="#F0E0DE">identity + 8 tabs</text>
+      <rect x="760" y="48" width="200" height="52" rx="11" fill="#FAF3F2" stroke="#F0E0DE"/><text x="860" y="69" text-anchor="middle">ดู Body/Labs/BCA/Pulse</text><text x="860" y="86" text-anchor="middle" font-size="10.5" fill="#5C5660">+ ภาพร่างกาย body-map</text>
+      <line x1="155" y1="74" x2="183" y2="74" stroke="#8A838E" marker-end="url(#ar)"/>
+      <line x1="335" y1="74" x2="363" y2="74" stroke="#8A838E" marker-end="url(#ar)"/>
+      <line x1="525" y1="74" x2="553" y2="74" stroke="#8A838E" marker-end="url(#ar)"/>
+      <line x1="730" y1="74" x2="758" y2="74" stroke="#8A838E" marker-end="url(#ar)"/>
+    </g>
+    <!-- branch row 2: actions -->
+    <line x1="642" y1="100" x2="642" y2="124" stroke="#8A838E" marker-end="url(#ar)"/>
+    <g font-size="12" fill="#18151A" font-weight="600">
+      <rect x="60" y="128" width="160" height="48" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="140" y="148" text-anchor="middle">บันทึก BCA</text><text x="140" y="165" text-anchor="middle" font-size="10" fill="#5C5660">น้ำหนัก/ไขมัน → BMI</text>
+      <rect x="245" y="128" width="170" height="48" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="330" y="148" text-anchor="middle">NutriScan อาหาร</text><text x="330" y="165" text-anchor="middle" font-size="10" fill="#5C5660">รูป+หมายเหตุ→AI · %ส่วนประกอบ</text>
+      <rect x="440" y="128" width="160" height="48" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="520" y="148" text-anchor="middle">นำเข้า wearable</text><text x="520" y="165" text-anchor="middle" font-size="10" fill="#5C5660">WHOOP/Apple/Fit</text>
+      <rect x="625" y="128" width="150" height="48" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="700" y="148" text-anchor="middle">CheckForm</text><text x="700" y="165" text-anchor="middle" font-size="10" fill="#5C5660">FORM + STP clips</text>
+      <rect x="800" y="128" width="160" height="48" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="880" y="148" text-anchor="middle">Plate / Designer</text><text x="880" y="165" text-anchor="middle" font-size="10" fill="#5C5660">เมนู + PV/cashback</text>
+    </g>
+    <!-- row 3: report -->
+    <line x1="642" y1="176" x2="642" y2="200" stroke="#8A838E" marker-end="url(#ar)"/>
+    <g font-size="12.5" fill="#18151A" font-weight="600">
+      <rect x="330" y="204" width="320" height="56" rx="12" fill="#3D5826" stroke="#2c401b"/><text x="490" y="227" text-anchor="middle" fill="#fff" font-weight="800">สร้าง Report (Pook style)</text><text x="490" y="245" text-anchor="middle" font-size="10.5" fill="#E8EDE0">wearable + labs + BCA/CGM/อาหาร + วิเคราะห์รวม + TOC</text>
+      <rect x="680" y="204" width="270" height="56" rx="12" fill="#FAF3F2" stroke="#F0E0DE"/><text x="815" y="227" text-anchor="middle">Med-Map / Longevity Report</text><text x="815" y="245" text-anchor="middle" font-size="10.5" fill="#5C5660">+ คัดลอกลิงก์สาธารณะส่งลูกค้า</text>
+      <line x1="650" y1="232" x2="678" y2="232" stroke="#8A838E" marker-end="url(#ar)"/>
+    </g>
+    <!-- admin lane -->
+    <text x="20" y="306" font-size="14" font-weight="800" fill="#2A7B8F">🛠 Admin</text>
+    <g font-size="12" fill="#18151A" font-weight="600">
+      <rect x="20" y="320" width="175" height="46" rx="11" fill="#EDF7FA" stroke="#D0EEF4"/><text x="107" y="347" text-anchor="middle">/v2/admin/users</text>
+      <rect x="215" y="320" width="180" height="46" rx="11" fill="#EDF7FA" stroke="#D0EEF4"/><text x="305" y="340" text-anchor="middle">Assign customer</text><text x="305" y="356" text-anchor="middle" font-size="10" fill="#5C5660">co-coach แชร์ลูกค้า</text>
+      <rect x="415" y="320" width="170" height="46" rx="11" fill="#EDF7FA" stroke="#D0EEF4"/><text x="500" y="340" text-anchor="middle">App grants / role</text><text x="500" y="356" text-anchor="middle" font-size="10" fill="#5C5660">member/abo/admin</text>
+      <rect x="605" y="320" width="175" height="46" rx="11" fill="#EDF7FA" stroke="#D0EEF4"/><text x="692" y="340" text-anchor="middle">รีเซ็ตรหัส CGM</text><text x="692" y="356" text-anchor="middle" font-size="10" fill="#5C5660">hash → ตั้งใหม่</text>
+      <rect x="800" y="320" width="160" height="46" rx="11" fill="#EDF7FA" stroke="#D0EEF4"/><text x="880" y="347" text-anchor="middle">Backup</text>
+    </g>
+    <!-- co-coach -->
+    <text x="20" y="404" font-size="14" font-weight="800" fill="#396755">🤝 Co-coach (ถูก assign)</text>
+    <g font-size="12" fill="#18151A" font-weight="600">
+      <rect x="20" y="418" width="280" height="46" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="160" y="438" text-anchor="middle">เห็นลูกค้าที่ถูกแชร์ในลิสต์</text><text x="160" y="454" text-anchor="middle" font-size="10" fill="#5C5660">RLS + app-layer canAccessCustomer</text>
+      <rect x="320" y="418" width="300" height="46" rx="11" fill="#F0F8F4" stroke="#D6EDE4"/><text x="470" y="438" text-anchor="middle">ดู+แก้ได้เหมือนเจ้าของ (ยกเว้นลบ/มอบต่อ)</text>
+      <line x1="300" y1="441" x2="318" y2="441" stroke="#8A838E" marker-end="url(#ar)"/>
+    </g>
+    <!-- customer/public -->
+    <text x="20" y="502" font-size="14" font-weight="800" fill="#C47A2A">🌿 ลูกค้า / Public (ไม่ต้อง login)</text>
+    <g font-size="12" fill="#18151A" font-weight="600">
+      <rect x="20" y="516" width="230" height="40" rx="11" fill="#FEFAF3" stroke="#FDF0DB"/><text x="135" y="541" text-anchor="middle">Health Check / Metaflex quiz</text>
+      <rect x="270" y="516" width="220" height="40" rx="11" fill="#FEFAF3" stroke="#FDF0DB"/><text x="380" y="541" text-anchor="middle">เปิดลิงก์ Lab Report /r/lab/&lt;token&gt;</text>
+      <rect x="510" y="516" width="230" height="40" rx="11" fill="#FEFAF3" stroke="#FDF0DB"/><text x="625" y="541" text-anchor="middle">เชื่อม wearable /connect/&lt;token&gt;</text>
+      <rect x="760" y="516" width="200" height="40" rx="11" fill="#FEFAF3" stroke="#FDF0DB"/><text x="860" y="541" text-anchor="middle">น้องจาน LINE menu</text>
+    </g>
+  </svg>
+  </div>
+
+  <!-- 2.2 STACK -->
+  <h3 id="d-stack">2.2 · System Stack Diagram</h3>
+  <p>ชั้นเทคโนโลยี client → edge/server → data → AI/external</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 470" xmlns="http://www.w3.org/2000/svg" font-family="Manrope,sans-serif">
+    <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8A838E"/></marker></defs>
+    <!-- client -->
+    <rect x="30" y="20" width="900" height="92" rx="14" fill="#FAF3F2" stroke="#F0E0DE"/>
+    <text x="48" y="44" font-size="13" font-weight="800" fill="#8C4C4C">CLIENT — เบราว์เซอร์ (ลูกค้าใช้)</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="48" y="56" width="200" height="42" rx="10" fill="#fff" stroke="#F0E0DE"/><text x="148" y="73">Next.js App Router · React 18</text><text x="148" y="89" font-size="10" fill="#5C5660">/v2/* clinical-warm pages</text>
+      <rect x="262" y="56" width="190" height="42" rx="10" fill="#fff" stroke="#F0E0DE"/><text x="357" y="73">Tailwind tokens</text><text x="357" y="89" font-size="10" fill="#5C5660">rose/wellness/science/ink/status</text>
+      <rect x="466" y="56" width="180" height="42" rx="10" fill="#fff" stroke="#F0E0DE"/><text x="556" y="73">recharts (lazy) + SVG</text><text x="556" y="89" font-size="10" fill="#5C5660">charts/gauges/CPFPie</text>
+      <rect x="660" y="56" width="250" height="42" rx="10" fill="#fff" stroke="#F0E0DE"/><text x="785" y="73">html-to-image · jsPDF · Lucide</text><text x="785" y="89" font-size="10" fill="#5C5660">PDF report · icons</text>
+    </g>
+    <line x1="480" y1="112" x2="480" y2="134" stroke="#8A838E" marker-end="url(#ar2)"/>
+    <!-- server -->
+    <rect x="30" y="138" width="900" height="92" rx="14" fill="#EDF7FA" stroke="#D0EEF4"/>
+    <text x="48" y="162" font-size="13" font-weight="800" fill="#2A7B8F">EDGE / SERVER — Vercel (region sin1)</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="48" y="174" width="210" height="42" rx="10" fill="#fff" stroke="#D0EEF4"/><text x="153" y="191">middleware (auth gate)</text><text x="153" y="207" font-size="10" fill="#5C5660">PUBLIC_PATHS · 401 JSON</text>
+      <rect x="272" y="174" width="230" height="42" rx="10" fill="#fff" stroke="#D0EEF4"/><text x="387" y="191">Route Handlers /api/*</text><text x="387" y="207" font-size="10" fill="#5C5660">customers·nutriscan·cgm·pulse·checkform</text>
+      <rect x="516" y="174" width="200" height="42" rx="10" fill="#fff" stroke="#D0EEF4"/><text x="616" y="191">Server Components</text><text x="616" y="207" font-size="10" fill="#5C5660">report · admin · line-bot</text>
+      <rect x="730" y="174" width="180" height="42" rx="10" fill="#fff" stroke="#D0EEF4"/><text x="820" y="191">Cron</text><text x="820" y="207" font-size="10" fill="#5C5660">LINE push-tomorrow</text>
+    </g>
+    <line x1="300" y1="230" x2="300" y2="252" stroke="#8A838E" marker-end="url(#ar2)"/>
+    <line x1="720" y1="230" x2="720" y2="252" stroke="#8A838E" marker-end="url(#ar2)"/>
+    <!-- data + ai -->
+    <rect x="30" y="256" width="540" height="100" rx="14" fill="#F0F8F4" stroke="#D6EDE4"/>
+    <text x="48" y="280" font-size="13" font-weight="800" fill="#396755">DATA — Supabase (qzqvwbucjxwgtmbdkrlu)</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="48" y="292" width="150" height="50" rx="10" fill="#fff" stroke="#D6EDE4"/><text x="123" y="312">Postgres + RLS</text><text x="123" y="328" font-size="10" fill="#5C5660">owner·admin·co-coach</text>
+      <rect x="208" y="292" width="120" height="50" rx="10" fill="#fff" stroke="#D6EDE4"/><text x="268" y="312">Auth</text><text x="268" y="328" font-size="10" fill="#5C5660">email · role</text>
+      <rect x="338" y="292" width="110" height="50" rx="10" fill="#fff" stroke="#D6EDE4"/><text x="393" y="312">Storage</text><text x="393" y="328" font-size="10" fill="#5C5660">meal-images</text>
+      <rect x="458" y="292" width="100" height="50" rx="10" fill="#fff" stroke="#D6EDE4"/><text x="508" y="312">RPCs</text><text x="508" y="328" font-size="10" fill="#5C5660">cgm_* SECDEF</text>
+    </g>
+    <rect x="590" y="256" width="340" height="100" rx="14" fill="#FEFAF3" stroke="#FDF0DB"/>
+    <text x="608" y="280" font-size="13" font-weight="800" fill="#C47A2A">AI / EXTERNAL</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="608" y="292" width="150" height="50" rx="10" fill="#fff" stroke="#FDF0DB"/><text x="683" y="312">Gemini (BYO key)</text><text x="683" y="328" font-size="10" fill="#5C5660">vision·checkform·assess</text>
+      <rect x="768" y="292" width="150" height="50" rx="10" fill="#fff" stroke="#FDF0DB"/><text x="843" y="309">WHOOP·Apple·Fit</text><text x="843" y="325" font-size="10" fill="#5C5660">LINE Messaging</text>
+    </g>
+  </svg>
+  </div>
+
+  <!-- 2.3 MODULE -->
+  <h3 id="d-module">2.3 · Module Diagram</h3>
+  <p>modules แยกตามกลุ่ม + ใช้ shared kit ร่วมกัน (เปลี่ยนแค่ presentation · API/engine เดิม)</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 470" xmlns="http://www.w3.org/2000/svg" font-family="Manrope,sans-serif">
+    <!-- shared base -->
+    <rect x="30" y="378" width="900" height="74" rx="14" fill="#18151A"/>
+    <text x="48" y="402" font-size="13" font-weight="800" fill="#fff">SHARED KIT (lib/v2 · Shell · RBAC)</text>
+    <g font-size="11" fill="#fff" font-weight="600" text-anchor="middle">
+      <rect x="48" y="412" width="150" height="30" rx="8" fill="#3D3840"/><text x="123" y="431">identity · status · ui</text>
+      <rect x="208" y="412" width="140" height="30" rx="8" fill="#3D3840"/><text x="278" y="431">IdentityBlock</text>
+      <rect x="358" y="412" width="160" height="30" rx="8" fill="#3D3840"/><text x="438" y="431">Shell (nav · TOC · switcher)</text>
+      <rect x="528" y="412" width="180" height="30" rx="8" fill="#3D3840"/><text x="618" y="431">canAccessCustomer · co-coach</text>
+      <rect x="718" y="412" width="192" height="30" rx="8" fill="#3D3840"/><text x="814" y="431">middleware · /api · Supabase admin</text>
+    </g>
+    <!-- group: customer-facing -->
+    <rect x="30" y="20" width="290" height="340" rx="14" fill="#FAF3F2" stroke="#F0E0DE"/>
+    <text x="46" y="44" font-size="12.5" font-weight="800" fill="#8C4C4C">CUSTOMER & HEALTH</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="46" y="54" width="258" height="40" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="175" y="72">Customers list → ★ Customer 360</text><text x="175" y="87" font-size="9.5" fill="#5C5660">identity · vital · insights · timeline · 8 tabs</text>
+      <rect x="46" y="100" width="125" height="36" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="108" y="123">BCA tracker</text>
+      <rect x="179" y="100" width="125" height="36" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="241" y="118">Labs + body-map</text><text x="241" y="131" font-size="9" fill="#5C5660">อวัยวะตามผล</text>
+      <rect x="46" y="142" width="125" height="36" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="108" y="160">Allergy · Supp</text><text x="108" y="172" font-size="9" fill="#5C5660">DI flags</text>
+      <rect x="179" y="142" width="125" height="36" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="241" y="165">Notes (CRUD)</text>
+      <rect x="46" y="184" width="258" height="40" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="175" y="201">UP Pulse — import · master · assessments</text><text x="175" y="216" font-size="9.5" fill="#5C5660">WHOOP/Apple/Fit · CGM tab</text>
+      <rect x="46" y="230" width="258" height="44" rx="9" fill="#3D5826"/><text x="175" y="249" fill="#fff">Wearable Report (Pook CI + TOC)</text><text x="175" y="264" font-size="9.5" fill="#E8EDE0">+ BCA/CGM/อาหาร/วิเคราะห์รวม</text>
+      <rect x="46" y="280" width="258" height="40" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="175" y="297">CGM analyzer + passcode (admin)</text><text x="175" y="312" font-size="9.5" fill="#5C5660">/cgm iframe · RPC reset</text>
+      <rect x="46" y="326" width="258" height="28" rx="9" fill="#fff" stroke="#F0E0DE"/><text x="175" y="344">Reports: Med-Map · Lab Report (+public)</text>
+    </g>
+    <!-- group: nutrition -->
+    <rect x="335" y="20" width="290" height="200" rx="14" fill="#F0F8F4" stroke="#D6EDE4"/>
+    <text x="351" y="44" font-size="12.5" font-weight="800" fill="#396755">NUTRITION</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="351" y="54" width="258" height="44" rx="9" fill="#fff" stroke="#D6EDE4"/><text x="480" y="72">NutriScan (รูป+หมายเหตุ→AI)</text><text x="480" y="88" font-size="9.5" fill="#5C5660">%ส่วนประกอบ · history · temp/save</text>
+      <rect x="351" y="104" width="125" height="40" rx="9" fill="#fff" stroke="#D6EDE4"/><text x="413" y="121">Food Log</text><text x="413" y="135" font-size="9" fill="#5C5660">แก้/ลบ</text>
+      <rect x="484" y="104" width="125" height="40" rx="9" fill="#fff" stroke="#D6EDE4"/><text x="546" y="121">Plate Planner</text><text x="546" y="135" font-size="9" fill="#5C5660">7/14/30 · PDF · pie</text>
+      <rect x="351" y="150" width="258" height="36" rx="9" fill="#fff" stroke="#D6EDE4"/><text x="480" y="172">Program Designer (PV · cashback · PNG)</text>
+      <rect x="351" y="192" width="258" height="22" rx="9" fill="#fff" stroke="#D6EDE4"/><text x="480" y="207" font-size="10.5">engine + /api/plate-image (reuse)</text>
+    </g>
+    <!-- group: growth/leads -->
+    <rect x="640" y="20" width="290" height="200" rx="14" fill="#EDF7FA" stroke="#D0EEF4"/>
+    <text x="656" y="44" font-size="12.5" font-weight="800" fill="#2A7B8F">GROWTH & LEADS</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="656" y="54" width="258" height="44" rx="9" fill="#fff" stroke="#D0EEF4"/><text x="785" y="72">CheckForm (FORM wizard + AI)</text><text x="785" y="88" font-size="9.5" fill="#5C5660">+ STP clip recommendations</text>
+      <rect x="656" y="104" width="125" height="40" rx="9" fill="#fff" stroke="#D0EEF4"/><text x="718" y="128">Prospects</text>
+      <rect x="789" y="104" width="125" height="40" rx="9" fill="#fff" stroke="#D0EEF4"/><text x="851" y="121">Health Check</text><text x="851" y="135" font-size="9" fill="#5C5660">+ Metaflex leads</text>
+      <rect x="656" y="150" width="258" height="36" rx="9" fill="#fff" stroke="#D0EEF4"/><text x="785" y="172">LINE Bot (น้องจาน · webhook · cron)</text>
+    </g>
+    <!-- group: admin -->
+    <rect x="640" y="234" width="290" height="120" rx="14" fill="#FEFAF3" stroke="#FDF0DB"/>
+    <text x="656" y="258" font-size="12.5" font-weight="800" fill="#C47A2A">ADMIN & RBAC</text>
+    <g font-size="11.5" fill="#18151A" font-weight="600" text-anchor="middle">
+      <rect x="656" y="268" width="258" height="34" rx="9" fill="#fff" stroke="#FDF0DB"/><text x="785" y="289">Users · roles · app grants</text>
+      <rect x="656" y="306" width="160" height="34" rx="9" fill="#fff" stroke="#FDF0DB"/><text x="736" y="327">Assign (co-coach)</text>
+      <rect x="824" y="306" width="90" height="34" rx="9" fill="#fff" stroke="#FDF0DB"/><text x="869" y="327">Backup</text>
+    </g>
+    <!-- connectors to base -->
+    <g stroke="#BAB5BD" stroke-dasharray="3 3"><line x1="175" y1="360" x2="175" y2="378"/><line x1="480" y1="220" x2="480" y2="378"/><line x1="785" y1="354" x2="785" y2="378"/></g>
+  </svg>
+  </div>
 </section>
 
 <!-- 3 -->
 <section id="strategy">
-  <h2>3 · กลยุทธ์ v2 — สร้างขนาน (parallel), สลับเมื่อพร้อม</h2>
-  <p>v2 ถูกสร้างใต้เส้นทาง <code>/v2/*</code> โดย <strong>ใช้ API + ข้อมูลจริงชุดเดียวกับ v1</strong> (ไม่ใช่ mock) เพื่อให้เปรียบเทียบ v1↔v2 ได้ตรงๆ และ v1 ยังทำงานได้ตลอดระหว่างพัฒนา</p>
-  <table>
-    <tr><th>เฟส</th><th>v1 (เดิม)</th><th>v2 (ใหม่)</th></tr>
-    <tr><td>ระหว่าง dev</td><td>ใช้งานจริงปกติ</td><td><code>/v2/*</code> เปิดทดสอบคู่ขนาน (real data)</td></tr>
-    <tr><td>parity ผ่าน/ module</td><td>ยังอยู่</td><td>BA+User เซ็นรับ</td></tr>
-    <tr><td>cutover</td><td>redirect → /v2 หรือ feature flag</td><td>กลายเป็น default</td></tr>
-    <tr><td>หลัง cutover</td><td>เก็บเป็น <code>?legacy=1</code> ชั่วคราว</td><td>production</td></tr>
-  </table>
-  <div class="note"><strong>หลักการ reuse:</strong> v2 เรียก <code>/api/customers/[id]/360</code>, <code>/api/customers/list</code>, <code>/api/customers/[id]/measurements</code> ฯลฯ ตามเดิม — เปลี่ยนเฉพาะ component/layout. ถ้าพบว่า API ขาดข้อมูลที่ identity block ต้องใช้ (เช่น <code>birth_date</code>, <code>height</code>) ให้ <strong>เพิ่ม field ใน response เท่านั้น</strong> (ไม่ทำลายของเดิม)</p></div>
+  <h2>3 · กลยุทธ์ /v2 — สร้างขนาน, cutover เมื่อพร้อม</h2>
+  <p>v2 อยู่ใต้ <code>/v2/*</code> ใช้ API + ข้อมูลจริงชุดเดียวกับ v1 (auth-gated หลังเอาออกจาก PUBLIC_PATHS). v1 ยังทำงานปกติ. <strong>สถานะ:</strong> ทุก module สร้าง + verify + ship แล้ว · <span class="pill warn">cutover (redirect v1→v2 / flag) รอ Toni เคาะหลัง UAT</span></p>
+  <div class="note"><strong>v1 touchpoints ที่เหลือ (ติดป้าย "Legacy" ตั้งใจ):</strong> ฟอร์มเพิ่มลูกค้า/record/allergy · /cgm iframe · ปุ่มมุมมองเดิม — ยังไม่มี v2 (สร้างได้ถ้าต้องการ)</div>
 </section>
 
-<!-- 4 IDENTITY -->
+<!-- 4 -->
 <section id="identity">
-  <h2>4 · ★ Customer Identity Block (ข้อกำหนดบังคับ)</h2>
-  <div class="must">
-    <h4>บังคับ: ทั้ง Customer Profile (360) และหน้า BCA ต้องแสดงข้อมูลลูกค้าเหล่านี้เด่นชัดเสมอ</h4>
-    <table>
-      <tr><th>Field</th><th>แหล่งข้อมูล</th><th>รูปแบบแสดงผล</th></tr>
-      <tr><td><strong>ชื่อ</strong></td><td><code>customers.name</code> (+ <code>nickname</code> ถ้ามี)</td><td>"ชื่อเต็ม (ชื่อเล่น)"</td></tr>
-      <tr><td><strong>วันเดือนปีเกิด</strong></td><td><code>customers.birth_date</code></td><td><strong>ค.ศ. (Gregorian)</strong> เช่น <code>7 Nov 1982</code> หรือ <code>1982-11-07</code> — ไม่ใช้ พ.ศ.</td></tr>
-      <tr><td><strong>อายุ</strong></td><td>คำนวณจาก <code>birth_date</code> ถึงวันนี้ (fallback: <code>birth_year</code>)</td><td>"43 ปี" (เลขจำนวนเต็มปี)</td></tr>
-      <tr><td><strong>เพศ</strong></td><td><code>customers.gender</code> (male/female/other)</td><td>"ชาย / หญิง / อื่นๆ" + ไอคอน ♂ ♀</td></tr>
-      <tr><td><strong>ส่วนสูง</strong></td><td><code>customers.height</code> (cm)</td><td>"165 ซม." (ใช้คำนวณ BMI ในหน้า BCA)</td></tr>
-    </table>
-  </div>
-  <h4>กฎการแสดงผล</h4>
-  <ul>
-    <li><strong>อายุ</strong> คำนวณจาก <code>birth_date</code> เป็นหลัก (แม่นระดับวัน) — ถ้าไม่มี birth_date ใช้ <code>birth_year</code> (ปีปัจจุบัน − birth_year)</li>
-    <li><strong>วันเกิดแสดงเป็น ค.ศ. เสมอ</strong> (ผู้ใช้ระบุชัด) — ถ้าจะโชว์ พ.ศ. ควบ ให้เป็น secondary เล็กๆ</li>
-    <li>ถ้า field ใดว่าง → แสดง "—" และมีปุ่ม/ลิงก์ "เพิ่มข้อมูล" (แก้ที่หน้า edit customer เดิม)</li>
-    <li>หน้า BCA: identity block อยู่ส่วนหัว เหนือฟอร์ม/ตารางวัด — ผู้ใช้เห็นว่ากำลังบันทึกให้ใคร + ใช้ height คำนวณ BMI</li>
-  </ul>
-  <div class="note">ต้องตรวจว่า <code>/api/customers/[id]/360</code> และ data ของหน้า BCA ส่ง <code>name, nickname, birth_date, birth_year, gender, height</code> มาครบ. ปัจจุบัน 360 ส่ง customer object เต็ม (<code>select("*")</code>) — มีครบแล้ว; ยืนยันว่า IdentityBar v2 ใช้ field เหล่านี้จริง.</div>
+  <h2>4 · ★ Customer Identity Block (บังคับ — ทำแล้ว)</h2>
+  <div class="must"><h4>Customer Profile + BCA แสดง: ชื่อ · วันเกิด (ค.ศ.) · อายุ · เพศ · ส่วนสูง — เด่นชัด (ใช้ <code>lib/v2/IdentityBlock</code> ร่วมกัน)</h4></div>
+  <table>
+    <tr><th>Field</th><th>แหล่ง</th><th>กฎ (implemented in lib/v2/identity)</th></tr>
+    <tr><td>ชื่อ</td><td><code>name</code> (+nickname)</td><td>displayName()</td></tr>
+    <tr><td>วันเกิด</td><td><code>birth_date</code></td><td>ค.ศ. "7 Nov 1982" (พ.ศ. secondary)</td></tr>
+    <tr><td>อายุ</td><td>คำนวณ birth_date→birth_year→chrono</td><td>resolveAge() day-accurate · /360 ส่ง chrono_age day-accurate ด้วย</td></tr>
+    <tr><td>เพศ</td><td><code>gender</code></td><td>ชาย/หญิง/อื่นๆ · glyph "" เมื่อ other/null</td></tr>
+    <tr><td>ส่วนสูง</td><td><code>height</code></td><td>"165 ซม." · ใช้คำนวณ BMI</td></tr>
+  </table>
 </section>
 
-<!-- 5 DESIGN -->
+<!-- 5 -->
 <section id="design">
-  <h2>5 · Design System v2 — "Clinical-Warm"</h2>
-  <p>คง token สีเดิม (rose/wellness/science/amber/ink/status) แต่เปลี่ยนวิธีใช้: <strong>เลิก glass หนา + aurora เคลื่อนไหว → พื้นนิ่ง การ์ดขาวคม เงานุ่ม</strong></p>
-  <h4>สี (คงเดิม — ใช้เป็นระบบเดียว)</h4>
-  <div class="grid3">
-    <div class="card" style="margin:6px 0"><strong style="color:var(--rose)">Rose #8C4C4C</strong><br><span style="font-size:12px;color:var(--ink60)">primary · brand warmth · ปุ่มหลัก/ลิงก์</span></div>
-    <div class="card" style="margin:6px 0"><strong style="color:var(--wellness)">Wellness #396755</strong><br><span style="font-size:12px;color:var(--ink60)">positive · สุขภาพดี · co-coach</span></div>
-    <div class="card" style="margin:6px 0"><strong style="color:var(--science)">Science #2A7B8F</strong><br><span style="font-size:12px;color:var(--ink60)">data · กราฟ · ลิงก์อ้างอิง</span></div>
-  </div>
-  <h4>Status — ระบบเดียว (เลิก 3 ชุดซ้อน)</h4>
-  <p>
-    <span class="pill" style="background:var(--okbg);color:var(--ok)"><span class="dot" style="background:var(--ok)"></span>optimal</span>
-    <span class="pill" style="background:#ECFCCB;color:var(--good)"><span class="dot" style="background:var(--good)"></span>good</span>
-    <span class="pill" style="background:var(--cautionbg);color:var(--caution)"><span class="dot" style="background:var(--caution)"></span>caution</span>
-    <span class="pill" style="background:var(--warnbg);color:var(--warn)"><span class="dot" style="background:var(--warn)"></span>warning</span>
-    <span class="pill" style="background:var(--dangerbg);color:var(--danger)"><span class="dot" style="background:var(--danger)"></span>danger</span>
-  </p>
-  <p style="font-size:13px;color:var(--ink60)">map ครั้งเดียวใน <code>lib/status</code> → ใช้ทั้ง badge/กราฟ/ข้อความ. กราฟห้าม hex ลอย ต้องอ้าง token.</p>
-  <h4>Typography</h4>
-  <ul>
-    <li><strong>หัวข้อ/ตัวเลข:</strong> Manrope (head) · <strong>เนื้อหาไทย:</strong> Sarabun (thai) · <strong>โค้ด/timestamp:</strong> JetBrains Mono</li>
-    <li><strong>เลิก</strong> label monospace UPPERCASE tracking กว้างทั่วทุกที่ → ใช้ sentence-case <code>text-[12px] font-semibold text-ink-60</code> (mono เก็บไว้เฉพาะตัวเลข/โค้ด)</li>
-    <li>ขนาดตัวอักษรเล็กสุดขยับขึ้น 9–10px → <strong>≥12px</strong>; สเกล 6 ระดับ (12/14/15/17/23/34)</li>
+  <h2>5 · Design System (clinical-warm — implemented)</h2>
+  <ul class="chk">
+    <li>สี token เดิม (rose/wellness/science/amber/ink/surface) · <strong>status text สีเข้ม AA</strong> (caution #854D0E · good #3F6212 · optimal #15803D · warning #9A3412 · danger #991B1B) สำหรับตัวอักษร · bright hex เฉพาะ dot/ring</li>
+    <li>เลิก glass/aurora/emoji-icon/mono-uppercase → การ์ดขาว rounded-2xl + เงานุ่ม · Lucide icons · Sarabun sentence-case · text ≥12px · touch ≥44px</li>
+    <li><strong>macro C:P:F สีเดียวทั้งแอป:</strong> คาร์บ=rose · โปรตีน=wellness · ไขมัน=amber (NutriScan + Plate + CPFPie default) · CPFPie รับ prop <code>colors</code> ได้</li>
+    <li><strong>Report CI แยก (deliverable):</strong> olive #3D5826 / gold / cream — ใช้กับ Wearable Report (Pook), Med-Map, Lab Report</li>
+    <li>empty/loading/error states ครบ · <code>app/v2/error.tsx</code> error boundary</li>
   </ul>
-  <h4>Components (มาตรฐานเดียว)</h4>
-  <table>
-    <tr><th>Component</th><th>กติกา v2</th></tr>
-    <tr><td>Card</td><td>พื้นขาว <code>rounded-2xl border border-ink-10</code> + เงานุ่ม (ไม่ใช้ <code>.liquid</code>)</td></tr>
-    <tr><td>Button</td><td>3 ระดับชัด: primary (rose solid) · secondary (outline) · ghost. ปุ่ม async โชว์ spinner เสมอ</td></tr>
-    <tr><td>Icon</td><td><strong>Lucide</strong> 16–20px strokeWidth 2 (เลิก emoji-as-icon; emoji เฉพาะที่สื่อความหมายจริง)</td></tr>
-    <tr><td>Status pill</td><td><code>rounded-full</code> + dot + label จากระบบเดียว</td></tr>
-    <tr><td>Tabs</td><td>เส้นใต้/segmented เรียบ ไม่ใช่ glass shell; active ชัด; keyboard นำทางได้</td></tr>
-    <tr><td>Table</td><td>หัวตารางนิ่ง, row hover, มือถือ scroll มีเงาบอกขอบ + สลับเป็น card list</td></tr>
-    <tr><td>Form field</td><td>label ชัด, error inline, touch ≥44px, save state ชัด</td></tr>
-    <tr><td>Empty/Loading/Error</td><td>ครบทุก tab/หน้า โทนสม่ำเสมอ (Lucide + ข้อความไทยอุ่นๆ + action)</td></tr>
-  </table>
-  <h4>Background &amp; Motion</h4>
-  <ul><li>พื้น <code>warm-white</code> นิ่ง (เลิก aurora 3 orbs animate) — gradient คงที่บางๆ ได้เฉพาะ hero</li>
-  <li>เคารพ <code>prefers-reduced-motion</code> / <code>prefers-reduced-transparency</code> / <code>prefers-contrast</code> + print = solid</li></ul>
 </section>
 
-<!-- 6 PATTERNS -->
+<!-- 6 -->
 <section id="patterns">
-  <h2>6 · Global Patterns (แก้ปัญหา "หาทางไม่เจอ")</h2>
-  <ul>
-    <li><strong>App Shell + Nav ถาวร:</strong> top bar มีโลโก้ + <strong>app switcher</strong> (เข้าถึง 26 apps จากทุกหน้า) + ค้นหา + เมนูผู้ใช้ — ไม่ต้องกลับ hub ทุกครั้ง</li>
-    <li><strong>Breadcrumb</strong> ทุกหน้า detail: เช่น <code>ลูกค้า › นส.เอ › BCA</code></li>
-    <li><strong>ยุบหน้าลูกค้าซ้ำ:</strong> /pulse/master ผนวกเป็น "tab Pulse" ใน Customer 360 (ลิงก์ถึงกัน; ลูกค้า 1 คน = 1 หน้าเข้าใจง่าย)</li>
-    <li><strong>Page header มาตรฐาน:</strong> ชื่อหน้า + คำอธิบายสั้น + primary action ขวาบน</li>
-    <li><strong>Search/filter</strong> วางตำแหน่งเดิมทุกหน้า list, จำ state</li>
-    <li><strong>ฟอร์มยาวมี progress</strong> (เช่น CheckForm หลาย section)</li>
-    <li><strong>a11y:</strong> aria-label ปุ่มไอคอน, สถานะมี label ไม่พึ่งสีล้วน, focus-visible ชัด, contrast ≥4.5:1</li>
-    <li><strong>i18n:</strong> ไทยเป็นหลัก (Sarabun), ศัพท์เทคนิคไทย-อังกฤษควบ, รองรับผู้ใช้พิมพ์อังกฤษ</li>
+  <h2>6 · Global Patterns (implemented)</h2>
+  <ul class="chk">
+    <li><strong>App Shell</strong> ถาวรทุกหน้า: โลโก้ + app-switcher (ชี้ /v2 ทุกแอปที่มี) + breadcrumb + <strong>user/role indicator</strong> (Shell fetch <code>/api/debug/me</code> เองเมื่อหน้าไม่ส่ง prop)</li>
+    <li>breadcrumb ทุกหน้า detail (+ mobile row)</li>
+    <li>Report มี <strong>TOC index</strong> sticky scroll-jump (โชว์เฉพาะ section ที่มีข้อมูล)</li>
+    <li>responsive 375px+ · ตาราง→card/column-shed บนมือถือ</li>
   </ul>
 </section>
 
-<!-- 7 FEATURE SPECS -->
-<section id="f-hub">
-  <h2>7 · Feature Specifications (รายฟีเจอร์)</h2>
-  <p>แต่ละ module ระบุ: จุดประสงค์ · v1→v2 · หน้าจอ/คอมโพเนนต์ · ข้อมูล/API (คงเดิม) · <strong>Parity checklist</strong> (สิ่งที่ v2 ต้องมีครบ). ทุก checklist คือสิ่งที่ Agent User + BA ใช้ตรวจรับ.</p>
-
-  <h3 id="f-hub-h">7.1 · Hub / Home <span class="tag live">live</span></h3>
-  <div class="v1v2"><div class="v1"><div class="lbl">v1</div>app launcher + greeting + quick stats · emoji quick actions · mesh bg</div><div class="v2"><div class="lbl">v2</div>app launcher จัดหมวด (Customer-facing / Business / Internal / Content) · Lucide icons · greeting อุ่น · quick stats การ์ดเรียบ · search apps</div></div>
-  <ul class="chk"><li>App launcher แสดง 26 apps ตาม role + grant (canAccessApp เดิม)</li><li>สถานะ live/beta/soon ชัด</li><li>Quick stats (ลูกค้า, leads, ฯลฯ)</li><li>ลิงก์เข้าทุก module</li></ul>
-
-  <h3 id="f-customers">7.2 · Customers List <span class="tag live">live</span></h3>
-  <div class="v1v2"><div class="v1"><div class="lbl">v1</div><code>/customers</code> · search + filter · create · cache 60s · scope coach_id (+ co-coach)</div><div class="v2"><div class="lbl">v2</div><code>/v2/customers</code> · การ์ด/แถวอ่านชัด: ชื่อ+อายุ+เพศ+สถานะสุขภาพ+ป้าย (BCA/CGM/Pulse/leads) · ค้นหา/กรองเดิม · ปุ่มสร้างชัด</div></div>
-  <ul class="chk"><li>ค้นหาชื่อ/เบอร์ · กรองตาม region/สถานะ</li><li>โชว์ลูกค้าของฉัน + ที่ถูกแชร์ (co-coach) — list query เดิม</li><li>สร้างลูกค้าใหม่ (name, gender, birth_date, height ฯลฯ)</li><li>คลิก → Customer 360 · lazy-load รายละเอียด · cache เดิม</li></ul>
-
-  <h3 id="f-360">7.3 · ★ Customer Profile 360 <span class="tag live">live</span></h3>
-  <p>หน้าหัวใจของระบบ. API <code>/api/customers/[id]/360</code> (คงเดิม — รวม score, status, insights, labVals, bcaLatest, allergyTests, timeline, meta{hasMedMap,hasLabReport,labReportToken}, cgmProfiles, pulseAssessments).</p>
-  <div class="must"><h4>★ ต้องมี Identity Block (§4): ชื่อ · วันเกิด ค.ศ. · อายุ · เพศ · ส่วนสูง — เด่นที่ส่วนหัว</h4></div>
-  <h4>Zones (คงครบ — redesign ให้อ่านชัด)</h4>
+<!-- 7 FEATURES -->
+<section id="f-core">
+  <h2>7 · Features (สร้างครบ)</h2>
+  <h3 id="f-core-h">7.1 · Hub · Customers · Customer 360 <span class="tag live">live</span></h3>
   <ul class="chk">
-    <li><strong>IdentityBar</strong>: identity block (§4) + status badge + recency chips (BCA/Lab/contact) + action buttons: โทร · LINE · เพิ่ม record · BCA · allergy · <strong>Med-Map</strong> · <strong>Longevity Report</strong> · <strong>คัดลอกลิงก์ลูกค้า (public)</strong> · legacy toggle</li>
-    <li><strong>Vital Dashboard</strong>: health score gauge (0–100) + delta เดือนก่อน + 6 metric cards (HbA1c, LDL, น้ำหนัก, visceral, FBS, body age) พร้อม status + trend</li>
-    <li><strong>Activity Timeline</strong> 90 วัน (BCA/labs/notes/records/supp/assessments)</li>
-    <li><strong>Insights Panel</strong>: "สิ่งที่ต้องเฝ้าระวัง" + next steps + flags (critical/caution/info)</li>
-    <li><strong>8 Tabs</strong>: Body · Labs · Trends · Allergy · CGM · Supplements · Pulse · Notes (รายละเอียดแต่ละ tab §7.5–7.6)</li>
-  </ul>
-  <ul class="chk"><li>med-map / lab-report ปุ่ม gated ด้วย meta เดิม</li><li>ปุ่ม "ลิงก์ลูกค้า" คัดลอก public lab-report link</li><li>รวม /pulse/master เข้าเป็น tab Pulse (ยุบหน้าซ้ำ)</li></ul>
-
-  <h3 id="f-bca">7.4 · ★ BCA Tracker <span class="tag live">live</span></h3>
-  <div class="v1v2"><div class="v1"><div class="lbl">v1</div><code>/bca</code> · customer picker · ฟอร์มวัด · 6 gauges · trend charts · classify status</div><div class="v2"><div class="lbl">v2</div><code>/v2/bca</code> · <strong>identity block ส่วนหัว (§4)</strong> · ฟอร์มวัดชัด · gauges + trend อ่านง่าย · BMI คำนวณจาก height</div></div>
-  <div class="must"><h4>★ หน้า BCA ต้องโชว์ identity block: ชื่อ · วันเกิด ค.ศ. · อายุ · เพศ · ส่วนสูง (เหนือฟอร์ม)</h4></div>
-  <ul class="chk">
-    <li>เลือกลูกค้า → เห็น identity (รวมส่วนสูง) ทันที</li>
-    <li>บันทึกค่า: น้ำหนัก, fat%, muscle%, visceral, body_age, bmr, วันที่ (API measurements เดิม)</li>
-    <li>คำนวณ BMI/fat mass/muscle mass จาก weight+height · classify optimal→danger (<code>/api/bca/classify</code> เดิม)</li>
-    <li>6 metric gauges + trend charts (weight/fat%/muscle%/visceral)</li>
-    <li>แก้/ลบรายการ (PATCH <code>/api/measurements/[id]</code>) · ลิงก์สร้าง report</li>
+    <li><strong>Hub</strong> <code>/v2</code> — app launcher จัดหมวด ตาม role+grant</li>
+    <li><strong>Customers</strong> <code>/v2/customers</code> — ค้นหา/กรอง · การ์ดชื่อ+อายุ+เพศ+สถานะ+ป้าย · มือถือเห็นสถานะ · รวม "ของฉัน + ที่ถูกแชร์"</li>
+    <li><strong>Customer 360</strong> <code>/v2/customers/[id]</code> — IdentityBlock (§4) · status · recency · action bar (โทร·LINE·record·BCA·allergy·Med-Map·Longevity Report·คัดลอกลิงก์ลูกค้า) · Vital Dashboard (score gauge + 6 metric) · Insights · Timeline 90 วัน · <strong>8 tabs</strong>: Body·Labs·Trends·Allergy·CGM·Supplements·Pulse·Notes (ครบ ของจริง)</li>
   </ul>
 
-  <h3 id="f-labs">7.5 · Labs · Trends · Allergy · Supplements · CGM (Tabs)</h3>
+  <h3 id="f-bca">7.2 · BCA + Labs body-map <span class="tag live">live</span> <span class="tag new">+ body-map</span></h3>
+  <ul class="chk">
+    <li><strong>BCA</strong> <code>/v2/bca</code> — IdentityBlock+ส่วนสูง · ฟอร์มวัด · gauges · trend · BMI · <strong>ตารางประวัติ + แก้/ลบ</strong> · ReportBuilder (PNG)</li>
+    <li><strong>Labs tab</strong> — panel ตามหมวด + ref + status · trend charts · <strong>★ ปุ่ม "ดูภาพร่างกาย · จุดที่ผลแล็บเกิดขึ้น"</strong> → modal BodyView (reuse v1 · metric→อวัยวะ·สีตามสถานะ)</li>
+  </ul>
+
+  <h3 id="f-pulse">7.3 · UP Pulse + Report <span class="tag live">live</span> <span class="tag new">report rebuilt</span></h3>
+  <ul class="chk">
+    <li>Hub · master/[id] (WHOOP CSV+OAuth · Apple · Google Fit · CGM link) · assessments (Gemini) · intake/connect/invite (public)</li>
+    <li><strong>★ Wearable Report</strong> <code>/v2/pulse/report/[id]</code> — ดีไซน์ <strong>Pook (olive/gold)</strong> · score gauges (SVG) · <strong>TOC index</strong> · recharts olive/gold · sections: recovery/HRV/sleep/SpO2/strain/workout + labs(lipid) + <strong>BCA/CGM/อาหาร (conditional)</strong> + <strong>วิเคราะห์เชื่อมโยงรวม</strong> · print + font-size · builders <code>lib/pulse/extra-report.ts</code></li>
+  </ul>
+
+  <h3 id="f-nutri">7.4 · NutriScan · Plate Planner · Designer <span class="tag live">live</span> <span class="tag new">NutriScan ++</span></h3>
+  <ul class="chk">
+    <li><strong>NutriScan</strong> — เลือก customer/วัน(<code>eaten_on</code>)/มื้อ · <strong>หมายเหตุส่งเข้า Gemini จริง</strong> (ช่วยตอนรูปกะไม่เป๊ะ) · <strong>%ส่วนประกอบ</strong> (components[]) · toggle temp/save · <strong>history + detail modal</strong></li>
+    <li><strong>Food Log</strong> — แก้ (PATCH คำนวณแคลใหม่) + ลบ</li>
+    <li><strong>Plate Planner</strong> — 3 เป้าหมาย · 7/14/30 วัน · prefill customer · <strong>สัดส่วน pie+bar</strong> · <strong>PDF report ดาวน์โหลดตรง</strong> (off-canvas→html-to-image→jsPDF multi-page)</li>
+    <li><strong>Designer</strong> — wizard 5 ขั้น · unit/PV/cashback · ProgramReport PNG</li>
+  </ul>
+
+  <h3 id="f-leads">7.5 · CheckForm · Prospects · Leads <span class="tag live">live</span></h3>
+  <ul class="chk">
+    <li>CheckForm — FORM wizard + progress · AI analyze (readiness/urgency/fit) · STP clips + share/follow-up</li>
+    <li>Prospects (tier + convert→CheckForm) · Health Check leads admin (กรอง quiz/status · convert · notes) · public /check /metaflex (v1)</li>
+  </ul>
+
+  <h3 id="f-line">7.6 · LINE Bot <span class="tag live">live</span></h3>
+  <ul class="chk"><li><code>/v2/line-bot</code> ผูกกลุ่ม + config ต่อ customer (IdentityBlock) · webhook · cron · co-coach gate</li></ul>
+
+  <h3 id="f-cgm">7.7 · CGM <span class="tag live">live</span> <span class="tag new">passcode admin</span></h3>
+  <ul class="chk">
+    <li>CGM tab → /cgm analyzer (iframe) · passcode = <strong>hash กู้ไม่ได้</strong> · <strong>panel admin "จัดการรหัสผ่าน CGM"</strong> (API <code>/api/cgm/passcode</code> · RPC <code>cgm_admin_set_passcode</code>) ลิสต์ profiles + reset · ซ่อนสำหรับ non-admin (403)</li>
+  </ul>
+
+  <h3 id="f-reports">7.8 · Reports <span class="tag live">live</span></h3>
+  <ul class="chk">
+    <li>Med-Map (auth · per-customer HTML) · Longevity Lab Report (auth + <strong>public /r/lab/&lt;token&gt;</strong> noindex) · Wearable Report (§7.3) — olive/gold CI · print</li>
+  </ul>
+
+  <h3 id="f-admin">7.9 · Admin · RBAC · Co-coach <span class="tag live">live</span></h3>
+  <ul class="chk">
+    <li>Users (role member/abo/admin/other · app grants · reset/create) · Backup · admin gate</li>
+    <li><strong>★ Co-coach</strong> — admin assign ลูกค้าให้ user อื่นเห็น+แก้ได้ (ตาราง <code>customer_assignments</code> · RLS additive 23 ตารางลูก + helper <code>canAccessCustomer</code> ~35 จุด · ลบ/มอบต่อ = เจ้าของ+admin)</li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section id="stack">
+  <h2>8 · Tech Stack</h2>
   <table>
-    <tr><th>Tab</th><th>ต้องมีครบ (parity)</th></tr>
-    <tr><td><strong>Labs</strong></td><td>panel ล่าสุด (lipid/glucose/liver/kidney/inflammation) + ค่า+ช่วงอ้างอิง+status dot · อัปโหลดผลใหม่ · ลิงก์ report · <strong>Body map ตามอวัยวะ</strong> (lipid/organ mapping)</td></tr>
-    <tr><td><strong>Trends</strong></td><td>กราฟ multi-month ต่อ biomarker + เส้นช่วงอ้างอิง (Chart ใช้ token สี)</td></tr>
-    <tr><td><strong>Allergy</strong></td><td>food + IgE allergies, อาหารเสริมที่ควรเลี่ยง · เพิ่ม test · ผลตรวจ · export · ฟอร์ม <code>/allergies/new</code></td></tr>
-    <tr><td><strong>Supplements</strong></td><td>Nutrilite SKUs ที่ใช้ + dose/freq + interaction flags (customer_supplement_safety) · แก้ regimen</td></tr>
-    <tr><td><strong>CGM</strong></td><td>CGM profiles (หลาย provider) · สถานะ · readings ล่าสุด · embed <code>/cgm</code></td></tr>
-    <tr><td><strong>Notes</strong></td><td>clinical notes (pinned ได้) · เพิ่ม/แก้/ลบ · coach_notes เดิม</td></tr>
+    <tr><th>ชั้น</th><th>เทคโนโลยี</th></tr>
+    <tr><td>Framework</td><td>Next.js <strong>14.2.15</strong> App Router · React 18 · TypeScript (<em>params เป็น sync object — ห้าม <code>use(params)</code></em>)</td></tr>
+    <tr><td>UI</td><td>Tailwind (custom tokens) · Lucide · recharts (lazy) · inline SVG gauges · html-to-image + jsPDF</td></tr>
+    <tr><td>Data</td><td>Supabase <code>qzqvwbucjxwgtmbdkrlu</code> — Postgres + RLS + Auth + Storage(meal-images) + RPCs(cgm_*) · client RLS-aware (<code>createClient</code>) / service-role (<code>createAdminClient</code>)</td></tr>
+    <tr><td>AI</td><td>Gemini (BYO key) — vision (NutriScan) · checkform analyze · pulse assess · plate-image</td></tr>
+    <tr><td>External</td><td>WHOOP (CSV+OAuth) · Apple Health (export.xml) · Google Fit (OAuth) · LINE Messaging</td></tr>
+    <tr><td>Hosting</td><td>Vercel · region <code>sin1</code> · repo <code>upwellness/uplabs</code> (push: <code>gh auth switch -u upwellness</code> ก่อน)</td></tr>
   </table>
-
-  <h3 id="f-pulse">7.6 · UP Pulse (Wearables) <span class="tag beta">beta</span></h3>
-  <p>ใช้ schema/whoop tables/registry เดิม. รวม master เข้า tab Pulse แต่คง flow ครบ.</p>
-  <ul class="chk">
-    <li><strong>Providers:</strong> WHOOP (CSV 4 ไฟล์ + OAuth), Apple Health (export.xml/zip, HRV=SDNN), Google Fit (OAuth)</li>
-    <li><strong>Import UI</strong> ต่อ provider (master/[id]) · sync · debug</li>
-    <li><strong>Intake form</strong> <code>/intake/[token]</code> (public) · <strong>Connect flow</strong> <code>/connect/[token]</code> + success/error · <strong>Invites</strong></li>
-    <li><strong>Assessment</strong> (Gemini) → ai_output · blocked/reasons · share_token</li>
-    <li><strong>Unified report</strong> <code>/pulse/report/[id]</code>: 16-metric registry · conditional render (ไม่มีค่า=ไม่โชว์กราฟ) · recovery/HRV/sleep/SpO2 · lab lipid · Longevity L1–L4 · Print</li>
-    <li><strong>Public share</strong> <code>/r/[token]</code> (อ่านอย่างเดียว)</li>
-  </ul>
-
-  <h3 id="f-checkform">7.7 · CheckForm + STP Clips <span class="tag live">live</span></h3>
-  <ul class="chk">
-    <li>FORM Method (Family · Occupation · Recreation · Money) · ฟอร์มมี progress</li>
-    <li>วิเคราะห์ (Gemini) → readiness score 0–10 + urgency + program fit + next actions</li>
-    <li>แนะนำ STP clips (clip-matcher reasoning, ไม่ใช่สูตร) → 1–3 คลิป + share msg + follow-up · cache <code>clip_recommendations</code></li>
-    <li>records: list/บันทึก/รายละเอียด/แก้ · RecordsPanel ไม่ overflow มือถือ</li>
-  </ul>
-
-  <h3 id="f-prospects">7.8 · Prospects + Health Check / Metaflex Leads <span class="tag live">live</span></h3>
-  <ul class="chk">
-    <li><strong>Prospects</strong> <code>/prospects</code>: รายชื่อ (tier A/B/C) · แปลงเป็น CheckForm/customer 1 คลิก</li>
-    <li><strong>Health Check admin</strong> <code>/healthcheck</code>: ตาราง leads · กรอง quiz type/status · แปลงเป็นลูกค้า · note/contact tracking</li>
-    <li><strong>Public forms</strong>: <code>/check/[coachId]</code> (health check) · <code>/metaflex/[coachId]</code> (metabolic flexibility) — lead capture + coach attribution</li>
-    <li>คำนวณ BMI/risk score/flags เดิม · ตาราง <code>healthcheck_leads</code></li>
-  </ul>
-
-  <h3 id="f-nutri">7.9 · NutriScan · Plate Planner · Designer <span class="tag live">live</span></h3>
-  <ul class="chk">
-    <li><strong>NutriScan</strong> <code>/nutriscan</code>: อัปรูปอาหาร → Gemini Vision → macros C:P:F + glucose impact + Nutrilite match · <strong>Food Log</strong> <code>/nutriscan/log</code></li>
-    <li><strong>Plate Planner</strong> <code>/plate-planner</code>: 3 เป้าหมาย (ลดน้ำหนัก/longevity/กล้ามเนื้อ) · อาหารไทยไม่ซ้ำ · portion · prefill จาก customer (height+weight)</li>
-    <li><strong>Designer</strong> <code>/designer</code>: wizard 5 ขั้น · คำนวณ unit/PV/cashback/ราคา · export รูป/PDF</li>
-  </ul>
-
-  <h3 id="f-line">7.10 · LINE Bot (น้องจาน) <span class="tag beta">beta</span></h3>
-  <ul class="chk">
-    <li>ผูก LINE group ↔ customer · config ต่อ customer (<code>/line-bot/[customerId]</code>)</li>
-    <li>เมนูรายวัน + supplement plan · webhook (x-line-signature) · cron push (CRON_SECRET)</li>
-    <li>access ผ่าน co-coach ได้ (ownership เดิม + assignment)</li>
-  </ul>
-
-  <h3 id="f-reports">7.11 · Reports + Public Share <span class="tag live">live</span></h3>
-  <ul class="chk">
-    <li><strong>Med-Map</strong> (auth) <code>/api/customers/[id]/med-map</code>: ปัญหา→ยา→อาหารเสริม + DI + anatomical body map + Full Course 60D · ปุ่มในโปรไฟล์</li>
-    <li><strong>Longevity Lab Report</strong> (auth) <code>/api/customers/[id]/lab-report</code> + <strong>public</strong> <code>/r/lab/[token]</code> (no login, token, noindex) · ปุ่ม "Longevity Report" + "ลิงก์ลูกค้า"</li>
-    <li><strong>Wearable Report</strong> (§7.6)</li>
-    <li>report มี identity (ชื่อ/DOB/อายุ/เพศ/ส่วนสูง) ในหัวรายงาน</li>
-  </ul>
-
-  <h3 id="f-admin">7.12 · Admin + RBAC <span class="tag live">live</span></h3>
-  <ul class="chk">
-    <li><strong>Users</strong> <code>/admin/users</code>: list · แก้ role (member/abo/admin/other) · app grants ต่อ slug · <strong>Assign customer (co-coach)</strong> ค้นหา+assign+unassign · reset password/link · สร้าง user</li>
-    <li><strong>Backup</strong> <code>/admin/backup</code></li>
-    <li><strong>RBAC</strong>: canAccessApp (role ∪ grant) · customer ownership + co-coach assignment (RLS เดิม) · middleware PUBLIC_PATHS</li>
-    <li>admin gate (<code>/admin/*</code> เฉพาะ role admin)</li>
-  </ul>
-
-  <h3 id="f-content">7.13 · Content / Coming-Soon <span class="tag soon">soon</span></h3>
-  <p>คง entry ใน registry: UP Labs Start (14-day plan), FAQs, Longevity Key, Master Dose, Dose Calculator, PharmaMate AI, Pharmacist Note. v2 คงสถานะ "soon" + การ์ด placeholder ที่อ่านง่าย (ไม่ลบ).</p>
 </section>
 
-<!-- 8 NFR -->
+<!-- 9 -->
+<section id="data">
+  <h2>9 · Data Model (ตารางหลัก)</h2>
+  <table>
+    <tr><th>ตาราง</th><th>ใช้ทำอะไร</th></tr>
+    <tr><td><code>customers</code></td><td>ลูกค้า · <code>coach_id</code> เจ้าของ · <code>cgm_profile_names[]</code></td></tr>
+    <tr><td><code>customer_assignments</code> ★</td><td>co-coach (customer_id, user_id, assigned_by) · RLS additive</td></tr>
+    <tr><td><code>measurements</code></td><td>BCA: weight/fat_pct/muscle_pct/visceral/body_age/bmr/recorded_at</td></tr>
+    <tr><td><code>customer_lab_values</code></td><td>ผลแล็บ (record_id FK → customer_records · category/metric_key/status)</td></tr>
+    <tr><td><code>customer_records</code></td><td>document_type: lab/med_map/lab_report/medication_list/supplement_plan · source_id=share token</td></tr>
+    <tr><td><code>nutriscan_scans</code></td><td>customer_id · meal_type · <code>eaten_on</code> ★ · notes · raw_analysis · macros · scores</td></tr>
+    <tr><td><code>cgm_profiles / cgm_readings / cgm_meals</code></td><td>profile_name · passcode_hash · glucose · RPC SECURITY DEFINER</td></tr>
+    <tr><td><code>whoop_daily · pulse_readings · pulse_assessments</code></td><td>wearable · assessment</td></tr>
+    <tr><td><code>profiles · user_app_grants</code></td><td>role + per-app grants</td></tr>
+  </table>
+</section>
+
+<!-- 10 -->
 <section id="nfr">
-  <h2>8 · Non-Functional Requirements + Performance</h2>
-  <h4>Performance (เป้า)</h4>
-  <table>
-    <tr><th>Metric</th><th>เป้า v2</th><th>หมายเหตุ</th></tr>
-    <tr><td>LCP (หน้าหลัก/list)</td><td>&lt; 2.5s (4G)</td><td>region sin1 + cache เดิม</td></tr>
-    <tr><td>TTI / interaction</td><td>&lt; 200ms</td><td>lazy-load detail/tabs</td></tr>
-    <tr><td>Customer 360 fetch</td><td>1 round-trip (API เดิม)</td><td>ไม่เพิ่ม N+1</td></tr>
-    <tr><td>JS bundle/route</td><td>ไม่โตเกิน v1 อย่างมีนัย</td><td>เลิก glass/aurora ช่วยลด paint</td></tr>
-    <tr><td>กราฟ/รูป</td><td>conditional render + lazy</td><td>ไม่โหลดถ้าไม่มีข้อมูล</td></tr>
-  </table>
-  <h4>คุณภาพอื่น</h4>
-  <ul>
-    <li><strong>Accessibility:</strong> WCAG 2.2 AA — contrast ≥4.5:1, focus-visible, aria-label, touch ≥44px, keyboard nav, reduced-motion/transparency/contrast</li>
-    <li><strong>Responsive:</strong> 375px → desktop; ตาราง→card list บนมือถือ; ไม่มี overflow horizontal</li>
-    <li><strong>Security:</strong> RLS เดิม + co-coach; ไม่มี PII ใน URL; public report = token เดาไม่ได้ + noindex; auth/middleware เดิม</li>
-    <li><strong>Reliability:</strong> loading/empty/error ทุก state; API error = ข้อความไทยชัด + retry; ไม่ crash เมื่อ field ว่าง (เช่น profile ไม่ครบ)</li>
-    <li><strong>Compatibility:</strong> Chrome/Safari/Edge ล่าสุด + iOS/Android Safari/Chrome; print-friendly</li>
-    <li><strong>i18n:</strong> ไทยหลัก, อังกฤษควบศัพท์เทคนิค</li>
-    <li><strong>Observability:</strong> ไม่ลด log/audit เดิม (เช่น customer_view_log)</li>
+  <h2>10 · Non-Functional (achieved)</h2>
+  <ul class="chk">
+    <li><strong>Perf:</strong> recharts/jsPDF/html-to-image lazy (next/dynamic) · /v2/bca 219→122kB · /v2/customers/[id] 226→127kB · Customer 360 = 1 round-trip · region sin1 + cache</li>
+    <li><strong>A11y:</strong> WCAG AA — status text สีเข้ม · aria-label · keyboard tabs (tablist/arrow) · focus-visible · touch ≥44px · reduced-motion</li>
+    <li><strong>Security:</strong> RLS owner/admin/co-coach · auth-gated /v2 · public report = token เดาไม่ได้ + noindex · ไม่มี PII ใน URL · admin-only routes</li>
+    <li><strong>Reliability:</strong> loading/empty/error ทุกหน้า · defensive lookups (free-text enum) · error boundary</li>
   </ul>
 </section>
 
-<!-- 9 TEST -->
-<section id="test">
-  <h2>9 · Test Plan</h2>
-  <h4>9.1 Functional Test (Agent Tester #1)</h4>
-  <ul>
-    <li>ต่อ module: ทุก action ใน parity checklist ทำงานถูก (CRUD, คำนวณ, ปุ่ม, ลิงก์, gated buttons)</li>
-    <li>Customer 360: ทุก tab โหลด + แสดงข้อมูลจริง; identity block ครบ 5 field; med-map/lab-report เปิดได้</li>
-    <li>BCA: บันทึก/แก้/ลบ + BMI ถูก + identity block + ส่วนสูงใช้คำนวณ</li>
-    <li>Auth/RBAC: role ต่างกันเห็น apps/ลูกค้าต่างกัน; co-coach เห็น+แก้ได้, ลบ customer ไม่ได้; public links เปิดได้ไม่ต้อง login</li>
-    <li>Edge: field ว่าง, ลูกค้าไม่มีข้อมูล, ผลแล็บหลายวันที่, มือถือ</li>
-    <li>วิธี: เดิน user flow จริงบน <code>/v2/*</code> เทียบผลกับ <code>/api</code> + DB</li>
-  </ul>
-  <h4>9.2 Non-Functional / Performance Test (Agent Tester #2)</h4>
-  <ul>
-    <li>วัด LCP/TTI/CLS (Lighthouse) ต่อหน้าเทียบเป้า §8 และเทียบ v1</li>
-    <li>a11y audit (axe/Lighthouse) — ต้องไม่มี critical; contrast/keyboard/aria ผ่าน</li>
-    <li>Responsive 375/768/1280; reduced-motion/contrast; print</li>
-    <li>โหลด: customer 360 round-trips, bundle size, จำนวน query, cold start</li>
-    <li>security smoke: ลองเข้าลูกค้าที่ไม่ใช่ของตัวเอง (ต้อง 403/redirect), public token เดา (400/404), PII ไม่อยู่ใน URL</li>
-  </ul>
-  <h4>9.3 Test Data</h4>
-  <p>ใช้ลูกค้าจริงในระบบ (นส.เอ/K Nok Earth/พี่ปุ๊) ที่มี labs/BCA/wearable/med-map ครบ — ครอบ edge หลากหลาย. ห้ามแก้/ลบข้อมูลจริงระหว่างเทสต์ (อ่านอย่างเดียว หรือ rollback).</p>
-</section>
-
-<!-- 10 PARITY -->
-<section id="parity">
-  <h2>10 · Parity Verification (Agent User + BA)</h2>
-  <p>เมื่อ Dev ปิด module ใด → <strong>Agent User</strong> (มุมผู้ใช้จริง: โค้ช/ABO) + <strong>Agent BA</strong> (มุมความครบของ requirement) ตรวจร่วมกันว่า <strong>ทุกฟังก์ชันใน v1 มีใน v2 ครบ</strong> โดยใช้ parity checklist ใน §7 ของ module นั้นเป็นเกณฑ์.</p>
+<!-- 11 -->
+<section id="changelog">
+  <h2>11 · Changelog & Gotchas (UAT lessons)</h2>
+  <p>Runtime bugs ที่ static review/build ไม่จับ — แก้แล้วทั้งหมด:</p>
   <table>
-    <tr><th>บทบาท</th><th>ตรวจอะไร</th><th>ผลลัพธ์</th></tr>
-    <tr><td><strong>Agent User</strong></td><td>เดิน flow จริง: ใช้ง่ายขึ้นจริงไหม? ปุ่ม/ข้อมูลที่เคยใช้ยังอยู่ครบ? identity block อ่านชัด?</td><td>Pass / รายการที่ "ใช้ยาก/หาย"</td></tr>
-    <tr><td><strong>Agent BA</strong></td><td>กาง parity checklist v1 → จับคู่กับ v2 ทีละข้อ; data/API contract ไม่ถูกทำลาย</td><td>ตาราง parity (มี/ขาด/ต่าง) + verdict</td></tr>
+    <tr><th>อาการ</th><th>สาเหตุ + แก้</th></tr>
+    <tr><td>หน้า customer/pulse detail error</td><td><code>use(params)</code> (Next 15 pattern) บน Next 14 → params เป็น object ไม่ใช่ Promise → <code>React.use()</code> throw · <strong>แก้: sync <code>const {id}=params</code></strong></td></tr>
+    <tr><td>ชื่อผู้ใช้ไม่ขึ้นในหน้าอื่น</td><td>Shell รับ profile เป็น prop แต่หน้า client ไม่ส่ง · <strong>แก้: Shell fetch /api/debug/me เอง</strong></td></tr>
+    <tr><td>/v2/healthcheck crash</td><td>metaflex lead เก็บ <code>risk_level="WARNING ZONE ⚠️"</code> · <code>RISK_META[x]</code> undefined · <strong>แก้: defensive riskMeta()</strong> (+ prospects tier/status เชิงรุก)</td></tr>
+    <tr><td>back กลับ v1</td><td>Shell app-switcher ชี้ v1 · <strong>แก้: V2_ROUTE map</strong></td></tr>
+    <tr><td>Plate PDF กดแล้วเงียบ / หน้าเปล่า</td><td>(1) ref บน next/dynamic ไม่ forward → null → return (2) wrapper opacity:0 + position:fixed → html-to-image จับเปล่า · <strong>แก้: static import + capture report root width:800 + absolute container + skipFonts + canvas-crop multi-page</strong></td></tr>
+    <tr><td>pie สีไม่ตรง bar</td><td>CPFPie hardcode สี · <strong>แก้: prop colors + unify ทั้งแอป (คาร์บ=rose·โปรตีน=wellness·ไขมัน=amber)</strong></td></tr>
+    <tr><td>NutriScan หมายเหตุไม่ช่วย AI</td><td>prompt hardcode "ไม่มี" · <strong>แก้: ส่ง context.customer_note เข้า Gemini</strong></td></tr>
   </table>
-  <p><strong>Definition of Done (DoD) ต่อ module:</strong> parity checklist ครบทุกข้อ ✔ · functional test ผ่าน · non-functional/perf ผ่านเป้า · identity block (ถ้าเกี่ยว) ครบ · build + tsc ผ่าน · ไม่กระทบ v1</p>
+  <div class="note"><strong>กฎทอง:</strong> Next 14 → ห้าม <code>use(params)</code>/async params · push uplabs → <code>gh auth switch -u upwellness</code> · ไม่ commit <code>app/v2/pp-diag</code> (ของคนอื่น) · enum DB เป็น free-text → guard lookup เสมอ · agent verify ได้แค่ tsc/build (ไม่มี env render) → runtime ต้อง UAT</div>
 </section>
 
-<!-- 11 DELIVERY -->
-<section id="delivery">
-  <h2>11 · Delivery Plan + Agent Roles</h2>
-  <h4>ลำดับ module (priority)</h4>
-  <ol>
-    <li><strong>App Shell + Nav + Design tokens</strong> (พื้นฐานใช้ซ้ำทุกหน้า)</li>
-    <li><strong>★ Customer Profile 360 + BCA</strong> (identity block — ที่ผู้ใช้เน้น)</li>
-    <li>Customers List + Labs/Trends/Allergy/Supp/CGM/Notes tabs</li>
-    <li>UP Pulse (import + report + share)</li>
-    <li>CheckForm + STP + Prospects + Leads</li>
-    <li>NutriScan + Plate Planner + Designer</li>
-    <li>LINE Bot + Reports + Admin/RBAC</li>
-    <li>Content/soon + cutover (flag/redirect) </li>
-  </ol>
-  <h4>ทีม Agent (วนต่อ module)</h4>
-  <table>
-    <tr><th>Agent</th><th>หน้าที่</th></tr>
-    <tr><td><strong>Dev</strong> (1–n)</td><td>สร้าง v2 ตาม SPEC ใต้ <code>/v2/*</code> · reuse API · clinical-warm · worktree isolation</td></tr>
-    <tr><td><strong>Tester — Functional</strong></td><td>เทสต์ทุก action/flow ต่อ parity checklist (§9.1)</td></tr>
-    <tr><td><strong>Tester — Non-Functional</strong></td><td>perf/a11y/responsive/security (§9.2)</td></tr>
-    <tr><td><strong>User</strong></td><td>มุมผู้ใช้จริง — ใช้ง่ายขึ้น + ฟีเจอร์ครบ (§10)</td></tr>
-    <tr><td><strong>BA</strong></td><td>parity matrix v1↔v2 + DoD (§10)</td></tr>
-  </table>
-  <div class="note">SPEC นี้เป็น <strong>living document</strong> — เมื่อ scope/behavior เปลี่ยนระหว่าง dev ให้อัปเดตไฟล์นี้ + changelog ก่อนปิดงาน module.</div>
+<!-- 12 -->
+<section id="status">
+  <h2>12 · Status & Remaining</h2>
+  <h4>เสร็จ + live</h4>
+  <p>ทุก module (§7) · co-coach · identity block · design system · report Pook + BCA/CGM/อาหาร · NutriScan ++ · Labs body-map · CGM passcode · UAT fixes</p>
+  <h4>เหลือ (รอ Toni เคาะ)</h4>
+  <ul>
+    <li><strong>Cutover</strong> v1→v2 default (redirect/flag) — หลัง UAT เต็ม</li>
+    <li><strong>RLS</strong> cgm_readings/cgm_meals (ปิดอยู่ · task chip) — เปิด RLS หลังเช็ค iframe</li>
+    <li>v2 ของฟอร์มที่เหลือ (เพิ่มลูกค้า/record/allergy) — ถ้าต้องการปิด "back to v1" หมด</li>
+    <li>live UAT ทุกหน้า (โดยเฉพาะ report ที่ agent render สดไม่ได้)</li>
+  </ul>
+  <div class="note">เอกสารมีชีวิต — เมื่อ scope/behavior เปลี่ยน อัปเดตไฟล์นี้ + changelog ก่อนปิดงาน</div>
 </section>
 
-<footer>
-  UP Labs SPEC v2 (Redesign) · สร้าง 2026-06-29 · คงทุกฟีเจอร์ + โครงสร้างเดิม · redesign UI clinical-warm · Customer Profile + BCA ต้องมี identity block (ชื่อ · วันเกิด ค.ศ. · อายุ · เพศ · ส่วนสูง) · เอกสารมีชีวิต อัปเดตเมื่อ scope เปลี่ยน
-</footer>
+<footer>UP Labs SPEC v2.1 (Built) · 2026-06-30 · ทุก module live ใต้ /v2 · clinical-warm + report olive/gold · parity v1 + extras · cutover pending · repo upwellness/uplabs</footer>
 </main>
 </div>
 </body>
