@@ -48,7 +48,7 @@ import {
 } from "@/lib/plate-planner/engine";
 import { MacroBar } from "./_MacroBar";
 import { mealSplit, energySplit, sumDay, planDailyAverage, itemSplit, avgVsTarget, MACRO_HEX } from "./_macros";
-import type { PlateReportMeta } from "./_PlateReport";
+import { PlateReport, type PlateReportMeta } from "./_PlateReport";
 
 /** AI meal-photo view is lazy — keeps the image cache / SubtleCrypto / IndexedDB code out of first-load JS. */
 const MealImage = dynamic(() => import("./_MealImage"), {
@@ -75,7 +75,9 @@ const CPFPie = dynamic(() => import("@/components/CPFPie").then((m) => m.CPFPie)
  * it only mounts when the user has a plan, and its heavy deps stay out of first-load JS.
  * `_exportPdf` (html-to-image + jspdf) is dynamic-imported inside the click handler.
  */
-const PlateReport = dynamic(() => import("./_PlateReport").then((m) => m.PlateReport), { ssr: false });
+// PlateReport is a STATIC import (lightweight — CPFPie is pure SVG; jspdf/html-to-image
+// stay lazy in _exportPdf). Static so its forwardRef reaches the report root for the PDF
+// capture, and it's always mounted (no async-load → no blank PNG).
 
 /* ── Goal config (labels + accent + one-line rationale from calcTargets) ── */
 const GOALS: { id: Goal; label: string; sub: string; icon: typeof Flame; tone: "rose" | "wellness" | "science" }[] = [
@@ -447,8 +449,8 @@ function PlatePlannerInner() {
                       aria-hidden + pointer-events:none — present in the DOM only as the
                       html-to-image source for the multi-page A4 export above. */}
                   {reportMeta && (
-                    <div ref={reportRef} aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", zIndex: -1 }}>
-                      <PlateReport plan={plan} meta={reportMeta} />
+                    <div aria-hidden style={{ position: "absolute", left: -99999, top: 0, pointerEvents: "none" }}>
+                      <PlateReport ref={reportRef} plan={plan} meta={reportMeta} />
                     </div>
                   )}
                 </>
