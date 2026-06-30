@@ -420,8 +420,9 @@ function ProspectRow({ p, onPatch, onDelete, onConvert, converting }: {
   const [expanded, setExpanded] = useState(false);
   const [editContext, setEditContext] = useState(false);
   const [contextDraft, setContextDraft] = useState(p.context ?? "");
-  const tier = TIER_META[p.tier];
-  const st = STATUS_META[p.status];
+  // Defensive: tier/status are free-text DB columns (not enums) — fall back instead of crashing.
+  const tier = TIER_META[p.tier] ?? { level: "caution" as StatusLevel, label: p.tier || "—" };
+  const st = STATUS_META[p.status] ?? { level: "neutral" as const, label: p.status || "—" };
 
   const saveContext = () => {
     setEditContext(false);

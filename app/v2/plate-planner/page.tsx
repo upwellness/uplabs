@@ -16,8 +16,13 @@
  * SCOPE NOTE: v1 /plate-planner is a 114 KB verbatim single-file port (`.pp-root`, glass/aurora,
  * @ts-nocheck) that also does AI food-image generation (BYO key + IndexedDB/Supabase caching).
  * This v2 re-implements the CORE planner (targets + multi-day no-repeat plan + portions) in
- * clinical-warm against the shared engine. The optional AI meal-photo generator is intentionally
- * NOT ported here (heavy, non-core) — flagged for follow-up.
+ * clinical-warm against the shared engine, and restores the two dropped features in v2 form:
+ *   - macro proportion display (C:P:F grams + % of energy) per meal / day / plan-average
+ *     → ./_macros + ./_MacroBar (display only — reads engine grams, no re-derivation)
+ *   - AI meal-photo generation → ./_MealImage (lazy) reusing the SAME /api/plate-image flow
+ *     and the SAME v1 cache protocol (IndexedDB "plateplanner/img" + Supabase "meal-images")
+ *     ported in ./_imageCache so photos are shared between v1 and v2.
+ * Plus two new asks: 7/14/30-day menus, and a "บันทึก PDF" customer food table (./_printTable).
  *
  * Clinical-warm: lib/v2/ui primitives, Lucide icons, status TEXT colors, empty/loading/error,
  * ≥44px touch, keyboard-accessible.
@@ -25,17 +30,32 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   UtensilsCrossed, Flame, HeartPulse, Dumbbell, Loader2, RefreshCw, User2,
-  Soup, AlertTriangle, ListChecks, Target, Info,
+  Soup, AlertTriangle, ListChecks, Target, Info, FileDown,
 } from "lucide-react";
 import { Shell } from "../_components/Shell";
 import { Card, SectionLabel, IconChip, LoadingState } from "@/lib/v2/ui";
 import { statusTextHex } from "@/lib/v2/status";
+import { GeminiKeyField } from "@/components/GeminiKeyField";
 import {
   calcTargets, buildPlan, planVariety, poolHealth,
   type Goal, type Diet, type PlanConfig, type DayPlan, type Meal, type MealItem,
 } from "@/lib/plate-planner/engine";
+import { MacroBar } from "./_MacroBar";
+import { mealSplit, energySplit, sumDay, planDailyAverage, itemSplit, avgVsTarget } from "./_macros";
+import { printFoodTable } from "./_printTable";
+
+/** AI meal-photo view is lazy — keeps the image cache / SubtleCrypto / IndexedDB code out of first-load JS. */
+const MealImage = dynamic(() => import("./_MealImage"), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-3 flex h-[44px] items-center gap-2 border-t border-ink-5 pt-3 font-thai text-[12px] text-ink-40">
+      <Loader2 size={14} className="animate-spin" aria-hidden /> กำลังโหลดส่วนรูปภาพ…
+    </div>
+  ),
+});
 
 /* ── Goal config (labels + accent + one-line rationale from calcTargets) ── */
 const GOALS: { id: Goal; label: string; sub: string; icon: typeof Flame; tone: "rose" | "wellness" | "science" }[] = [
@@ -70,7 +90,13 @@ const CAT_META: Record<string, { label: string; color: string }> = {
   fat: { label: "ไขมันดี", color: "#2A7B8F" },
 };
 
-const PLAN_LENGTHS = [3, 5, 7];
+const PLAN_LENGTHS = [7, 14, 30];
+const DIET_LABEL: Record<Diet, string> = Object.fromEntries(
+  [
+    ["none", "ไม่จำกัด"], ["halal", "ฮาลาล"], ["nopork", "ไม่กินหมู"], ["nobeef", "ไม่กินเนื้อวัว"],
+    ["noredmeat", "ไม่กินเนื้อแดง"], ["vegetarian", "มังสวิรัติ"], ["vegan", "วีแกน"],
+  ] as [Diet, string][],
+) as Record<Diet, string>;
 
 export default function V2PlatePlannerPage() {
   return (
@@ -97,8 +123,9 @@ function PlatePlannerInner() {
   const [noVeg, setNoVeg] = useState(false);
   const [shakeOn, setShakeOn] = useState(false);
   const [lockW, setLockW] = useState(false);
-  const [days, setDays] = useState(3);
+  const [days, setDays] = useState(7);
   const [seed, setSeed] = useState(1);
+  const [showImages, setShowImages] = useState(false);
 
   // ?customer prefill — height + latest weight (client-side, mirrors v1 server prefill)
   const [prefillState, setPrefillState] = useState<"idle" | "loading" | "done" | "error">(customerId ? "loading" : "idle");
@@ -144,8 +171,30 @@ function PlatePlannerInner() {
   const variety = useMemo(() => (plan ? planVariety(plan) : null), [plan]);
   const pool = useMemo(() => poolHealth(config), [config]);
 
+  // Plan-level daily average (engine grams) for the "average vs target" readout.
+  const dailyAvg = useMemo(() => (plan && plan.length ? planDailyAverage(plan) : null), [plan]);
+  // Long-horizon (7/14/30) variety guard: at longer plans a small food pool repeats menus.
+  // Trips when the no-repeat rate dips OR the protein pool is too thin to fill unique days
+  // (e.g. vegan ≈ 5 heroes can't carry 30 distinct days) OR the engine flags the pool tight.
+  const varietyTight = !!(
+    variety && days >= 14 && (variety.pct < 70 || (variety.proteins > 0 && variety.proteins < 7) || pool.tight)
+  );
+
   const [activeDay, setActiveDay] = useState(0);
   useEffect(() => { if (activeDay >= days) setActiveDay(0); }, [days, activeDay]);
+
+  const onPrint = useCallback(() => {
+    if (!plan || !targets) return;
+    const ok = printFoodTable(plan, {
+      goal,
+      targets,
+      customerName,
+      diet: DIET_LABEL[diet],
+    });
+    if (!ok && typeof window !== "undefined") {
+      window.alert("เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาต pop-up ของเว็บนี้แล้วลองอีกครั้ง");
+    }
+  }, [plan, targets, goal, customerName, diet]);
 
   return (
     <Shell breadcrumb={[{ label: "หน้าแรก", href: "/v2" }, ...(customerId ? [{ label: "ลูกค้า", href: "/v2/customers" }] : []), { label: "Plate Planner" }]}>
@@ -241,6 +290,7 @@ function PlatePlannerInner() {
               <ToggleRow label="ใส่ UP Labs Shake (Nutrilite)" hint="เช้า + เย็น" on={shakeOn} onChange={setShakeOn} />
               <ToggleRow label="ล็อกน้ำหนักที่กรอก" hint="ไม่คำนวณน้ำหนักที่เหมาะสมจาก BMI" on={lockW} onChange={setLockW} />
               <ToggleRow label="ไม่ใส่ผัก" hint="ข้ามผักในมื้อคาว" on={noVeg} onChange={setNoVeg} />
+              <ToggleRow label="แสดงรูปจานอาหาร (AI)" hint="สร้างภาพเสมือนจริงต่อมื้อ · ใช้ Gemini key" on={showImages} onChange={setShowImages} />
             </div>
 
             {/* Plan length + reshuffle */}
@@ -284,6 +334,19 @@ function PlatePlannerInner() {
               </p>
             </div>
           )}
+
+          {/* Long-horizon variety guard (7/14/30) — pool too small for unique days */}
+          {varietyTight && !pool.tight && variety && (
+            <div className="flex items-start gap-2 rounded-2xl border border-amber-pale bg-amber-ultra px-3.5 py-3">
+              <AlertTriangle size={15} strokeWidth={2.25} className="mt-0.5 shrink-0 text-amber" aria-hidden />
+              <p className="font-thai text-[12px] leading-relaxed text-ink-80">
+                แผน {days} วันยาวกว่าจำนวนเมนูที่จัดได้แบบไม่ซ้ำ (ตอนนี้ไม่ซ้ำ {variety.pct}%) — บางมื้อจะวนซ้ำ ลองคลายข้อจำกัดอาหารหรือกด “สุ่มใหม่” เพื่อเพิ่มความหลากหลาย
+              </p>
+            </div>
+          )}
+
+          {/* BYO Gemini key — only when AI photos are enabled */}
+          {showImages && <GeminiKeyField />}
         </div>
 
         {/* ── Plan column ── */}
@@ -302,29 +365,38 @@ function PlatePlannerInner() {
             </Card>
           ) : (
             <>
-              {targets && <TargetsCard targets={targets} goal={goal} variety={variety} />}
+              {targets && <TargetsCard targets={targets} goal={goal} variety={variety} dailyAvg={dailyAvg} days={days} />}
 
-              {/* Day tabs */}
+              {/* Day tabs + send-to-customer PDF */}
               {plan && plan.length > 0 && (
                 <>
-                  <div role="tablist" aria-label="เลือกวัน" className="flex flex-wrap gap-1.5">
-                    {plan.map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeDay === i}
-                        onClick={() => setActiveDay(i)}
-                        className={`min-h-[40px] rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness ${
-                          activeDay === i ? "bg-wellness text-white" : "border border-ink-10 bg-white text-ink-60 hover:border-wellness hover:text-wellness"
-                        }`}
-                      >
-                        วันที่ {i + 1}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div role="tablist" aria-label="เลือกวัน" className="flex flex-wrap gap-1.5">
+                      {plan.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeDay === i}
+                          onClick={() => setActiveDay(i)}
+                          className={`min-h-[40px] rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness ${
+                            activeDay === i ? "bg-wellness text-white" : "border border-ink-10 bg-white text-ink-60 hover:border-wellness hover:text-wellness"
+                          }`}
+                        >
+                          วันที่ {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onPrint}
+                      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border border-wellness-pale bg-wellness-ultra px-4 py-1.5 text-[13px] font-semibold text-wellness transition-colors hover:bg-wellness-pale focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2"
+                    >
+                      <FileDown size={14} strokeWidth={2.25} aria-hidden /> บันทึก PDF (ตารางอาหาร)
+                    </button>
                   </div>
 
-                  <DayCard day={plan[activeDay] ?? plan[0]} />
+                  <DayCard day={plan[activeDay] ?? plan[0]} showImages={showImages} />
                 </>
               )}
             </>
@@ -357,8 +429,18 @@ function ToggleRow({ label, hint, on, onChange }: { label: string; hint?: string
   );
 }
 
-function TargetsCard({ targets, goal, variety }: { targets: ReturnType<typeof calcTargets>; goal: Goal; variety: ReturnType<typeof planVariety> | null }) {
+function TargetsCard({
+  targets, goal, variety, dailyAvg, days,
+}: {
+  targets: ReturnType<typeof calcTargets>;
+  goal: Goal;
+  variety: ReturnType<typeof planVariety> | null;
+  dailyAvg: ReturnType<typeof planDailyAverage> | null;
+  days: number;
+}) {
   const g = GOALS.find((x) => x.id === goal)!;
+  const avgSplit = dailyAvg ? energySplit(dailyAvg) : null;
+  const delta = dailyAvg ? avgVsTarget(dailyAvg, targets) : null;
   return (
     <Card className="p-4 lg:p-5">
       <div className="mb-3 flex items-center gap-1.5">
@@ -372,6 +454,36 @@ function TargetsCard({ targets, goal, variety }: { targets: ReturnType<typeof ca
         <TargetCell label="คาร์บ" value={String(targets.c)} unit="g" color="amber" />
         <TargetCell label="ไขมัน" value={String(targets.f)} unit="g" color="science" />
       </div>
+
+      {/* Target macro proportion (C:P:F % of energy) */}
+      <div className="mt-3.5">
+        <SectionLabel>สัดส่วนสารอาหารเป้าหมาย (C : P : F)</SectionLabel>
+        <div className="mt-2">
+          <MacroBar split={energySplit({ p: targets.p, c: targets.c, f: targets.f })} />
+        </div>
+      </div>
+
+      {/* Plan daily-average vs target */}
+      {avgSplit && delta && days > 1 && (
+        <div className="mt-3 rounded-xl border border-ink-10 bg-surface px-3.5 py-3">
+          <div className="flex items-center justify-between">
+            <SectionLabel>ค่าเฉลี่ยจริงต่อวัน ({days} วัน)</SectionLabel>
+            <span className="font-mono text-[11px] text-ink-60">
+              {Math.round(dailyAvg!.kcal).toLocaleString()} kcal
+              <b className="ml-1" style={{ color: statusTextHex[Math.abs(delta.kcal) <= targets.kcal * 0.05 ? "optimal" : Math.abs(delta.kcal) <= targets.kcal * 0.1 ? "caution" : "warning"] }}>
+                {delta.kcal >= 0 ? "+" : ""}{delta.kcal}
+              </b>
+            </span>
+          </div>
+          <div className="mt-2">
+            <MacroBar split={avgSplit} />
+          </div>
+          <div className="mt-2 font-mono text-[11px] text-ink-40">
+            เทียบเป้า · โปรตีน {delta.p >= 0 ? "+" : ""}{delta.p}g · คาร์บ {delta.c >= 0 ? "+" : ""}{delta.c}g · ไขมัน {delta.f >= 0 ? "+" : ""}{delta.f}g
+          </div>
+        </div>
+      )}
+
       <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-surface px-3 py-2">
         <Info size={13} strokeWidth={2.25} className="mt-0.5 shrink-0 text-ink-40" aria-hidden />
         <p className="font-thai text-[12px] leading-relaxed text-ink-60">{targets.note}</p>
@@ -401,13 +513,14 @@ function TargetCell({ label, value, unit, color, emphasis }: { label: string; va
   );
 }
 
-function DayCard({ day }: { day: DayPlan }) {
-  const dayTot = day.reduce((s, m) => ({ p: s.p + m.tot.p, c: s.c + m.tot.c, f: s.f + m.tot.f, kcal: s.kcal + m.tot.kcal }), { p: 0, c: 0, f: 0, kcal: 0 });
+function DayCard({ day, showImages }: { day: DayPlan; showImages: boolean }) {
+  const dayTot = sumDay(day);
+  const split = energySplit(dayTot);
   return (
     <div className="space-y-4">
-      {day.map((meal, i) => <MealCard key={i} meal={meal} />)}
+      {day.map((meal, i) => <MealCard key={i} meal={meal} showImages={showImages} />)}
 
-      {/* Day total */}
+      {/* Day total + proportion */}
       <Card className="bg-ink p-4 text-white lg:p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -416,17 +529,23 @@ function DayCard({ day }: { day: DayPlan }) {
           </div>
           <span className="font-head text-[20px] font-extrabold">{Math.round(dayTot.kcal).toLocaleString()}<span className="ml-0.5 text-[11px] font-normal text-white/55">kcal</span></span>
         </div>
+        {/* proportion bar (light segments on dark card) */}
+        <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-white/15" role="img" aria-label={`สัดส่วนพลังงานทั้งวัน คาร์บ ${split.cPct}% โปรตีน ${split.pPct}% ไขมัน ${split.fPct}%`}>
+          <span style={{ width: `${split.cPct}%`, backgroundColor: "#E0A35C" }} title={`คาร์บ ${split.cPct}%`} />
+          <span style={{ width: `${split.pPct}%`, backgroundColor: "#CC8A8A" }} title={`โปรตีน ${split.pPct}%`} />
+          <span style={{ width: `${split.fPct}%`, backgroundColor: "#6BB8CC" }} title={`ไขมัน ${split.fPct}%`} />
+        </div>
         <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[12px]">
-          <span className="text-white/85">โปรตีน {Math.round(dayTot.p)}g</span>
-          <span className="text-white/85">คาร์บ {Math.round(dayTot.c)}g</span>
-          <span className="text-white/85">ไขมัน {Math.round(dayTot.f)}g</span>
+          <span className="text-white/85">คาร์บ {split.c}g · {split.cPct}%</span>
+          <span className="text-white/85">โปรตีน {split.p}g · {split.pPct}%</span>
+          <span className="text-white/85">ไขมัน {split.f}g · {split.fPct}%</span>
         </div>
       </Card>
     </div>
   );
 }
 
-function MealCard({ meal }: { meal: Meal }) {
+function MealCard({ meal, showImages }: { meal: Meal; showImages: boolean }) {
   return (
     <Card className="p-4 lg:p-5">
       <div className="flex items-start justify-between gap-3">
@@ -447,14 +566,17 @@ function MealCard({ meal }: { meal: Meal }) {
         {meal.items.map((it, idx) => <MealItemRow key={idx} item={it} />)}
       </ul>
 
-      {/* Macro bar vs target */}
+      {/* Meal macro proportion (C:P:F grams + % of energy) */}
       <div className="mt-3 border-t border-ink-5 pt-3">
-        <div className="flex items-center justify-between font-mono text-[11px] text-ink-60">
-          <span>โปรตีน <b className="text-rose">{meal.tot.p}g</b></span>
-          <span>คาร์บ <b className="text-amber">{meal.tot.c}g</b></span>
-          <span>ไขมัน <b className="text-science">{meal.tot.f}g</b></span>
+        <div className="mb-2 flex items-center justify-between">
+          <SectionLabel>สัดส่วนสารอาหารมื้อนี้</SectionLabel>
+          <span className="font-mono text-[10px] text-ink-40">C : P : F · % พลังงาน</span>
         </div>
+        <MacroBar split={mealSplit(meal)} />
       </div>
+
+      {/* AI meal photo (lazy) — only when enabled */}
+      {showImages && <MealImage meal={meal} />}
     </Card>
   );
 }
@@ -469,12 +591,18 @@ function MealItemRow({ item }: { item: MealItem }) {
   const cat = CAT_META[item.cat] ?? { label: item.cat, color: "#5C5660" };
   const q = item.ug > 0 ? niceQty(item.g / item.ug) : "";
   const portion = q ? `≈ ${q} ${item.u} · ${item.g}g` : `${item.g}g`;
+  const es = itemSplit(item); // per-item energy P:C:F % (display)
   return (
     <li className="flex items-center gap-2.5">
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} aria-hidden title={cat.label} />
-      <span className="min-w-0 flex-1 truncate font-thai text-[13px] text-ink">{item.th}</span>
-      <span className="shrink-0 font-mono text-[11px] text-ink-60">{portion}</span>
-      <span className="hidden shrink-0 font-mono text-[10px] text-ink-40 sm:inline">{item.kcal} kcal</span>
+      <span className="h-2 w-2 shrink-0 self-start mt-1 rounded-full" style={{ backgroundColor: cat.color }} aria-hidden title={cat.label} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-thai text-[13px] text-ink">{item.th}</span>
+        <span className="block font-mono text-[10px] text-ink-40" aria-label={`พลังงาน คาร์บ ${es.cPct} โปรตีน ${es.pPct} ไขมัน ${es.fPct} เปอร์เซ็นต์`}>
+          พลังงาน <b className="text-amber">{es.cPct}</b>:<b className="text-rose">{es.pPct}</b>:<b className="text-science">{es.fPct}</b> <span className="text-ink-40">(C:P:F %)</span>
+        </span>
+      </span>
+      <span className="shrink-0 self-start font-mono text-[11px] text-ink-60">{portion}</span>
+      <span className="hidden shrink-0 self-start font-mono text-[10px] text-ink-40 sm:inline">{item.kcal} kcal</span>
     </li>
   );
 }
