@@ -81,6 +81,28 @@ export function Shell({
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
+  // Most v2 pages are client components and don't pass `profile`, so fetch the
+  // signed-in user's profile client-side → the user/role indicator shows everywhere.
+  const [selfProfile, setSelfProfile] = useState<ShellProfile | null>(null);
+  useEffect(() => {
+    if (profile) return;
+    let alive = true;
+    fetch("/api/debug/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive && d?.profile) {
+          setSelfProfile({
+            display_name: d.profile.display_name ?? null,
+            email: d.profile.email ?? d.user?.email ?? null,
+            role: d.profile.role ?? null,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [profile]);
+  const who = profile ?? selfProfile ?? undefined;
+
   // Close switcher on outside click / Escape
   useEffect(() => {
     if (!switcherOpen) return;
@@ -135,7 +157,7 @@ export function Shell({
                     <X size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 </div>
-                {V2_LINKS.filter((l) => !l.adminOnly || profile?.role === "admin").map((l) => (
+                {V2_LINKS.filter((l) => !l.adminOnly || who?.role === "admin").map((l) => (
                   <Link
                     key={l.href}
                     href={l.href as any}
@@ -202,11 +224,11 @@ export function Shell({
             {actions}
             <div className="flex items-center gap-2 rounded-full border border-ink-10 bg-white py-1 pl-1 pr-2.5">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">
-                {initialsOf(profile?.display_name, profile?.email)}
+                {initialsOf(who?.display_name, who?.email)}
               </span>
               <div className="hidden leading-tight sm:block">
-                <div className="max-w-[140px] truncate text-[12px] font-semibold text-ink">{profile?.display_name ?? profile?.email ?? "ผู้ใช้"}</div>
-                {profile?.role && <div className="text-[10px] text-ink-40">{ROLE_LABEL_TH[profile.role]}</div>}
+                <div className="max-w-[140px] truncate text-[12px] font-semibold text-ink">{who?.display_name ?? who?.email ?? "ผู้ใช้"}</div>
+                {who?.role && <div className="text-[10px] text-ink-40">{ROLE_LABEL_TH[who.role]}</div>}
               </div>
             </div>
           </div>

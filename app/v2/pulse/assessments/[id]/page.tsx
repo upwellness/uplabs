@@ -12,7 +12,7 @@
  * ReportView but with the v2 design language (Lucide, status tokens, ≥12px).
  */
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Sparkles, ArrowLeft, ListChecks, Lightbulb, Pill, Flag, Info, Eye, Send, Link2, Copy,
@@ -42,8 +42,8 @@ interface Assessment {
   customers?: { id: string; name: string } | null;
 }
 
-export default function V2AssessmentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function V2AssessmentPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [a, setA] = useState<Assessment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);

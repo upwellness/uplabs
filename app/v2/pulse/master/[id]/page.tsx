@@ -23,7 +23,7 @@
  * the coach add a profile by typing its exact name — no v1/API change made.
  */
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Smartphone, ArrowLeft, ArrowRight, RefreshCw, Link2, FileText, Activity, Wifi, Droplet,
@@ -44,8 +44,8 @@ interface MasterData {
   connection: { provider: string; status: string; last_sync_at: string | null } | null;
 }
 
-export default function V2PulseMasterPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function V2PulseMasterPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [data, setData] = useState<MasterData | null>(null);
   const [error, setError] = useState<string | null>(null);
 

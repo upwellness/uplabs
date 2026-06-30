@@ -10,7 +10,7 @@
  * placeholders with a Legacy fallback link).
  */
 
-import { use, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -91,8 +91,8 @@ interface Customer360 {
   pulseIntake: any;
 }
 
-export default function V2Customer360Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function V2Customer360Page({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [data, setData] = useState<Customer360 | null>(null);
   const [error, setError] = useState<string | null>(null);
 
