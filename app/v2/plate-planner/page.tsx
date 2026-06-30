@@ -447,8 +447,8 @@ function PlatePlannerInner() {
                       aria-hidden + pointer-events:none — present in the DOM only as the
                       html-to-image source for the multi-page A4 export above. */}
                   {reportMeta && (
-                    <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", opacity: 0, zIndex: -1 }}>
-                      <PlateReport ref={reportRef} plan={plan} meta={reportMeta} />
+                    <div ref={reportRef} aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", zIndex: -1 }}>
+                      <PlateReport plan={plan} meta={reportMeta} />
                     </div>
                   )}
                 </>

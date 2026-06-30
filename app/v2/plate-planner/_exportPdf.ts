@@ -31,6 +31,7 @@ export async function exportPlatePdf(node: HTMLElement, fileBase: string): Promi
     backgroundColor: "#ffffff",
     pixelRatio: 2,
     cacheBust: true,
+    skipFonts: true, // use the page's already-loaded fonts; skip @font-face embedding (avoids CORS/timeout failures)
   });
 
   // Natural pixel size of the raster (needed for the px↔mm scale + slicing).
@@ -50,21 +51,24 @@ export async function exportPlatePdf(node: HTMLElement, fileBase: string): Promi
     // Single page — no slicing needed.
     doc.addImage(dataUrl, "PNG", MARGIN, MARGIN, imgWmm, imgHmm, undefined, "FAST");
   } else {
-    // Multi-page: draw the FULL image once per page, shifted up by the page's slice
-    // (negative y), and clip to the printable box so only that slice shows. This is the
-    // standard "tall canvas across A4" technique and avoids re-rasterizing per page.
-    const pageCount = Math.ceil(imgHmm / printH);
+    // Multi-page: crop the source PNG into per-page bands on a <canvas> and add each as its
+    // own image. Robust — avoids the jsPDF clip API (saveGraphicsState/clip/discardPath),
+    // which is brittle across jsPDF versions.
+    const pageHpx = Math.floor((printH / imgWmm) * pxW); // source px that fill one printable page
+    const pageCount = Math.ceil(pxH / pageHpx);
     for (let p = 0; p < pageCount; p++) {
+      const sy = p * pageHpx;
+      const sH = Math.min(pageHpx, pxH - sy);
+      const canvas = document.createElement("canvas");
+      canvas.width = pxW;
+      canvas.height = sH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("เบราว์เซอร์ไม่รองรับการสร้าง PDF");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, pxW, sH);
+      ctx.drawImage(img, 0, sy, pxW, sH, 0, 0, pxW, sH); // crop band from the full raster
       if (p > 0) doc.addPage();
-      const yShift = MARGIN - p * printH; // top of full image relative to this page
-      // Clip so the overflow above/below the printable box is hidden. rect(...,null) lays
-      // down ONLY a path (no stroke/fill); clip()+discardPath() turns it into the clip region.
-      doc.saveGraphicsState();
-      doc.rect(MARGIN, MARGIN, printW, printH, null);
-      doc.clip();
-      doc.discardPath();
-      doc.addImage(dataUrl, "PNG", MARGIN, yShift, imgWmm, imgHmm, undefined, "FAST");
-      doc.restoreGraphicsState();
+      doc.addImage(canvas.toDataURL("image/png"), "PNG", MARGIN, MARGIN, imgWmm, (sH / pxW) * imgWmm, undefined, "FAST");
     }
   }
 
