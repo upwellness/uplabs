@@ -47,7 +47,7 @@ import {
   type Goal, type Diet, type PlanConfig, type DayPlan, type Meal, type MealItem,
 } from "@/lib/plate-planner/engine";
 import { MacroBar } from "./_MacroBar";
-import { mealSplit, energySplit, sumDay, planDailyAverage, itemSplit, avgVsTarget } from "./_macros";
+import { mealSplit, energySplit, sumDay, planDailyAverage, itemSplit, avgVsTarget, MACRO_HEX } from "./_macros";
 import type { PlateReportMeta } from "./_PlateReport";
 
 /** AI meal-photo view is lazy — keeps the image cache / SubtleCrypto / IndexedDB code out of first-load JS. */
@@ -532,6 +532,7 @@ function TargetsCard({
           <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="shrink-0 self-center sm:self-auto">
               <CPFPie
+                colors={MACRO_HEX}
                 carb_pct={avgSplit.cPct}
                 protein_pct={avgSplit.pPct}
                 fat_pct={avgSplit.fPct}
@@ -600,6 +601,7 @@ function DayCard({ day, showImages }: { day: DayPlan; showImages: boolean }) {
           {/* CPFPie on a warm-white inset so the dark center kcal text stays legible */}
           <div className="shrink-0 self-center rounded-2xl bg-white px-3 py-2 sm:self-auto">
             <CPFPie
+              colors={MACRO_HEX}
               carb_pct={split.cPct}
               protein_pct={split.pPct}
               fat_pct={split.fPct}

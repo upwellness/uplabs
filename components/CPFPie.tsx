@@ -14,6 +14,7 @@ interface Props {
   size?:        number;       // px · default 180
   thickness?:   number;       // ring thickness · default 36
   showLegend?:  boolean;      // default true
+  colors?: { carb: string; protein: string; fat: string }; // override segment colors (default = brand rose/wellness/amber)
 }
 
 // Brand color hex (match tailwind config)
@@ -26,7 +27,11 @@ export function CPFPie({
   carb_pct, protein_pct, fat_pct,
   total_kcal, centerLabel,
   size = 180, thickness = 36, showLegend = true,
+  colors,
 }: Props) {
+  const cCarb    = colors?.carb    ?? ROSE;
+  const cProtein = colors?.protein ?? WELLNESS;
+  const cFat     = colors?.fat     ?? AMBER;
   const radius   = size / 2;
   const outerR   = radius - 2;
   const innerR   = outerR - thickness;
@@ -37,9 +42,9 @@ export function CPFPie({
   const hasData = total > 0;
 
   const segments = hasData ? [
-    { value: carb_pct,    color: ROSE,     label: "Carb",    pct: carb_pct },
-    { value: protein_pct, color: WELLNESS, label: "Protein", pct: protein_pct },
-    { value: fat_pct,     color: AMBER,    label: "Fat",     pct: fat_pct },
+    { value: carb_pct,    color: cCarb,    label: "Carb",    pct: carb_pct },
+    { value: protein_pct, color: cProtein, label: "Protein", pct: protein_pct },
+    { value: fat_pct,     color: cFat,     label: "Fat",     pct: fat_pct },
   ].filter((s) => s.value > 0) : [];
 
   // Single full segment short-circuit (avoid arc path with 360°)
@@ -92,9 +97,9 @@ export function CPFPie({
 
       {showLegend && hasData && (
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] font-mono">
-          <LegendItem color={ROSE}     label="C"  pct={carb_pct} />
-          <LegendItem color={WELLNESS} label="P"  pct={protein_pct} />
-          <LegendItem color={AMBER}    label="F"  pct={fat_pct} />
+          <LegendItem color={cCarb}    label="C"  pct={carb_pct} />
+          <LegendItem color={cProtein} label="P"  pct={protein_pct} />
+          <LegendItem color={cFat}     label="F"  pct={fat_pct} />
         </div>
       )}
     </div>

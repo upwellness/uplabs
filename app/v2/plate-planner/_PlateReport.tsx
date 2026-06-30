@@ -22,7 +22,7 @@
 import { forwardRef } from "react";
 import { CPFPie } from "@/components/CPFPie";
 import type { DayPlan, Goal, MealItem, Targets } from "@/lib/plate-planner/engine";
-import { sumDay, energySplit, planDailyAverage, type MacroGrams } from "./_macros";
+import { sumDay, energySplit, planDailyAverage, MACRO_HEX, type MacroGrams } from "./_macros";
 
 /* ── clinical-warm palette (frozen hex so the raster matches the app tokens) ── */
 const C = {
@@ -200,6 +200,7 @@ export const PlateReport = forwardRef<HTMLDivElement, { plan: DayPlan[]; meta: P
         >
           <div style={{ flexShrink: 0 }}>
             <CPFPie
+              colors={MACRO_HEX}
               carb_pct={avgSplit.cPct}
               protein_pct={avgSplit.pPct}
               fat_pct={avgSplit.fPct}
