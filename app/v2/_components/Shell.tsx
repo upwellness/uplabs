@@ -20,6 +20,7 @@ import Link from "next/link";
 import {
   LayoutGrid, Users, Scale, ChevronDown, ChevronRight,
   Home, Activity, ExternalLink, X,
+  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield,
 } from "lucide-react";
 import { APPS } from "@/lib/apps-registry";
 import { ROLE_LABEL_TH, type Role } from "@/lib/auth/roles";
@@ -37,10 +38,19 @@ export interface ShellProfile {
 }
 
 /** Quick links shown at the top of the switcher — v2 surfaces that exist today. */
-const V2_LINKS: { href: string; label: string; icon: typeof Users }[] = [
+const V2_LINKS: { href: string; label: string; icon: typeof Users; adminOnly?: boolean }[] = [
   { href: "/v2", label: "หน้าแรก v2", icon: Home },
   { href: "/v2/customers", label: "ลูกค้า", icon: Users },
   { href: "/v2/bca", label: "BCA Tracker", icon: Scale },
+  { href: "/v2/pulse", label: "UP Pulse", icon: HeartPulse },
+  { href: "/v2/checkform", label: "Check Form", icon: ClipboardList },
+  { href: "/v2/prospects", label: "Prospect List", icon: Target },
+  { href: "/v2/healthcheck", label: "Health Check (leads)", icon: Stethoscope },
+  { href: "/v2/nutriscan", label: "NutriScan", icon: Salad },
+  { href: "/v2/plate-planner", label: "Plate Planner", icon: UtensilsCrossed },
+  { href: "/v2/designer", label: "Program Designer", icon: Wand2 },
+  { href: "/v2/line-bot", label: "LINE Bot", icon: MessageCircle },
+  { href: "/v2/admin/users", label: "Admin · ผู้ใช้", icon: Shield, adminOnly: true },
 ];
 
 function initialsOf(name?: string | null, email?: string | null): string {
@@ -117,7 +127,7 @@ export function Shell({
                     <X size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 </div>
-                {V2_LINKS.map((l) => (
+                {V2_LINKS.filter((l) => !l.adminOnly || profile?.role === "admin").map((l) => (
                   <Link
                     key={l.href}
                     href={l.href as any}

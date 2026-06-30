@@ -42,6 +42,21 @@ const STATUS_TAG: Record<AppMeta["status"], { label: string; cls: string }> = {
   soon: { label: "เร็วๆ นี้", cls: "bg-ink-5 text-ink-40" },
 };
 
+/** Apps that now have a v2 surface — the card links to /v2/* instead of the v1 route. */
+const V2_ROUTE: Record<string, string> = {
+  customers: "/v2/customers",
+  bca: "/v2/bca",
+  pulse: "/v2/pulse",
+  checkform: "/v2/checkform",
+  prospects: "/v2/prospects",
+  healthcheck: "/v2/healthcheck",
+  nutriscan: "/v2/nutriscan",
+  foodlog: "/v2/nutriscan/log",
+  "plate-planner": "/v2/plate-planner",
+  designer: "/v2/designer",
+  "line-bot": "/v2/line-bot",
+};
+
 const SECTIONS: { audience: AppAudience; title: string; desc: string; icon: typeof Users }[] = [
   { audience: "business", title: "เครื่องมือสำหรับนักธุรกิจ", desc: "ดูแลลูกค้าด้วยข้อมูลที่มีหลักฐาน", icon: Briefcase },
   { audience: "customer", title: "สำหรับลูกค้า", desc: "แบบประเมินที่ส่งให้ prospect ทำเองได้", icon: Users },
@@ -132,7 +147,8 @@ function AppCard({ app }: { app: AppWithAccess }) {
   const blocked = !app.allowed || app.status === "soon";
   const lock = !app.allowed;
   const tag = STATUS_TAG[app.status];
-  const external = app.href.startsWith("http");
+  const href = V2_ROUTE[app.slug] ?? app.href;   // prefer the v2 surface when it exists
+  const external = href.startsWith("http");
 
   const inner = (
     <div
@@ -171,8 +187,8 @@ function AppCard({ app }: { app: AppWithAccess }) {
 
   if (blocked) return <div title={lock ? "ไม่มีสิทธิ์ใช้งาน" : "เร็วๆ นี้"}>{inner}</div>;
   return external ? (
-    <a href={app.href} target="_blank" rel="noopener noreferrer" className="block h-full">{inner}</a>
+    <a href={href} target="_blank" rel="noopener noreferrer" className="block h-full">{inner}</a>
   ) : (
-    <Link href={app.href as any} className="block h-full">{inner}</Link>
+    <Link href={href as any} className="block h-full">{inner}</Link>
   );
 }
