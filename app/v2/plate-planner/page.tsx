@@ -683,7 +683,7 @@ function MealItemRow({ item }: { item: MealItem }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate font-thai text-[13px] text-ink">{item.th}</span>
         <span className="block font-mono text-[10px] text-ink-40" aria-label={`พลังงาน คาร์บ ${es.cPct} โปรตีน ${es.pPct} ไขมัน ${es.fPct} เปอร์เซ็นต์`}>
-          พลังงาน <b className="text-amber">{es.cPct}</b>:<b className="text-rose">{es.pPct}</b>:<b className="text-science">{es.fPct}</b> <span className="text-ink-40">(C:P:F %)</span>
+          พลังงาน <b className="text-rose">{es.cPct}</b>:<b className="text-wellness">{es.pPct}</b>:<b className="text-amber">{es.fPct}</b> <span className="text-ink-40">(C:P:F %)</span>
         </span>
       </span>
       <span className="shrink-0 self-start font-mono text-[11px] text-ink-60">{portion}</span>

@@ -81,9 +81,10 @@ export function avgVsTarget(avg: MacroGrams, t: Targets) {
 }
 
 /* ── Brand-token hex for the macro proportion bar segments (graphics, not text) ── */
-/* C = carb/amber · P = protein/rose · F = fat/science — matches engine CAT swatches & v2 tones. */
+/* C = carb/rose · P = protein/wellness · F = fat/amber — unified with NutriScan's
+ * macro colors (app-wide single system, = CPFPie default). */
 export const MACRO_HEX = {
-  carb: "#C47A2A",    // amber
-  protein: "#8C4C4C", // rose
-  fat: "#2A7B8F",     // science
+  carb: "#8C4C4C",    // rose
+  protein: "#396755", // wellness
+  fat: "#C47A2A",     // amber
 } as const;

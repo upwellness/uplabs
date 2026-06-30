@@ -114,9 +114,9 @@ function MacroLegendRow({ dot, label, g, pct }: { dot: string; label: string; g:
 function MacroBarStrip({ cPct, pPct, fPct }: { cPct: number; pPct: number; fPct: number }) {
   return (
     <div style={{ display: "flex", width: "100%", height: 8, borderRadius: 999, overflow: "hidden", background: C.hair }}>
-      <span style={{ width: `${cPct}%`, background: C.amber }} />
-      <span style={{ width: `${pPct}%`, background: C.rose }} />
-      <span style={{ width: `${fPct}%`, background: C.science }} />
+      <span style={{ width: `${cPct}%`, background: C.rose }} />
+      <span style={{ width: `${pPct}%`, background: C.wellness }} />
+      <span style={{ width: `${fPct}%`, background: C.amber }} />
     </div>
   );
 }

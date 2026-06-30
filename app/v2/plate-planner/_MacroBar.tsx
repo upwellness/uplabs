@@ -25,9 +25,9 @@ export function MacroBar({
   showGrams?: boolean;
 }) {
   const segs = [
-    { key: "C", label: "คาร์บ", pct: split.cPct, g: split.c, hex: MACRO_HEX.carb, text: "text-amber" },
-    { key: "P", label: "โปรตีน", pct: split.pPct, g: split.p, hex: MACRO_HEX.protein, text: "text-rose" },
-    { key: "F", label: "ไขมัน", pct: split.fPct, g: split.f, hex: MACRO_HEX.fat, text: "text-science" },
+    { key: "C", label: "คาร์บ", pct: split.cPct, g: split.c, hex: MACRO_HEX.carb, text: "text-rose" },
+    { key: "P", label: "โปรตีน", pct: split.pPct, g: split.p, hex: MACRO_HEX.protein, text: "text-wellness" },
+    { key: "F", label: "ไขมัน", pct: split.fPct, g: split.f, hex: MACRO_HEX.fat, text: "text-amber" },
   ];
   const barH = size === "sm" ? "h-1.5" : "h-2";
   return (
