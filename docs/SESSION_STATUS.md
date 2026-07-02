@@ -1,6 +1,6 @@
 # Session Status — uplabs (สรุปไว้ทำต่อ)
 
-_อัปเดตล่าสุด: 2026-07-02 · branch: `claude/assign-coach-admin-bug-u3u48r` · deploy model: push branch → `main` = production (fast-forward), Supabase migrations apply ตรงเข้า prod project `qzqvwbucjxwgtmbdkrlu`_
+_อัปเดตล่าสุด: 2026-07-02 (v2 = site หลักแล้ว) · branch: `claude/assign-coach-admin-bug-u3u48r` · main tip: `1315bad` · deploy model: push branch → `main` = production (fast-forward), Supabase migrations apply ตรงเข้า prod project `qzqvwbucjxwgtmbdkrlu`_
 
 ## ✅ งานที่ deploy ขึ้น production (`main`) แล้ว
 
@@ -12,6 +12,8 @@ _อัปเดตล่าสุด: 2026-07-02 · branch: `claude/assign-coac
 | `3017e98` | **v2: ปุ่มเพิ่มลูกค้าใหม่** (v2 เดิมไม่มี — port modal + `POST /api/customers`) |
 | `3dd5f8a` | **MLM hierarchy + invitation signup** (schema + invite + downline read-only core) |
 | `0a17f9e` | **Fix: ขยาย downline read-only ให้ครบทุก read surface** (BCA/labs/pulse/records/notes/line-bot) |
+| `54639f7` | **docs: SPEC v2.2** (html + สร้าง `SPEC-v2.md` · section 7.10 · data model · changelog) |
+| `1315bad` | **★ Cutover: v2 เป็น site หลัก** (root + landing + login → /v2 · `next.config` redirects) |
 
 ### Supabase migrations ที่ apply เข้า prod แล้ว
 - `admin_view_as_log` (audit log ของ view-as)
