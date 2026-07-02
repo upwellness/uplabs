@@ -52,7 +52,7 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
     const r = await startViewAs(user.id);
     setBusy(null);
     if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
-    window.location.href = "/"; // hard nav so middleware/layout re-render with the new view-as cookie
+    window.location.href = "/v2"; // hard nav so middleware/layout re-render with the new view-as cookie
   };
 
   const handleGrantToggle = (slug: string, checked: boolean) => {

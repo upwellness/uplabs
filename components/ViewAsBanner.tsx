@@ -10,7 +10,7 @@ export function ViewAsBanner({ label, adminLabel }: { label: string; adminLabel:
 
   const exit = () => start(async () => {
     await stopViewAs();
-    router.push("/admin/users");
+    router.push("/v2/admin/users");
     router.refresh();
   });
 
