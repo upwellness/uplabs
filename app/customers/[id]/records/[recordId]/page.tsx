@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { RecordTabs } from "./RecordTabs";
@@ -24,7 +24,7 @@ export default async function RecordDetailPage({ params }: { params: { id: strin
   if (!customer || !record) redirect(`/customers/${params.id}/records`);
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) redirect(`/customers/${params.id}`);
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id)) && !(await isDownlineCustomer(session.user.id, params.id))) redirect(`/customers/${params.id}`);
 
   return (
     <main className="min-h-screen bg-surface">

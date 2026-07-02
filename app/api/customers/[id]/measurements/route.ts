@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { enrichMeasurement } from "@/lib/bca-derive";
 import type { Customer, Measurement } from "@/lib/types";
 
@@ -16,9 +16,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       .from("customers").select("*").eq("id", params.id).single();
     if (cErr) throw cErr;
 
-    // Non-admin can only access their own customers
+    // Non-admin: own customers + co-coach + downline (read-only) via isDownlineCustomer
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
+    if (
+      !isAdmin &&
+      customer.coach_id !== session.user.id &&
+      !(await isAssignedToCustomer(session.user.id, params.id)) &&
+      !(await isDownlineCustomer(session.user.id, params.id))
+    ) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

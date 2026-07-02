@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { CATEGORY_LABEL } from "@/lib/records/catalog";
@@ -17,7 +17,7 @@ export default async function RecordsListPage({ params }: { params: { id: string
   if (!customer) redirect("/customers");
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) redirect("/customers");
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id)) && !(await isDownlineCustomer(session.user.id, params.id))) redirect("/customers");
 
   const { data: records } = await admin.from("customer_records")
     .select("*")

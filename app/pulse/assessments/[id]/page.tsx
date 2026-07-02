@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ReportView } from "../../_components/ReportView";
 
@@ -31,7 +31,7 @@ export default async function AssessmentPreviewPage({ params }: { params: { id: 
   // Permission: admin or owning coach
   const isAdmin = session.profile.role === "admin";
   const coachId = (data.customers as any).coach_id;
-  if (!isAdmin && coachId !== session.user.id && !(await isAssignedToCustomer(session.user.id, data.customer_id))) redirect("/");
+  if (!isAdmin && coachId !== session.user.id && !(await isAssignedToCustomer(session.user.id, data.customer_id)) && !(await isDownlineCustomer(session.user.id, data.customer_id))) redirect("/");
 
   return (
     <ReportView

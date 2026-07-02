@@ -14,7 +14,7 @@
  */
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildWearableReport, buildLabTrends } from "@/lib/pulse/wearable-report";
 import {
@@ -37,7 +37,7 @@ export default async function V2WearableReportPage({ params }: { params: Promise
   if (!customer) redirect("/v2/pulse");
 
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, id))) {
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, id)) && !(await isDownlineCustomer(session.user.id, id))) {
     redirect("/v2/pulse");
   }
 

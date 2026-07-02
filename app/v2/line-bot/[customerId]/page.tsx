@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, PencilLine, ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Shell } from "../../_components/Shell";
 import { IdentityBlock } from "@/lib/v2/IdentityBlock";
@@ -38,7 +38,7 @@ export default async function V2LineBotCustomerPage({
 
   if (!customer) notFound();
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.customerId))) {
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.customerId)) && !(await isDownlineCustomer(session.user.id, params.customerId))) {
     redirect("/v2/line-bot");
   }
 

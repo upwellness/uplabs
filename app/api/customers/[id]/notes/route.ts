@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 
-async function verifyAccess(customerId: string, session: any, admin: any) {
+// allowDownline: read handlers pass true so an upline can VIEW downline notes;
+// write handlers (POST/DELETE) keep it false — downline access is read-only.
+async function verifyAccess(customerId: string, session: any, admin: any, allowDownline = false) {
   const { data: customer } = await admin
     .from("customers").select("id, coach_id").eq("id", customerId).maybeSingle();
   if (!customer) return { ok: false, status: 404, error: "customer not found" };
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customerId))) {
+  if (
+    !isAdmin &&
+    customer.coach_id !== session.user.id &&
+    !(await isAssignedToCustomer(session.user.id, customerId)) &&
+    !(allowDownline && (await isDownlineCustomer(session.user.id, customerId)))
+  ) {
     return { ok: false, status: 403, error: "forbidden" };
   }
   return { ok: true };
@@ -19,7 +26,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     const admin = createAdminClient();
-    const check = await verifyAccess(params.id, session, admin);
+    const check = await verifyAccess(params.id, session, admin, true); // GET: allow downline read
     if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
     const { data, error } = await admin

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { ConfigEditor } from "./ConfigEditor";
@@ -27,7 +27,7 @@ export default async function LineBotCustomerPage({
 
   if (!customer) notFound();
   const isAdmin = session.profile.role === "admin";
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.customerId))) redirect("/line-bot");
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.customerId)) && !(await isDownlineCustomer(session.user.id, params.customerId))) redirect("/line-bot");
 
   // Latest weight for the preview hint (best-effort).
   let latestWeight: number | null = null;
