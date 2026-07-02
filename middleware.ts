@@ -6,6 +6,8 @@ const PUBLIC_PATHS = [
   "/login",
   "/forgot-password",
   "/reset-password",
+  "/join",                    // invitation self-signup page (token-authorized)
+  "/api/join",                // invitation self-signup submit (token-authorized)
   "/auth/callback",
   "/setup",
   "/connect",                 // UP Pulse customer-facing connect flow

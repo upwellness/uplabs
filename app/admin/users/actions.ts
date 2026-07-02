@@ -22,6 +22,9 @@ export interface UserListRow {
   granted_app_slugs: string[];
   managed_customers: ManagedCustomer[];
   assigned_customers: ManagedCustomer[];
+  /** MLM hierarchy: this user's upline (parent) — null if top-level. */
+  parent_id: string | null;
+  parent_label: string | null;
 }
 
 export interface AssignableCustomer {
@@ -43,7 +46,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   if (aErr) throw aErr;
 
   const [{ data: profiles }, { data: grants }, { data: customers }, { data: assignments }] = await Promise.all([
-    admin.from("profiles").select("id, email, display_name, role, abo_number, phone"),
+    admin.from("profiles").select("id, email, display_name, role, abo_number, phone, parent_id"),
     admin.from("user_app_grants").select("user_id, app_slug"),
     admin.from("customers").select("id, name, coach_id").order("name"),
     admin.from("customer_assignments").select("user_id, customer_id"),
@@ -73,6 +76,12 @@ export async function listUsers(): Promise<UserListRow[]> {
     assignedByUser.set(a.user_id, arr);
   }
 
+  const labelOf = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    const pp = profileMap.get(id) as any;
+    return pp?.display_name ?? pp?.email ?? null;
+  };
+
   return authList.users.map((u) => {
     const p = profileMap.get(u.id) as any;
     return {
@@ -87,6 +96,8 @@ export async function listUsers(): Promise<UserListRow[]> {
       granted_app_slugs: grantsMap.get(u.id) ?? [],
       managed_customers: customersByCoach.get(u.id) ?? [],
       assigned_customers: assignedByUser.get(u.id) ?? [],
+      parent_id: p?.parent_id ?? null,
+      parent_label: labelOf(p?.parent_id),
     };
   }).sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
 }
@@ -220,6 +231,32 @@ export async function assignCustomer(userId: string, customerId: string) {
   if (error) return { error: error.message };
   revalidatePath("/admin/users");
   revalidateTag("dashboard"); // refresh the assigned user's customer-list cache
+  return { ok: true };
+}
+
+/**
+ * Set (or clear) a user's upline in the MLM hierarchy. Admin-only. Prevents cycles:
+ * the new parent may not be the user itself nor any of the user's own descendants
+ * (that would create a loop). Pass parentId=null to make the user top-level.
+ */
+export async function setUserParent(userId: string, parentId: string | null) {
+  await requireAdmin();
+  if (!userId) return { error: "ไม่มี user" };
+  if (parentId === userId) return { error: "ตั้ง upline เป็นตัวเองไม่ได้" };
+
+  const admin = createAdminClient();
+  if (parentId) {
+    // parentId must not be a descendant of userId (would form a cycle).
+    const { data: descendants } = await admin.rpc("profile_descendant_ids", { root: userId });
+    if (Array.isArray(descendants) && descendants.includes(parentId)) {
+      return { error: "ตั้ง upline เป็นคนในสายงานล่างของตัวเองไม่ได้ (จะวน loop)" };
+    }
+  }
+
+  const { error } = await admin.from("profiles").update({ parent_id: parentId }).eq("id", userId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/users");
+  revalidateTag("dashboard"); // downline visibility affects customer-list caches
   return { ok: true };
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { healthScore } from "@/lib/customers/health-score";
 import { classifyStatus } from "@/lib/customers/status-classifier";
 import { generateInsights } from "@/lib/customers/insight-rules";
@@ -41,7 +41,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (!customer) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
+    if (
+      !isAdmin &&
+      customer.coach_id !== session.user.id &&
+      !(await isAssignedToCustomer(session.user.id, params.id)) &&
+      !(await isDownlineCustomer(session.user.id, params.id)) // upline read-only visibility
+    ) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

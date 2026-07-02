@@ -30,12 +30,12 @@ import {
   updateUserRole, updateUserEmail, updateDisplayName,
   updateAboNumber, updatePhone,
   sendResetEmail, generateResetLink, toggleAppGrant,
-  assignCustomer, unassignCustomer,
+  assignCustomer, unassignCustomer, setUserParent,
   type UserListRow, type AssignableCustomer,
 } from "@/app/admin/users/actions";
 import { startViewAs } from "@/lib/auth/view-as";
 
-export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomers: AssignableCustomer[] }) {
+export function UserRow({ user, allCustomers, allUsers = [] }: { user: UserListRow; allCustomers: AssignableCustomer[]; allUsers?: UserListRow[] }) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [linkOut, setLinkOut] = useState<string | null>(null);
@@ -45,8 +45,17 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
   const [aboEdit, setAboEdit] = useState(user.abo_number ?? "");
   const [phoneEdit, setPhoneEdit] = useState(user.phone ?? "");
   const [assignQuery, setAssignQuery] = useState("");
+  const [uplineQuery, setUplineQuery] = useState("");
   const [, start] = useTransition();
   const router = useRouter();
+
+  const uplineCandidates = uplineQuery.trim()
+    ? allUsers.filter((u) =>
+        u.id !== user.id &&
+        u.id !== user.parent_id &&
+        Boolean(u.display_name?.toLowerCase().includes(uplineQuery.trim().toLowerCase()) || u.email?.toLowerCase().includes(uplineQuery.trim().toLowerCase()))
+      ).slice(0, 6)
+    : [];
 
   /** Optimistic mirror of granted_app_slugs — flips instantly on click. */
   const [grants, setGrants] = useState<Set<string>>(() => new Set(user.granted_app_slugs));
@@ -363,6 +372,64 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
                 ))}
                 {assignCandidates.length === 0 && (
                   <div className="px-3.5 py-2 font-thai text-[12px] text-ink-40">ไม่พบลูกค้า (หรือแชร์ไปแล้ว)</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Upline (MLM hierarchy) ── */}
+          <div className="mt-4 rounded-2xl border border-ink-10 bg-white p-4 lg:p-5">
+            <PanelLabel icon={Users2}>สายงาน (Upline)</PanelLabel>
+            <p className="mt-1 font-thai text-[12px] text-ink-60">
+              กำหนดว่าใครคือ upline ของผู้ใช้คนนี้ · upline จะ <strong>เห็นลูกค้าของ downline ทั้งสาย (ดูอย่างเดียว)</strong>
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="font-thai text-[12px] text-ink-60">upline ปัจจุบัน:</span>
+              {user.parent_id ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-rose/20 bg-rose-ultra px-2.5 py-1 text-[12px] font-semibold text-rose">
+                  {user.parent_label ?? "—"}
+                  <button
+                    type="button"
+                    onClick={() => run("upline-clear", () => setUserParent(user.id, null))}
+                    disabled={busy !== null}
+                    aria-label="เอาออกจากสายงาน"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-rose/60 transition-colors hover:bg-status-bg-danger hover:text-status-danger disabled:opacity-40"
+                  >
+                    <X size={12} strokeWidth={2.5} aria-hidden />
+                  </button>
+                </span>
+              ) : (
+                <span className="font-thai text-[12px] text-ink-40">ไม่มี (อยู่บนสุดของสายงาน)</span>
+              )}
+            </div>
+
+            <div className="relative mt-3">
+              <Search size={15} strokeWidth={2.25} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-30" aria-hidden />
+              <input
+                value={uplineQuery}
+                onChange={(e) => setUplineQuery(e.target.value)}
+                placeholder="ค้นหาผู้ใช้เพื่อตั้งเป็น upline…"
+                aria-label="ค้นหาผู้ใช้เพื่อตั้งเป็น upline"
+                className="w-full rounded-xl border border-ink-10 bg-white py-2.5 pl-10 pr-3.5 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-30 focus:border-rose focus:ring-2 focus:ring-rose-ultra"
+              />
+            </div>
+            {uplineQuery.trim() && (
+              <div className="mt-2 flex flex-col gap-1">
+                {uplineCandidates.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => { run(`upline-${u.id}`, () => setUserParent(user.id, u.id)); setUplineQuery(""); }}
+                    disabled={busy !== null}
+                    className="flex min-h-[44px] items-center justify-between rounded-xl border border-ink-10 bg-white px-3.5 py-2 text-left text-[12.5px] transition-colors hover:border-rose/40 hover:bg-rose-ultra/40 disabled:opacity-50"
+                  >
+                    <span className="font-thai font-semibold text-ink">{u.display_name ?? u.email}</span>
+                    <span className="font-mono text-[10px] text-ink-40">{u.email}</span>
+                  </button>
+                ))}
+                {uplineCandidates.length === 0 && (
+                  <div className="px-3.5 py-2 font-thai text-[12px] text-ink-40">ไม่พบผู้ใช้</div>
                 )}
               </div>
             )}

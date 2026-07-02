@@ -35,3 +35,35 @@ export async function assignedCustomerIds(userId: string): Promise<string[]> {
     .eq("user_id", userId);
   return (data ?? []).map((r: any) => r.customer_id as string);
 }
+
+/**
+ * MLM hierarchy (READ-ONLY). An "upline" user may VIEW — never edit — the customers
+ * owned by everyone transitively below them in the profiles.parent_id tree. This is
+ * intentionally separate from `isAssignedToCustomer` (co-coach, which is read+write):
+ * downline visibility must NOT grant write access, so write routes keep using the
+ * owner/assigned checks and never call these helpers.
+ */
+
+/** User ids transitively below `userId` (their downline). Empty if none. */
+export async function downlineUserIds(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  const admin = createAdminClient();
+  const { data } = await admin.rpc("profile_descendant_ids", { root: userId });
+  // rpc returns setof uuid → array of strings
+  return Array.isArray(data) ? (data as string[]) : [];
+}
+
+/** True if `customerId` is owned by anyone in `userId`'s downline (read-only visibility). */
+export async function isDownlineCustomer(userId: string, customerId: string): Promise<boolean> {
+  if (!userId || !customerId) return false;
+  const downline = await downlineUserIds(userId);
+  if (downline.length === 0) return false;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("customers")
+    .select("id")
+    .eq("id", customerId)
+    .in("coach_id", downline)
+    .maybeSingle();
+  return !!data;
+}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { assignedCustomerIds } from "@/lib/customers/access";
+import { assignedCustomerIds, downlineUserIds } from "@/lib/customers/access";
 
 /**
  * Customer list with cross-app stats (BCA count · CGM linked · Pulse connected · leads).
@@ -22,11 +22,15 @@ async function fetchCustomersList(coachId: string | null) {
       .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
       .order("name");
     if (!isAdmin) {
-      // owner's own customers + any assigned to them (co-coach)
-      const assigned = await assignedCustomerIds(coachId!);
-      custQuery = assigned.length
-        ? custQuery.or(`coach_id.eq.${coachId},id.in.(${assigned.join(",")})`)
-        : custQuery.eq("coach_id", coachId!);
+      // owner's own customers + any assigned (co-coach) + any owned by the downline (read-only)
+      const [assigned, downline] = await Promise.all([
+        assignedCustomerIds(coachId!),
+        downlineUserIds(coachId!),
+      ]);
+      const ors = [`coach_id.eq.${coachId}`];
+      if (downline.length) ors.push(`coach_id.in.(${downline.join(",")})`);
+      if (assigned.length) ors.push(`id.in.(${assigned.join(",")})`);
+      custQuery = ors.length > 1 ? custQuery.or(ors.join(",")) : custQuery.eq("coach_id", coachId!);
     }
     const { data: customers, error } = await custQuery;
     if (error) throw error;

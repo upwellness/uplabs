@@ -20,7 +20,7 @@ import Link from "next/link";
 import {
   LayoutGrid, Users, Scale, ChevronDown, ChevronRight,
   Home, Activity, ExternalLink, X,
-  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield,
+  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield, UserPlus,
 } from "lucide-react";
 import { APPS } from "@/lib/apps-registry";
 import { ROLE_LABEL_TH, type Role } from "@/lib/auth/roles";
@@ -50,6 +50,7 @@ const V2_LINKS: { href: string; label: string; icon: typeof Users; adminOnly?: b
   { href: "/v2/plate-planner", label: "Plate Planner", icon: UtensilsCrossed },
   { href: "/v2/designer", label: "Program Designer", icon: Wand2 },
   { href: "/v2/line-bot", label: "LINE Bot", icon: MessageCircle },
+  { href: "/v2/invite", label: "ชวนสมาชิกใหม่", icon: UserPlus },
   { href: "/v2/admin/users", label: "Admin · ผู้ใช้", icon: Shield, adminOnly: true },
 ];
 

@@ -113,7 +113,7 @@ export function UsersManager({
         ) : (
           <ul className="divide-y divide-ink-5">
             {filtered.map((u) => (
-              <UserRow key={u.id} user={u} allCustomers={allCustomers} />
+              <UserRow key={u.id} user={u} allCustomers={allCustomers} allUsers={users} />
             ))}
           </ul>
         )}
