@@ -11,7 +11,9 @@ function siteUrl() {
 export async function signIn(formData: FormData) {
   const identifier = String(formData.get("identifier") ?? formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/");
+  // v2 is the primary site — default landing + treat a bare "/" as /v2.
+  const nextRaw = String(formData.get("next") ?? "/v2");
+  const next = nextRaw === "/" ? "/v2" : nextRaw;
 
   if (!identifier || !password) {
     return { error: "กรุณากรอก email/ABO/เบอร์โทร และ password" };
@@ -34,7 +36,7 @@ export async function signIn(formData: FormData) {
     return { error: "Email หรือ password ไม่ถูกต้อง" };
   }
   revalidatePath("/", "layout");
-  redirect(next || "/");
+  redirect(next || "/v2");
 }
 
 export async function signOut() {

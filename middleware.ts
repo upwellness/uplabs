@@ -67,7 +67,7 @@ export async function middleware(req: NextRequest) {
 
     if (user && (path === "/login" || path === "/forgot-password")) {
       const u = req.nextUrl.clone();
-      u.pathname = "/";
+      u.pathname = "/v2"; // v2 is the primary site
       return NextResponse.redirect(u);
     }
 

@@ -47,13 +47,18 @@ _อัปเดตล่าสุด: 2026-07-02 · branch: `claude/assign-coac
 - **สรุป: fix ถูกต้อง — forbidden ที่เหลือคือ deploy ยังไม่ขึ้น/cache** วิธีเช็ค build ใหม่: เห็นเมนู "ชวนสมาชิกใหม่" = build ใหม่ขึ้นแล้ว
 - **TODO ถ้ายัง forbidden หลัง build ใหม่**: ตรวจ deploy log / Vercel pipeline
 
-## ⏳ งานค้าง — "ปรับ v2 เป็น site หลัก" (ยังไม่เริ่ม · รอผู้ใช้เลือก scope)
-ถามค้างไว้ 3 ทาง (ผู้ใช้ interrupt ไปเจอบั๊ก BCA ก่อน):
-1. **(แนะนำ)** Root + login → v2 **และ** redirect หน้า v1 ที่มีคู่ v2 (`/customers`→`/v2/customers` ฯลฯ) — คง v1 ไว้เป็น backup + fallback ของ v2
-2. เฉพาะ root `/` + login → v2 (URL v1 ยังเข้าได้ · เสี่ยงน้อยสุด)
-3. ย้าย v2 มา root จริง (ตัด prefix `/v2`) + ย้าย v1 → `/v1` (งานใหญ่/เสี่ยง)
-- **ก่อนแตะ routing: tag v1 เป็น restore point** (`git tag v1-backup-<date>` + push)
-- จุดที่ต้องแก้ถ้าทำ: `app/page.tsx` (root), `signIn` redirect ใน `app/(auth)/actions.ts` (default `/`→`/v2`), middleware redirect authed-away-from-login (`/`→`/v2`), และ (ถ้าเลือกข้อ 1) redirects ใน `next.config` — **ระวัง**: v2 บางหน้า link กลับ v1 ด้วย `?legacy=1` เป็น fallback ห้าม redirect หน้า `[id]` ลึกจนพัง fallback
+## ✅ Cutover: v2 เป็น site หลัก (ทำแล้ว · option 1)
+เลือก scope แบบแนะนำ: root + login + หน้า landing v1 ที่มีคู่ v2 → redirect ไป v2 · คง v1 เป็น backup + `?legacy=1` fallback
+- `next.config.mjs` → `redirects()` (`V2_LANDING_REDIRECTS`): `/`→`/v2` + 13 landing (customers/bca/pulse/checkform/prospects/healthcheck/nutriscan[/log]/plate-planner/designer/line-bot/admin·users/admin·backup) · **exact path เท่านั้น** (หน้า `[id]` ลึกไม่ redirect — คง fallback) · `permanent:false` (307 · revert ง่าย)
+- `app/(auth)/actions.ts` `signIn`: default `next` → `/v2` (bare `/` → `/v2`)
+- `middleware.ts`: authed เปิด `/login` → เด้ง `/v2`
+- **ไม่ redirect**: apps ที่ไม่มีคู่ v2 (cgm · cards · content soon) และหน้า `[id]` ลึกทั้งหมด
+- **Restore point ก่อน cutover**: branch `backup/v1-2026-07-02` @ `0a17f9e` (บน remote) · _tag push ไม่ผ่าน proxy จึงใช้ branch แทน_
+- **วิธี revert**: ลบ/คอมเมนต์ `redirects()` ใน `next.config.mjs` + คืน `signIn` default เป็น `/` + คืน middleware `/login`→`/` (หรือ checkout ไฟล์จาก `backup/v1-2026-07-02`)
+
+## ⏳ งานค้าง (ถ้าต้องการต่อ)
+- Cutover เชิงลึก (option 3): ย้าย v2 มา root URL จริง (ตัด prefix `/v2`) + ย้าย v1 → `/v1` — งานใหญ่ ยังไม่ทำ
+- ปิด "back to v1"/`?legacy=1` ทั้งหมด = ต้อง port หน้า v1 ที่ยังไม่มีใน v2 ให้ครบก่อน
 
 ## ⚠️ ข้อจำกัด/ที่ควรรู้
 - Invite: email ไม่ verify (ตามดีไซน์ — invitee กรอกเอง) · ถ้าจะ harden ค่อยเพิ่มขั้น verify
