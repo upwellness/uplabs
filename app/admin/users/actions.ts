@@ -45,7 +45,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   const [{ data: profiles }, { data: grants }, { data: customers }, { data: assignments }] = await Promise.all([
     admin.from("profiles").select("id, email, display_name, role, abo_number, phone"),
     admin.from("user_app_grants").select("user_id, app_slug"),
-    admin.from("customers").select("id, name, coach_id").not("coach_id", "is", null).order("name"),
+    admin.from("customers").select("id, name, coach_id").order("name"),
     admin.from("customer_assignments").select("user_id, customer_id"),
   ]);
 
