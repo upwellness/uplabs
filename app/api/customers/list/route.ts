@@ -14,8 +14,7 @@ import { assignedCustomerIds } from "@/lib/customers/access";
  * Authorization is enforced OUTSIDE the cache in GET (session check + coach_id arg).
  */
 
-const fetchCustomersList = unstable_cache(
-  async (coachId: string | null) => {
+async function fetchCustomersList(coachId: string | null) {
     const admin = createAdminClient();
     const isAdmin = coachId === null;
 
@@ -64,10 +63,7 @@ const fetchCustomersList = unstable_cache(
         leads:  leadCount.get(c.id) ?? 0,
       },
     }));
-  },
-  ["customers-list"],
-  { revalidate: 60, tags: ["dashboard"] },
-);
+}
 
 export async function GET() {
   try {
@@ -75,7 +71,14 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const isAdmin = session.profile.role === "admin";
-    const result = await fetchCustomersList(isAdmin ? null : session.user.id);
+    const coachId = isAdmin ? null : session.user.id;
+    // Per-coach cache key: a co-coach's widened list must never collide with another user's entry.
+    const getCached = unstable_cache(
+      () => fetchCustomersList(coachId),
+      ["customers-list", coachId ?? "admin"],
+      { revalidate: 60, tags: ["dashboard"] },
+    );
+    const result = await getCached();
 
     return NextResponse.json({ customers: result });
   } catch (err: any) {
