@@ -73,7 +73,7 @@
 <div class="wrap">
 <nav class="toc">
   <div class="brand">UP Labs</div>
-  <div class="ver">SPEC v2.1 · BUILT · 2026-06-30</div>
+  <div class="ver">SPEC v2.2 · BUILT · 2026-07-02</div>
   <a href="#summary">1 · Executive Summary</a>
   <a class="grp">Diagrams</a>
   <a href="#d-userstory">2.1 User Story Diagram</a>
@@ -94,6 +94,7 @@
   <a href="#f-cgm">7.7 CGM</a>
   <a href="#f-reports">7.8 Reports</a>
   <a href="#f-admin">7.9 Admin · RBAC · Co-coach</a>
+  <a href="#f-team">7.10 Team hierarchy · View-as · Invites</a>
   <a class="grp">เทคนิค</a>
   <a href="#stack">8 · Tech Stack</a>
   <a href="#data">9 · Data Model</a>
@@ -104,9 +105,9 @@
 <main>
 
 <div class="hero">
-  <span class="pill rose">SPEC · v2.1 · BUILT</span>
-  <h1 style="margin-top:14px">UP Labs — Redesign Specification (v2.1)</h1>
-  <p style="font-size:16px;margin-top:8px">v2 ถูก <strong>สร้างครบทุก module แล้ว</strong> และ live บน production ใต้ <code>/v2/*</code> (clinical-warm redesign) — คงทุกฟีเจอร์ v1 + structure เดิม + เพิ่มฟีเจอร์ตามที่ใช้งานจริง (Labs body-map · NutriScan ครบชุด · CGM passcode admin · Pulse report แบบ Pook · co-coach sharing)</p>
+  <span class="pill rose">SPEC · v2.2 · BUILT</span>
+  <h1 style="margin-top:14px">UP Labs — Redesign Specification (v2.2)</h1>
+  <p style="font-size:16px;margin-top:8px">v2 ถูก <strong>สร้างครบทุก module แล้ว</strong> และ live บน production ใต้ <code>/v2/*</code> (clinical-warm redesign) — คงทุกฟีเจอร์ v1 + structure เดิม + เพิ่มฟีเจอร์ตามที่ใช้งานจริง (Labs body-map · NutriScan ครบชุด · CGM passcode admin · Pulse report แบบ Pook · co-coach sharing · <strong>MLM team hierarchy · invitation signup · admin view-as · v2 add-customer</strong>)</p>
   <div class="meta">
     <span class="pill ok">All modules live</span><span class="pill sci">Next 14 · Supabase · Vercel</span>
     <span class="pill well">parity ✓ + extras</span><span class="pill warn">cutover: pending Toni</span>
@@ -397,6 +398,15 @@
     <li>Users (role member/abo/admin/other · app grants · reset/create) · Backup · admin gate</li>
     <li><strong>★ Co-coach</strong> — admin assign ลูกค้าให้ user อื่นเห็น+แก้ได้ (ตาราง <code>customer_assignments</code> · RLS additive 23 ตารางลูก + helper <code>canAccessCustomer</code> ~35 จุด · ลบ/มอบต่อ = เจ้าของ+admin)</li>
   </ul>
+
+  <h3 id="f-team">7.10 · Team hierarchy · View-as · Invitations <span class="tag new">ใหม่</span></h3>
+  <ul class="chk">
+    <li><strong>★ MLM hierarchy</strong> — <code>profiles.parent_id</code> (upline 1 คน/user) · ฟังก์ชัน <code>profile_descendant_ids()</code> ไล่ downline ทุกชั้น · <strong>upline เห็น customer ของ downline ทั้งสาย (read-only)</strong> — ขยาย read surface ทุกจุด (list · 360 · BCA/<code>measurements</code> · lab-report · med-map · notes GET · pulse · records · line-bot) ด้วย <code>isDownlineCustomer</code>/<code>downlineUserIds</code> (<code>lib/customers/access.ts</code>) + RLS <code>downline_select</code> (SELECT-only) 24 ตาราง · <strong>write คงเป็น owner/co-coach เท่านั้น</strong></li>
+    <li><strong>★ Admin จัดสายงาน</strong> — <code>setUserParent(user, parent|null)</code> (กัน cycle ด้วย descendant check) · UI "สายงาน (Upline)" ใน admin user row (ค้นหา user → ตั้ง/ถอด upline)</li>
+    <li><strong>★ Invitation signup</strong> — user ทุกคนสร้างลิงก์เชิญได้ (<code>/v2/invite</code> · <code>lib/invites/actions.ts</code>) · single-use · หมดอายุ 14 วัน · invitee เปิด <code>/join/[token]</code> ตั้ง password เอง + email จริง → auto sign-in → กลายเป็น downline ของผู้เชิญ (role <code>abo</code>) · public <code>/api/join</code> ตรวจ token ฝั่ง server · ตาราง <code>user_invites</code></li>
+    <li><strong>★ View-as (admin)</strong> — จำลองเป็น user อื่นเพื่อทดสอบมุมมอง · <strong>read-only</strong> (middleware บล็อก mutating <code>/api/*</code> ขณะ view-as) · cookie <code>up_view_as</code> (httpOnly) · banner + ปุ่มออก · audit <code>admin_view_as_log</code> · <code>getSession()</code> คืน target ส่วน <code>requireAdmin()</code>/<code>getRealSession()</code> เช็คตัวจริงเสมอ · ปุ่ม "👁 View as" ต่อแถวใน admin users</li>
+    <li><strong>v2 เพิ่มลูกค้าใหม่</strong> — modal ใน <code>/v2/customers</code> (เดิมต้องกลับไป v1) → <code>POST /api/customers</code> → เด้ง <code>/v2/customers/[id]</code></li>
+  </ul>
 </section>
 
 <!-- 8 -->
@@ -426,7 +436,10 @@
     <tr><td><code>nutriscan_scans</code></td><td>customer_id · meal_type · <code>eaten_on</code> ★ · notes · raw_analysis · macros · scores</td></tr>
     <tr><td><code>cgm_profiles / cgm_readings / cgm_meals</code></td><td>profile_name · passcode_hash · glucose · RPC SECURITY DEFINER</td></tr>
     <tr><td><code>whoop_daily · pulse_readings · pulse_assessments</code></td><td>wearable · assessment</td></tr>
-    <tr><td><code>profiles · user_app_grants</code></td><td>role + per-app grants</td></tr>
+    <tr><td><code>profiles</code> · <code>user_app_grants</code></td><td>role + per-app grants · ★ <code>parent_id</code> = upline (MLM) · <code>profile_descendant_ids()</code> ไล่ downline ทุกชั้น</td></tr>
+    <tr><td><code>user_invites</code> ★</td><td>ลิงก์เชิญสมัคร (token · created_by=upline · role · used_at · expires_at) · single-use · 14 วัน</td></tr>
+    <tr><td><code>admin_view_as_log</code> ★</td><td>audit view-as (admin_id · target_user_id · action start/stop)</td></tr>
+    <tr><td>RLS <code>downline_select</code> ★</td><td>SELECT-only ให้ upline อ่าน customers + 23 ตารางลูกของ downline ทั้งสาย (write ไม่แตะ)</td></tr>
   </table>
 </section>
 
@@ -454,6 +467,9 @@
     <tr><td>Plate PDF กดแล้วเงียบ / หน้าเปล่า</td><td>(1) ref บน next/dynamic ไม่ forward → null → return (2) wrapper opacity:0 + position:fixed → html-to-image จับเปล่า · <strong>แก้: static import + capture report root width:800 + absolute container + skipFonts + canvas-crop multi-page</strong></td></tr>
     <tr><td>pie สีไม่ตรง bar</td><td>CPFPie hardcode สี · <strong>แก้: prop colors + unify ทั้งแอป (คาร์บ=rose·โปรตีน=wellness·ไขมัน=amber)</strong></td></tr>
     <tr><td>NutriScan หมายเหตุไม่ช่วย AI</td><td>prompt hardcode "ไม่มี" · <strong>แก้: ส่ง context.customer_note เข้า Gemini</strong></td></tr>
+    <tr><td>assign co-coach: chip โชว์ "—"</td><td><code>listUsers</code> สร้าง map ชื่อลูกค้าจาก query ที่ filter <code>coach_id not null</code> (ของ panel อื่น) → ลูกค้าไร้ coach เลยโชว์ "—" · <strong>แก้: เอา filter ออกจาก query ที่ป้อน customerName</strong></td></tr>
+    <tr><td>build พังบน prod หลังเพิ่ม view-as</td><td>return type ของ <code>getSession()</code> ถูก infer เป็น union → <code>session.viewAs</code> ไม่มีบางสาขา · <strong>แก้: ประกาศ interface <code>Session</code> ชัดเจน</strong> (เตือน: <code>next build</code> ให้ผ่านก่อน push เสมอ)</td></tr>
+    <tr><td>upline เปิด BCA ของ downline → forbidden</td><td>ครั้งแรกขยาย downline read แค่ list+360+detail · แต่หน้า BCA เรียก <code>/measurements</code> ด้วย → 403 · <strong>แก้: ใส่ <code>isDownlineCustomer</code> ครบทุก read endpoint/page</strong> (measurements·lab-report·med-map·notes-GET·pulse·records·line-bot) · write คงเดิม</td></tr>
   </table>
   <div class="note"><strong>กฎทอง:</strong> Next 14 → ห้าม <code>use(params)</code>/async params · push uplabs → <code>gh auth switch -u upwellness</code> · ไม่ commit <code>app/v2/pp-diag</code> (ของคนอื่น) · enum DB เป็น free-text → guard lookup เสมอ · agent verify ได้แค่ tsc/build (ไม่มี env render) → runtime ต้อง UAT</div>
 </section>
@@ -462,18 +478,18 @@
 <section id="status">
   <h2>12 · Status & Remaining</h2>
   <h4>เสร็จ + live</h4>
-  <p>ทุก module (§7) · co-coach · identity block · design system · report Pook + BCA/CGM/อาหาร · NutriScan ++ · Labs body-map · CGM passcode · UAT fixes</p>
+  <p>ทุก module (§7) · co-coach · identity block · design system · report Pook + BCA/CGM/อาหาร · NutriScan ++ · Labs body-map · CGM passcode · UAT fixes · <strong>★ MLM team hierarchy (downline read-only ทั้งสาย) · invitation signup · admin view-as · v2 เพิ่มลูกค้า</strong></p>
   <h4>เหลือ (รอ Toni เคาะ)</h4>
   <ul>
-    <li><strong>Cutover</strong> v1→v2 default (redirect/flag) — หลัง UAT เต็ม</li>
+    <li><strong>Cutover</strong> v1→v2 default — <em>รอเลือก scope 3 แบบ:</em> (1) root+login→v2 <em>และ</em> redirect หน้า v1 ที่มีคู่ v2 (คง v1 เป็น backup+fallback) · (2) เฉพาะ root/login→v2 (URL v1 ยังเข้าได้) · (3) ย้าย v2 มา root จริง + v1→<code>/v1</code> · <strong>tag v1 เป็น restore point ก่อนแตะ routing</strong> · ระวัง v2 บางหน้า link กลับ v1 ด้วย <code>?legacy=1</code></li>
     <li><strong>RLS</strong> cgm_readings/cgm_meals (ปิดอยู่ · task chip) — เปิด RLS หลังเช็ค iframe</li>
-    <li>v2 ของฟอร์มที่เหลือ (เพิ่มลูกค้า/record/allergy) — ถ้าต้องการปิด "back to v1" หมด</li>
+    <li>Invitation: ยังไม่ verify email (ตามดีไซน์ invitee กรอกเอง) — harden ทีหลังถ้าต้องการ</li>
     <li>live UAT ทุกหน้า (โดยเฉพาะ report ที่ agent render สดไม่ได้)</li>
   </ul>
-  <div class="note">เอกสารมีชีวิต — เมื่อ scope/behavior เปลี่ยน อัปเดตไฟล์นี้ + changelog ก่อนปิดงาน</div>
+  <div class="note">เอกสารมีชีวิต — เมื่อ scope/behavior เปลี่ยน อัปเดตไฟล์นี้ + changelog ก่อนปิดงาน · status ล่าสุดของงานที่กำลังทำ ดู <code>docs/SESSION_STATUS.md</code></div>
 </section>
 
-<footer>UP Labs SPEC v2.1 (Built) · 2026-06-30 · ทุก module live ใต้ /v2 · clinical-warm + report olive/gold · parity v1 + extras · cutover pending · repo upwellness/uplabs</footer>
+<footer>UP Labs SPEC v2.2 (Built) · 2026-07-02 · ทุก module live ใต้ /v2 · clinical-warm + report olive/gold · parity v1 + extras · + MLM hierarchy · invites · view-as · cutover pending · repo upwellness/uplabs</footer>
 </main>
 </div>
 </body>
