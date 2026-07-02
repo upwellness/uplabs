@@ -2,6 +2,7 @@
  * Server-side session helpers. Call from RSC, route handlers, server actions.
  */
 import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VIEW_AS_COOKIE } from "./view-as-constants";
@@ -20,7 +21,15 @@ export interface ViewAsInfo {
   adminLabel: string;
 }
 
-async function loadRealSession() {
+export interface Session {
+  user: User;
+  profile: SessionProfile;
+  grantedAppSlugs: string[];
+  /** Present only when an admin is actively impersonating another user's view. */
+  viewAs?: ViewAsInfo;
+}
+
+async function loadRealSession(): Promise<Session | null> {
   const supa = createClient();
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return null;
@@ -44,7 +53,7 @@ async function loadRealSession() {
 }
 
 /** The REAL authenticated identity — always ignores "view as". Use for permission checks. */
-export async function getRealSession() {
+export async function getRealSession(): Promise<Session | null> {
   return loadRealSession();
 }
 
@@ -56,7 +65,7 @@ export async function getRealSession() {
  * what that user would see. Writes stay blocked separately in middleware.ts —
  * this only changes what is *read*, never who is allowed to *write*.
  */
-export async function getSession() {
+export async function getSession(): Promise<Session | null> {
   const real = await loadRealSession();
   if (!real) return null;
   if (real.profile.role !== "admin") return real;
