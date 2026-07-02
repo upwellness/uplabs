@@ -10,8 +10,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Users, ChevronRight, X, RotateCw } from "lucide-react";
+import { Search, Users, ChevronRight, X, RotateCw, UserPlus } from "lucide-react";
 import { Shell } from "../_components/Shell";
+import { NewCustomerForm } from "./_components/NewCustomerForm";
 import { LoadingState, EmptyState, ErrorState } from "@/lib/v2/ui";
 import { resolveAge, genderLabelWithGlyph, initials } from "@/lib/v2/identity";
 import type { StatusLevel } from "@/lib/medical-status";
@@ -56,6 +57,7 @@ export default function V2CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showNew, setShowNew] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -90,11 +92,21 @@ export default function V2CustomersPage() {
             ดูแลลูกค้าตั้งแต่ lead จนถึง active partner · เชื่อมข้อมูล BCA · CGM · Wearable
           </p>
         </div>
-        {!loading && !error && (
-          <span className="rounded-full bg-ink-5 px-3 py-1 font-mono text-[11px] text-ink-60">
-            {filtered.length === customers.length ? `${customers.length} คน` : `${filtered.length} / ${customers.length} คน`}
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {!loading && !error && (
+            <span className="rounded-full bg-ink-5 px-3 py-1 font-mono text-[11px] text-ink-60">
+              {filtered.length === customers.length ? `${customers.length} คน` : `${filtered.length} / ${customers.length} คน`}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowNew(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-rose px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-rose-mid"
+          >
+            <UserPlus size={15} strokeWidth={2.25} aria-hidden />
+            เพิ่มลูกค้าใหม่
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -131,7 +143,7 @@ export default function V2CustomersPage() {
           <EmptyState
             icon={search ? Search : Users}
             title={search ? "ไม่พบลูกค้าที่ตรงคำค้น" : "ยังไม่มีลูกค้า"}
-            hint={search ? "ลองเปลี่ยนคำค้นหา" : "เพิ่มลูกค้าได้ที่หน้าเวอร์ชันปัจจุบัน (Legacy) — v2 อ่านรายชื่อชุดเดียวกัน"}
+            hint={search ? "ลองเปลี่ยนคำค้นหา" : "เริ่มต้นด้วยการเพิ่มลูกค้าคนแรกของคุณ"}
             action={
               search ? (
                 <button
@@ -142,9 +154,13 @@ export default function V2CustomersPage() {
                   <RotateCw size={13} strokeWidth={2.25} aria-hidden /> ล้างคำค้น
                 </button>
               ) : (
-                <Link href="/customers" className="inline-flex items-center gap-1.5 rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-mid">
-                  ไปหน้า Legacy เพื่อเพิ่มลูกค้า
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowNew(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-rose px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-mid"
+                >
+                  <UserPlus size={14} strokeWidth={2.25} aria-hidden /> เพิ่มลูกค้าใหม่
+                </button>
               )
             }
           />
@@ -154,6 +170,13 @@ export default function V2CustomersPage() {
           </ul>
         )}
       </div>
+
+      {showNew && (
+        <NewCustomerForm
+          onCancel={() => setShowNew(false)}
+          onCreated={() => setShowNew(false)}
+        />
+      )}
     </Shell>
   );
 }
