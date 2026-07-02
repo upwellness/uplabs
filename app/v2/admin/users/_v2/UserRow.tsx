@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown, Mail, Link2, Copy, Check, Loader2, UserCog, KeyRound,
-  AppWindow, Users2, UserPlus, X, Search, ExternalLink, Save,
+  AppWindow, Users2, UserPlus, X, Search, ExternalLink, Save, Eye,
 } from "lucide-react";
 import { ROLES, ROLE_LABEL_TH, ROLE_COLOR, type Role } from "@/lib/auth/roles";
 import { APPS } from "@/lib/apps-registry";
@@ -33,6 +33,7 @@ import {
   assignCustomer, unassignCustomer,
   type UserListRow, type AssignableCustomer,
 } from "@/app/admin/users/actions";
+import { startViewAs } from "@/lib/auth/view-as";
 
 export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomers: AssignableCustomer[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -58,6 +59,14 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
     if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
     if (r && "url" in r && r.url) setLinkOut(r.url);
     router.refresh();
+  };
+
+  const handleViewAs = async () => {
+    setBusy("view-as");
+    const r = await startViewAs(user.id);
+    setBusy(null);
+    if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
+    window.location.href = "/"; // hard nav so middleware/layout re-render with the new view-as cookie
   };
 
   const handleGrantToggle = (slug: string, checked: boolean) => {
@@ -100,7 +109,7 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
   return (
     <li>
       {/* Row */}
-      <div className="grid grid-cols-1 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface lg:grid-cols-[minmax(0,1fr)_140px_180px_120px_96px] lg:px-5">
+      <div className="grid grid-cols-1 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface lg:grid-cols-[minmax(0,1fr)_140px_180px_120px_220px] lg:px-5">
         {/* User identity */}
         <div className="flex items-center gap-3">
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose text-[12px] font-bold text-white">
@@ -148,7 +157,16 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
         </div>
 
         {/* Manage toggle */}
-        <div className="lg:text-right">
+        <div className="flex justify-end gap-2 lg:text-right">
+          <button
+            type="button"
+            onClick={handleViewAs}
+            disabled={busy !== null}
+            title="ดูแอปในมุมมองของ user นี้ (อ่านอย่างเดียว)"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-3.5 py-1.5 text-[12px] font-semibold text-ink-60 transition-colors hover:border-ink-20 hover:text-ink disabled:opacity-50"
+          >
+            <Eye size={14} strokeWidth={2.25} aria-hidden /> View as
+          </button>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}

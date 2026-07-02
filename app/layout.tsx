@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, Inter, Sarabun, JetBrains_Mono } from "next/font/google";
 import { SessionInit } from "@/components/SessionInit";
+import { ViewAsBanner } from "@/components/ViewAsBanner";
+import { getSession } from "@/lib/auth/session";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -38,7 +40,9 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+
   return (
     <html
       lang="th"
@@ -46,6 +50,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="font-body">
         <SessionInit />
+        {session?.viewAs?.active && (
+          <ViewAsBanner
+            label={session.profile.display_name ?? session.profile.email ?? session.user.id}
+            adminLabel={session.viewAs.adminLabel}
+          />
+        )}
         {children}
       </body>
     </html>

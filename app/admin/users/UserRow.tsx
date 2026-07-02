@@ -14,6 +14,7 @@ import {
   assignCustomer, unassignCustomer,
   type UserListRow, type AssignableCustomer,
 } from "./actions";
+import { startViewAs } from "@/lib/auth/view-as";
 
 export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomers: AssignableCustomer[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -44,6 +45,14 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
     if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
     if (r && "url" in r && r.url) setLinkOut(r.url);
     router.refresh();
+  };
+
+  const handleViewAs = async () => {
+    setBusy("view-as");
+    const r = await startViewAs(user.id);
+    setBusy(null);
+    if (r && "error" in r && r.error) { alert(`ผิดพลาด: ${r.error}`); return; }
+    window.location.href = "/"; // hard nav so middleware/layout re-render with the new view-as cookie
   };
 
   const handleGrantToggle = (slug: string, checked: boolean) => {
@@ -124,9 +133,14 @@ export function UserRow({ user, allCustomers }: { user: UserListRow; allCustomer
           {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : "—"}
         </td>
         <td className="px-6 py-3 text-right">
-          <Button size="sm" variant={expanded ? "primary" : "outline"} onClick={() => setExpanded(!expanded)}>
-            {expanded ? "ปิด" : "จัดการ"}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={handleViewAs} disabled={busy !== null} title="ดูแอปในมุมมองของ user นี้ (อ่านอย่างเดียว)">
+              👁 View as
+            </Button>
+            <Button size="sm" variant={expanded ? "primary" : "outline"} onClick={() => setExpanded(!expanded)}>
+              {expanded ? "ปิด" : "จัดการ"}
+            </Button>
+          </div>
         </td>
       </tr>
 

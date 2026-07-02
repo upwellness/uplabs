@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { VIEW_AS_COOKIE } from "@/lib/auth/view-as-constants";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -82,6 +83,18 @@ export async function middleware(req: NextRequest) {
       u.pathname = "/login";
       u.searchParams.set("next", path);
       return NextResponse.redirect(u);
+    }
+
+    // Admin "view as" mode is read-only — block every mutating API call while active.
+    // (Cookie is httpOnly and only ever set by lib/auth/view-as.ts's admin-gated action,
+    // so its mere presence is enough to deny; no need to re-verify role here.)
+    if (path.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+      if (req.cookies.get(VIEW_AS_COOKIE)?.value) {
+        return NextResponse.json(
+          { error: "view_as_read_only", message: "โหมด View-As เป็นแบบดูอย่างเดียว ไม่สามารถบันทึกข้อมูลได้" },
+          { status: 403 },
+        );
+      }
     }
 
     return res;
