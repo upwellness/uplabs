@@ -33,6 +33,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   UtensilsCrossed, Flame, HeartPulse, Dumbbell, Loader2, RefreshCw, User2,
@@ -251,6 +252,12 @@ function PlatePlannerInner() {
           <p className="mt-1 max-w-2xl font-thai text-[13px] leading-[1.6] text-ink-60">
             วางแผนมื้อตามหลักกล้ามเนื้อ (Forever Strong) · 3 เป้าหมายคำนวณแยก · อาหารไทยไม่ซ้ำ + ขนาด portion จริง
           </p>
+          <Link
+            href="/v2/plate-planner/guide"
+            className="mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-wellness-pale bg-wellness-ultra px-3 py-1.5 font-head text-[12px] font-bold text-wellness transition-colors hover:bg-wellness-pale"
+          >
+            <ListChecks size={14} aria-hidden /> คู่มือ portion · เลือกอาหารด้วยมือ
+          </Link>
         </div>
       </div>
 
