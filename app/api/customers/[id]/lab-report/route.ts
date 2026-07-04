@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import path from "path";
 import { getSession } from "@/lib/auth/session";
 import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getReportHtml, saveReportHtml } from "@/lib/reports/report-store";
+import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -39,16 +39,63 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return new NextResponse("forbidden", { status: 403 });
   }
 
-  try {
-    const file = path.join(process.cwd(), "lib/reports/lab-report", `${params.id}.html`);
-    const html = await readFile(file, "utf8");
-    return new NextResponse(html, {
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "cache-control": "private, no-store",
-      },
-    });
-  } catch {
+  const html = await getReportHtml(params.id);
+  if (!html) {
     return new NextResponse("ยังไม่มีรายงานสุขภาพ (Longevity Report) สำหรับลูกค้ารายนี้", { status: 404 });
   }
+  return new NextResponse(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-store",
+    },
+  });
+}
+
+/**
+ * Upload / replace a customer's Longevity Report HTML (coach or admin).
+ * Body = raw HTML. Stored gzip+base64 in Supabase (never git/public). Ensures a
+ * lab_report record + share token exist so the public /r/lab/<token> link works.
+ */
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return new NextResponse("unauthorized", { status: 401 });
+  if (!/^[0-9a-fA-F-]{36}$/.test(params.id)) return new NextResponse("bad id", { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: customer } = await admin
+    .from("customers").select("id, coach_id").eq("id", params.id).maybeSingle();
+  if (!customer) return new NextResponse("customer not found", { status: 404 });
+
+  const isAdmin = session.profile.role === "admin";
+  // write access = admin / owner / co-coach (NOT downline — that's read-only)
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
+    return new NextResponse("forbidden", { status: 403 });
+  }
+
+  const html = await req.text();
+  if (!html || html.length < 200 || !/<!doctype html|<html/i.test(html)) {
+    return NextResponse.json({ error: "ไฟล์ที่อัปโหลดไม่ใช่ HTML report ที่ถูกต้อง" }, { status: 400 });
+  }
+
+  await saveReportHtml(params.id, html);
+
+  // ensure a lab_report record + unguessable share token
+  const { data: rec } = await admin
+    .from("customer_records")
+    .select("id, source_id")
+    .eq("customer_id", params.id).eq("document_type", "lab_report").maybeSingle();
+  let token = rec?.source_id as string | undefined;
+  if (!rec) {
+    token = randomBytes(16).toString("hex");
+    await admin.from("customer_records").insert({
+      customer_id: params.id, document_type: "lab_report", source_id: token,
+      recorded_at: new Date().toISOString().slice(0, 10), source: "Longevity Report",
+      created_by: session.user.id,
+    });
+  } else if (!token) {
+    token = randomBytes(16).toString("hex");
+    await admin.from("customer_records").update({ source_id: token }).eq("id", rec.id);
+  }
+
+  return NextResponse.json({ ok: true, token, bytes: html.length });
 }

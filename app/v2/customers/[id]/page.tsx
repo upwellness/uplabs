@@ -30,6 +30,7 @@ import {
 } from "@/lib/v2/labs";
 import { statusClasses, statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 import { deriveBMI } from "@/lib/bca-derive";
+import { LabReportUploadButton } from "./_v2/LabReportUploadButton";
 
 /**
  * Labs/Trends tabs are loaded on demand (SPEC §8 "กราฟ lazy/conditional").
@@ -217,6 +218,7 @@ function IdentityBar({ data, customerId }: { data: Customer360; customerId: stri
       {data.meta.hasLabReport && data.meta.labReportToken && (
         <CopyLinkButton token={data.meta.labReportToken} />
       )}
+      <LabReportUploadButton customerId={customerId} />
       <Link href={`/customers/${customerId}`} className="ml-auto inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-ink-5 px-3 py-1.5 text-[11px] font-semibold text-ink-60 transition-colors hover:bg-ink-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2" title="ไปหน้าเวอร์ชันปัจจุบัน (Legacy)">
         <ExternalLink size={12} strokeWidth={2.25} aria-hidden /> มุมมองเดิม
       </Link>

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import path from "path";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getReportHtml } from "@/lib/reports/report-store";
 
 export const dynamic = "force-dynamic";
 
@@ -34,18 +33,16 @@ export async function GET(_req: Request, { params }: { params: { token: string }
     return new NextResponse("ไม่พบรายงาน หรือ ลิงก์หมดอายุแล้ว", { status: 404 });
   }
 
-  try {
-    const file = path.join(process.cwd(), "lib/reports/lab-report", `${rec.customer_id}.html`);
-    const html = await readFile(file, "utf8");
-    return new NextResponse(html, {
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        // shareable link, but keep it out of search engines / shared caches
-        "cache-control": "private, no-store",
-        "x-robots-tag": "noindex, nofollow",
-      },
-    });
-  } catch {
+  const html = await getReportHtml(rec.customer_id as string);
+  if (!html) {
     return new NextResponse("ยังไม่มีรายงานสุขภาพสำหรับลิงก์นี้", { status: 404 });
   }
+  return new NextResponse(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      // shareable link, but keep it out of search engines / shared caches
+      "cache-control": "private, no-store",
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
 }
