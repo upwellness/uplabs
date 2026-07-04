@@ -34,12 +34,8 @@ const nextConfig = {
   },
   experimental: {
     typedRoutes: false,
-    // ship the per-customer report HTML files into the serverless function bundle
-    outputFileTracingIncludes: {
-      // med-map still served from filesystem (TODO: migrate to Supabase like lab-report)
-      "/api/customers/[id]/med-map": ["./lib/reports/med-map/**/*"],
-      // lab-report + public share now read from Supabase (customer_report_html) — no file bundling
-    },
+    // per-customer report HTML (lab-report + med-map) now lives in private Supabase
+    // (customer_report_html) — nothing to bundle into the serverless functions.
   },
 };
 
