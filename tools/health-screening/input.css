@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f2f5f1;
+  --surface: #ffffff;
+  --surface2: #eaf0eb;
+  --ink: #16281f;
+  --ink2: #4e6157;
+  --mut: #7c8d84;
+  --line: #dce4de;
+  --accent: #0e7c66;
+  --accent-strong: #0a5a4b;
+  --accent-soft: #dceee7;
+  --on-accent: #f4fbf8;
+  --good: #157a46;
+  --good-bg: #dff2e5;
+  --warn: #91600c;
+  --warn-bg: #f6edd4;
+  --risk: #b23a2a;
+  --risk-bg: #f9e4de;
+  --shadow: 0 1px 2px rgba(22, 40, 31, 0.05), 0 10px 28px rgba(22, 40, 31, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1310;
+    --surface: #15201a;
+    --surface2: #1c2921;
+    --ink: #e8f1eb;
+    --ink2: #a9bbb1;
+    --mut: #7c8d84;
+    --line: #28362d;
+    --accent: #3cbd99;
+    --accent-strong: #62d1b1;
+    --accent-soft: #173129;
+    --on-accent: #06231b;
+    --good: #4cc98a;
+    --good-bg: #123120;
+    --warn: #e2b25c;
+    --warn-bg: #34280f;
+    --risk: #f08a76;
+    --risk-bg: #3a1a13;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f2f5f1;
+  --surface: #ffffff;
+  --surface2: #eaf0eb;
+  --ink: #16281f;
+  --ink2: #4e6157;
+  --mut: #7c8d84;
+  --line: #dce4de;
+  --accent: #0e7c66;
+  --accent-strong: #0a5a4b;
+  --accent-soft: #dceee7;
+  --on-accent: #f4fbf8;
+  --good: #157a46;
+  --good-bg: #dff2e5;
+  --warn: #91600c;
+  --warn-bg: #f6edd4;
+  --risk: #b23a2a;
+  --risk-bg: #f9e4de;
+  --shadow: 0 1px 2px rgba(22, 40, 31, 0.05), 0 10px 28px rgba(22, 40, 31, 0.08);
+}
+:root[data-theme="dark"] {
+  --bg: #0c1310;
+  --surface: #15201a;
+  --surface2: #1c2921;
+  --ink: #e8f1eb;
+  --ink2: #a9bbb1;
+  --mut: #7c8d84;
+  --line: #28362d;
+  --accent: #3cbd99;
+  --accent-strong: #62d1b1;
+  --accent-soft: #173129;
+  --on-accent: #06231b;
+  --good: #4cc98a;
+  --good-bg: #123120;
+  --warn: #e2b25c;
+  --warn-bg: #34280f;
+  --risk: #f08a76;
+  --risk-bg: #3a1a13;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+html {
+  background: var(--bg);
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- range sliders ---- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--fill, 50%),
+    var(--surface2) var(--fill, 50%),
+    var(--surface2) 100%
+  );
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface2);
+}
+input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 6px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 6px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- reveal animation ---- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reveal {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes pulse-draw {
+  0% {
+    stroke-dashoffset: 640;
+  }
+  55% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -640;
+  }
+}
+.pulse-line {
+  stroke-dasharray: 640;
+  animation: pulse-draw 4.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+  .pulse-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- print: the giveaway report ---- */
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --shadow: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-block {
+    break-inside: avoid;
+  }
+  body {
+    background: #fff;
+  }
+}
