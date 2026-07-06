@@ -15,13 +15,13 @@
  * deps stay out of this route's First-Load JS).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   Search, Scale, Plus, X, ChevronRight, Save, Loader2, ArrowRight, Users, Calendar,
-  FileText, Pencil, Trash2, History,
+  FileText, Pencil, Trash2, History, Sparkles,
 } from "lucide-react";
 import { Shell } from "../_components/Shell";
 import { IdentityBlock } from "@/lib/v2/IdentityBlock";
@@ -32,6 +32,7 @@ import { statusTextHex } from "@/lib/v2/status";
 import { deriveBMI, deriveChronoAge, enrichMeasurement } from "@/lib/bca-derive";
 import { classifyBMI, classifyVisceralFat, classifyBodyFat, classifyMusclePct, classifyBodyAge } from "@/lib/medical-status";
 import type { Customer, Measurement, MeasurementWithDerived } from "@/lib/types";
+import { buildScanData, type ScanRevealData } from "./_scan-data";
 
 /**
  * Trends (recharts) + ReportBuilder (recharts + html-to-image) are loaded on demand
@@ -44,6 +45,12 @@ const TrendPanel = dynamic(() => import("./_trends").then((m) => m.TrendPanel), 
   loading: () => <Card className="p-4 lg:p-5"><LoadingState label="กำลังโหลดกราฟแนวโน้ม…" /></Card>,
 });
 const ReportBuilder = dynamic(() => import("@/app/bca/_components/ReportBuilder").then((m) => m.ReportBuilder), {
+  ssr: false,
+  loading: () => null,
+});
+// Cinematic body-scan reveal (self-contained ~40KB HTML in an iframe). Lazy so
+// it stays out of this route's First-Load JS until a scan is actually shown.
+const BcaScanReveal = dynamic(() => import("./_scan-reveal").then((m) => m.BcaScanReveal), {
   ssr: false,
   loading: () => null,
 });
@@ -177,6 +184,8 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
   const [editing, setEditing] = useState<Measurement | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportFocus, setReportFocus] = useState<MeasurementWithDerived | null>(null);
+  const [reveal, setReveal] = useState<ScanRevealData | null>(null);
+  const revealAfterSave = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -229,6 +238,14 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
       .catch(() => setClassified(null));
   }, [latest, customer]);
 
+  // After a NEW measurement is saved and the series refetches, auto-play the scan.
+  useEffect(() => {
+    if (revealAfterSave.current && customer && enriched.length > 0) {
+      revealAfterSave.current = false;
+      setReveal(buildScanData(customer, enriched));
+    }
+  }, [enriched, customer]);
+
   const handleEdit = (m: MeasurementWithDerived) => {
     setEditing(m);
     setFormOpen(true);
@@ -279,6 +296,14 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={() => { if (latest) setReveal(buildScanData(customer, enriched)); }}
+            disabled={measurements.length === 0}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink-80 transition-colors hover:border-wellness hover:text-wellness disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2"
+          >
+            <Sparkles size={15} strokeWidth={2.25} aria-hidden /> ดูผลแบบสแกน
+          </button>
+          <button
+            type="button"
             onClick={() => { setReportFocus(null); setReportOpen(true); }}
             disabled={measurements.length === 0}
             className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
@@ -300,7 +325,7 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
         <MeasurementForm
           customer={customer}
           initial={editing ?? undefined}
-          onSaved={() => { setFormOpen(false); setEditing(null); load(); }}
+          onSaved={() => { const created = !editing; setFormOpen(false); setEditing(null); if (created) revealAfterSave.current = true; load(); }}
           onCancel={() => { setFormOpen(false); setEditing(null); }}
         />
       )}
@@ -334,6 +359,9 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
           onClose={() => { setReportOpen(false); setReportFocus(null); }}
         />
       )}
+
+      {/* ★ Cinematic body-scan reveal — auto-plays after a new save · replay via "ดูผลแบบสแกน" */}
+      {reveal && <BcaScanReveal data={reveal} onClose={() => setReveal(null)} />}
     </div>
   );
 }
