@@ -24,21 +24,22 @@ export type { StatusLevel };
  * LABEL/TEXT; keep `statusHex` for dots/rings/graphics only. v2-scoped — does not
  * change the global tailwind tokens or v1.
  */
+// ★ CI-harmonized text ramp — darker siblings of statusHex. WCAG ≥4.5:1 on white.
 export const statusTextHex: Record<StatusLevel, string> = {
-  optimal: "#15803D", // green-700
-  good:    "#3F6212", // lime-800
-  caution: "#854D0E", // amber-800
-  warning: "#9A3412", // orange-800
-  danger:  "#991B1B", // red-800
+  optimal: "#255A3F", // deep green
+  good:    "#33654E", // green
+  caution: "#8A6410", // dark gold
+  warning: "#8F4A2A", // dark terracotta
+  danger:  "#7A3B3B", // deep old rose
 };
 
 /** Tailwind arbitrary-value text classes mirroring statusTextHex (for className use). */
 export const statusTextClass: Record<StatusLevel, string> = {
-  optimal: "text-[#15803D]",
-  good:    "text-[#3F6212]",
-  caution: "text-[#854D0E]",
-  warning: "text-[#9A3412]",
-  danger:  "text-[#991B1B]",
+  optimal: "text-[#255A3F]",
+  good:    "text-[#33654E]",
+  caution: "text-[#8A6410]",
+  warning: "text-[#8F4A2A]",
+  danger:  "text-[#7A3B3B]",
 };
 
 /** Tailwind classes for a clinical metric level (text + bg + ring). */

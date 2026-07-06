@@ -494,7 +494,7 @@ function GaugePanel({ customer, latest, classified }: { customer: Customer; late
 
   // Prefer server classification; fall back to local libs so the panel never blanks.
   const bmiLevel: StatusLevel | null = classified?.bmi?.level ?? (bmi != null ? classifyBMI(bmi) : null);
-  const fatLevel: StatusLevel | null = classified?.fat?.level ?? (latest.fat_pct != null && knownGender ? classifyBodyFat(latest.fat_pct, customer.gender) : null);
+  const fatLevel: StatusLevel | null = classified?.fat?.level ?? (latest.fat_pct != null && knownGender ? classifyBodyFat(latest.fat_pct, customer.gender, chrono ?? undefined) : null);
   const muscleLevel: StatusLevel | null = classified?.muscle?.level ?? (latest.muscle_pct != null && knownGender ? classifyMusclePct(latest.muscle_pct, customer.gender) : null);
   const visceralLevel: StatusLevel | null = classified?.visceral?.level ?? (latest.visceral != null ? classifyVisceralFat(latest.visceral) : null);
   const bodyAgeLevel: StatusLevel | null = classified?.body_age?.level ?? (latest.body_age != null && chrono != null ? classifyBodyAge(latest.body_age, chrono) : null);
@@ -577,7 +577,7 @@ function HistoryPanel({ measurements, gender, onEdit, onDelete }: {
                 <td className="px-3 py-2.5 font-thai text-ink">{fmtDay(m.recorded_at)}</td>
                 <td className="px-3 py-2.5 text-right font-mono text-ink">{numOr(m.weight, 1)} <span className="text-ink-60">kg</span></td>
                 <ColoredCell value={m.bmi} level={m.bmi != null ? classifyBMI(m.bmi) : null} />
-                <ColoredCell value={m.fat_pct} level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any) : null} suffix="%" />
+                <ColoredCell value={m.fat_pct} level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any, m.chrono_age ?? undefined) : null} suffix="%" />
                 <ColoredCell value={m.muscle_pct} level={m.muscle_pct != null && knownGender ? classifyMusclePct(m.muscle_pct, gender as any) : null} suffix="%" />
                 <ColoredCell value={m.visceral} level={m.visceral != null ? classifyVisceralFat(m.visceral) : null} digits={0} />
                 <td className="px-3 py-2.5 text-right font-mono text-ink">{numOr(m.body_age, 0)}</td>
@@ -602,7 +602,7 @@ function HistoryPanel({ measurements, gender, onEdit, onDelete }: {
             <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[12px]">
               <MiniStat label="นน." value={numOr(m.weight, 1)} unit="kg" />
               <MiniStat label="BMI" value={numOr(m.bmi, 1)} level={m.bmi != null ? classifyBMI(m.bmi) : null} />
-              <MiniStat label="Fat" value={numOr(m.fat_pct, 1)} unit="%" level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any) : null} />
+              <MiniStat label="Fat" value={numOr(m.fat_pct, 1)} unit="%" level={m.fat_pct != null && knownGender ? classifyBodyFat(m.fat_pct, gender as any, m.chrono_age ?? undefined) : null} />
               <MiniStat label="Muscle" value={numOr(m.muscle_pct, 1)} unit="%" level={m.muscle_pct != null && knownGender ? classifyMusclePct(m.muscle_pct, gender as any) : null} />
               <MiniStat label="Visceral" value={numOr(m.visceral, 0)} level={m.visceral != null ? classifyVisceralFat(m.visceral) : null} />
               <MiniStat label="Body age" value={numOr(m.body_age, 0)} unit="ปี" />

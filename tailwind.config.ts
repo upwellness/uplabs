@@ -51,20 +51,20 @@ const config: Config = {
         surface: "#F7F5F3",
         "warm-white": "#FDFCFB",
 
-        /* ── Medical Status (universal, not brand) ── */
+        /* ── Medical Status · CI-harmonized 5-level ramp (see lib/medical-status.ts) ── */
         status: {
-          optimal:  "#16A34A",   // green-600 — Normal / Healthy range
-          good:     "#65A30D",   // lime-600 — Acceptable
-          caution:  "#CA8A04",   // yellow-600 — Borderline
-          warning:  "#EA580C",   // orange-600 — High Risk
-          danger:   "#DC2626",   // red-600 — Critical
+          optimal:  "#2E6B4C",   // deep pine green — Normal / Healthy range
+          good:     "#4E8168",   // wellness green — Acceptable
+          caution:  "#BE8B1E",   // gold — Borderline
+          warning:  "#B5623A",   // terracotta — High Risk
+          danger:   "#8C4C4C",   // old rose — Critical
         },
         "status-bg": {
-          optimal: "#DCFCE7",
-          good:    "#ECFCCB",
-          caution: "#FEF9C3",
-          warning: "#FFEDD5",
-          danger:  "#FEE2E2",
+          optimal: "#E4EEE8",    // green mist
+          good:    "#EAF1EB",
+          caution: "#F4EAD0",    // gold mist
+          warning: "#F3E4DB",    // terracotta mist
+          danger:  "#F0E1E1",    // rose mist
         },
       },
       fontFamily: {

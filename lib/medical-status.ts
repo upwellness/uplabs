@@ -1,11 +1,18 @@
 /**
  * Medical Status Color System
  * ────────────────────────────
- * Universal traffic-light scheme — NOT brand colors.
- * Used across all UP Wellness Ops apps for any health metric requiring
- * clinical seriousness (lab values, vitals, body composition).
+ * ★ UP Wellness CI-harmonized 5-level ramp (single source of truth).
+ * Every status surface — BCA gauges, the cinematic scan reveal, lab badges,
+ * customer-status dots — reads these SAME five levels + hexes, so a metric can
+ * never be classified (or coloured) two different ways on two screens.
  *
- * Mapping is consistent with international clinical conventions:
+ * The ramp stays inside the brand family (two greens → gold → terracotta →
+ * old-rose) instead of a generic red/orange traffic light, so it reads
+ * "clinical-warm" on cream, not cold. Contrast is WCAG-checked:
+ *   - statusHex (rings/dots/graphics) ≥ 3:1 on white
+ *   - statusTextHex (lib/v2/status, for LABEL text) ≥ 4.5:1 on white
+ *
+ * Severity mapping (international clinical convention):
  *   optimal → recommended healthy range
  *   good    → acceptable, no action
  *   caution → borderline, monitor
@@ -38,67 +45,74 @@ export const statusClasses = {
   ring:  { optimal: "ring-status-optimal/30", good: "ring-status-good/30", caution: "ring-status-caution/30", warning: "ring-status-warning/30", danger: "ring-status-danger/30" } as Record<StatusLevel, string>,
 };
 
+// ★ CI-harmonized graphics ramp (rings, dots, chart strokes). WCAG ≥3:1 on white.
+// Keep in sync with the scan reveal's COLHEX and tailwind `status` tokens.
 export const statusHex: Record<StatusLevel, string> = {
-  optimal: "#16A34A",
-  good:    "#65A30D",
-  caution: "#CA8A04",
-  warning: "#EA580C",
-  danger:  "#DC2626",
+  optimal: "#2E6B4C", // deep pine green — best
+  good:    "#4E8168", // wellness green — healthy
+  caution: "#BE8B1E", // gold — monitor
+  warning: "#B5623A", // terracotta — elevated risk
+  danger:  "#8C4C4C", // old rose — critical
 };
 
 /* ── BCA Thresholds ──────────────────────────────────
- * Sources: ACE (American Council on Exercise) Body Fat Categories,
- *          WHO BMI · NHLBI · Tanita Visceral Fat reference
+ * Sources:
+ *   Body fat  → Gallagher et al. 2000 (Am J Clin Nutr) healthy-body-fat ranges
+ *               by age + sex — the reference BIA smart-scales (Tanita/InBody)
+ *               calibrate to. Age-adjusted (a 55-yr-old's healthy % > a 25-yr-old's).
+ *   Muscle    → skeletal-muscle % of body weight, sex-specific (higher = better).
+ *   Visceral  → Tanita visceral-fat rating (1–9 healthy · 10–14 high · 15+ very high).
+ *   BMI       → WHO Asian-Pacific cut-offs (appropriate for Thai population).
+ *   Body age  → offset from chronological age.
+ * ★ These are the ONLY BCA thresholds in the app — the scan reveal mirrors them.
  */
 
 export type Gender = "male" | "female";
 
-export function classifyBodyFat(pct: number, gender: Gender): StatusLevel {
-  if (gender === "male") {
-    if (pct < 6)  return "caution"; // too low (essential fat only)
-    if (pct <= 13) return "optimal"; // athletes
-    if (pct <= 17) return "good";    // fitness
-    if (pct <= 24) return "caution"; // average
-    if (pct <= 29) return "warning"; // overweight
-    return "danger";                 // obese
-  } else {
-    if (pct < 14) return "caution";
-    if (pct <= 20) return "optimal";
-    if (pct <= 24) return "good";
-    if (pct <= 31) return "caution";
-    if (pct <= 36) return "warning";
-    return "danger";
-  }
+/**
+ * Body-fat %, age- and sex-adjusted (Gallagher/Tanita). `age` is optional: when
+ * unknown we fall back to a mid-adult band (45) so legacy callers still classify.
+ * Healthy range is split across the two greens (optimal = leaner half, good =
+ * upper-healthy) so a top-of-healthy reading still reads green, not amber.
+ */
+export function classifyBodyFat(pct: number, gender: Gender, age?: number): StatusLevel {
+  const a = age ?? 45;
+  const band = a < 40 ? 0 : a < 60 ? 1 : 2; // Gallagher age bands 20–39 / 40–59 / 60+
+  // [underfat < uf] [healthy uf..ho) [overfat ho..ob) [obese ≥ ob]
+  const [uf, ho, ob] = gender === "male"
+    ? [[8, 20, 25], [11, 22, 28], [13, 25, 30]][band]
+    : [[21, 33, 39], [23, 34, 40], [24, 36, 42]][band];
+  if (pct < uf) return "caution";                       // underfat (too low)
+  if (pct < ho) return pct <= uf + 0.55 * (ho - uf) ? "optimal" : "good"; // healthy
+  if (pct < ob) return "warning";                       // overfat
+  return "danger";                                      // obese
 }
 
 export function classifyMusclePct(pct: number, gender: Gender): StatusLevel {
+  // Skeletal-muscle % of body weight (BIA). Higher = better; sex-specific.
   if (gender === "male") {
-    if (pct < 33)  return "danger";
-    if (pct < 37)  return "warning";
-    if (pct < 40)  return "caution";
-    if (pct <= 44) return "good";
+    if (pct < 31) return "danger";
+    if (pct < 35) return "warning";
+    if (pct < 38) return "caution";
+    if (pct < 42) return "good";
     return "optimal";
   } else {
-    if (pct < 24)  return "danger";
-    if (pct < 28)  return "warning";
-    if (pct < 31)  return "caution";
-    if (pct <= 35) return "good";
+    if (pct < 23) return "danger";
+    if (pct < 26) return "warning";
+    if (pct < 29) return "caution";
+    if (pct < 33) return "good";
     return "optimal";
   }
 }
 
 export function classifyVisceralFat(level: number): StatusLevel {
-  // UP Wellness scale (owner-defined, stricter than Tanita default)
-  // 1-2  = ดี (Excellent · เขียวเข้ม)
-  // 3-5  = ปกติ (Normal · เขียว)
-  // 6-9  = สูง (High · เหลือง)
-  // 10-15 = สูงมาก (Very high · ส้ม)
-  // 16+  = อันตราย (Danger · แดง)
-  if (level <= 2)  return "optimal";
-  if (level <= 5)  return "good";
-  if (level <= 9)  return "caution";
-  if (level <= 15) return "warning";
-  return "danger";
+  // Tanita visceral-fat rating (device standard):
+  //   1–9  healthy · 10–14 high · 15+ very high
+  if (level <= 5)  return "optimal"; // 1–5  solidly healthy
+  if (level <= 9)  return "good";    // 6–9  healthy, upper end
+  if (level <= 12) return "caution"; // 10–12 high — monitor
+  if (level <= 14) return "warning"; // 13–14 high — intervene
+  return "danger";                   // 15+  very high
 }
 
 export function classifyBMI(bmi: number): StatusLevel {
@@ -112,10 +126,11 @@ export function classifyBMI(bmi: number): StatusLevel {
 }
 
 export function classifyBodyAge(bodyAge: number, chronoAge: number): StatusLevel {
+  // Being AT or below your actual age reads "good"; only older-than-actual escalates.
   const diff = bodyAge - chronoAge;
-  if (diff <= -5) return "optimal";
-  if (diff <= -2) return "good";
-  if (diff <= 2)  return "caution";
-  if (diff <= 6)  return "warning";
-  return "danger";
+  if (diff <= -5) return "optimal"; // ≥5 yrs younger — excellent
+  if (diff <= 0)  return "good";    // at or below your age
+  if (diff <= 4)  return "caution"; // up to 4 yrs older — monitor
+  if (diff <= 8)  return "warning"; // 5–8 yrs older
+  return "danger";                  // 9+ yrs older
 }
