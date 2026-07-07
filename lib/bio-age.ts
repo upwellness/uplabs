@@ -55,6 +55,8 @@ function toFormulaUnits(inp: PhenoInput) {
 export function computePhenoAge(inp: PhenoInput): PhenoResult {
   const { albumin_gL, creat_umol, glucose_mmol, crp_mgL, crp_mgdL } = toFormulaUnits(inp);
   const lnCRP = Math.log(Math.max(crp_mgdL, 0.01));
+  // WBC must be 10³/µL; guard raw counts (cells/µL or /mm³, e.g. 5390) so xb can't blow up.
+  const wbc = inp.wbc > 100 ? inp.wbc / 1000 : inp.wbc;
 
   const xb =
     -19.9067 -
@@ -66,7 +68,7 @@ export function computePhenoAge(inp: PhenoInput): PhenoResult {
     0.0268 * inp.mcv +
     0.3306 * inp.rdw +
     0.00188 * inp.alp +
-    0.0554 * inp.wbc +
+    0.0554 * wbc +
     0.0804 * inp.age;
 
   const gamma = 0.0076927;
@@ -146,7 +148,10 @@ export function phenoPrefillFromLabs(rows: LabRow[], age: number | null): PhenoP
   }
   const input: any = { age: age ?? undefined };
   for (const [field, r] of latest) {
-    input[field] = r.value_num;
+    let v = r.value_num as number;
+    // WBC must be 10³/µL; some rows store the raw count (cells/µL or /mm³, e.g. 5390) → normalise
+    if (field === "wbc" && v > 100) v = v / 1000;
+    input[field] = v;
     const uKey = `${field === "glucose" ? "glucose" : field}Unit`;
     const sniffed = sniffUnit(field, r.unit);
     if (sniffed) input[uKey] = sniffed;
@@ -174,17 +179,24 @@ export const PHENO_DEFAULT_UNITS = {
 export const PHENO_MAX_IMPUTE = 5;
 const IMPUTABLE: (keyof PhenoInput)[] = ["albumin", "creatinine", "crp", "lymphocytePct", "mcv", "rdw", "alp", "wbc"];
 
-/** Healthy-reference fill values (sex-aware where it matters). */
-export function phenoReference(sex: Gender | null): Record<string, { value: number; unit?: string }> {
+/**
+ * Reference fill values for missing markers — POPULATION-TYPICAL (age- & sex-adjusted),
+ * NOT "optimal". Using optimal values biased every incomplete result younger (a real
+ * bug: even a diabetic showed younger-than-age). Typical values make a missing marker
+ * roughly NEUTRAL (≈ contributes what an average person's would) instead of favourable.
+ * CRP and RDW rise with age/adiposity, so they scale with age.
+ */
+export function phenoReference(sex: Gender | null, age?: number | null): Record<string, { value: number; unit?: string }> {
+  const a = age ?? 50;
   return {
-    albumin: { value: 4.5, unit: "g/dL" },
-    creatinine: { value: sex === "female" ? 0.75 : 0.95, unit: "mg/dL" },
-    crp: { value: 0.5, unit: "mg/L" },
-    lymphocytePct: { value: 32 },
+    albumin: { value: a < 50 ? 4.4 : 4.2, unit: "g/dL" },
+    creatinine: { value: sex === "female" ? 0.8 : 1.0, unit: "mg/dL" },
+    crp: { value: a < 40 ? 1.2 : a < 55 ? 1.8 : 2.5, unit: "mg/L" }, // typical, rises w/ age (kept <3 so it never false-triggers the acute flag)
+    lymphocytePct: { value: 30 },
     mcv: { value: 90 },
-    rdw: { value: 13.0 },
-    alp: { value: 65 },
-    wbc: { value: 6.0 },
+    rdw: { value: a < 50 ? 13.6 : 14.0 },                            // typical median, rises w/ age
+    alp: { value: 75 },
+    wbc: { value: 6.5 },
   };
 }
 
@@ -210,7 +222,7 @@ export function estimatePhenoAge(raw: Partial<PhenoInput> & Record<string, any>,
   if (!has(raw.age)) return { computable: false, reason: "ยังไม่มีอายุ (วันเกิด) ของลูกค้า", ...base };
   if (!has(raw.glucose)) return { computable: false, reason: "ต้องมีค่าน้ำตาล (FBS/Glucose) จริงก่อน", ...base };
 
-  const ref = phenoReference(sex);
+  const ref = phenoReference(sex, Number(raw.age));
   const input: any = {
     age: Number(raw.age),
     glucose: Number(raw.glucose), glucoseUnit: raw.glucoseUnit ?? "mg/dL",
