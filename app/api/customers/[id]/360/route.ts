@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { healthScore } from "@/lib/customers/health-score";
+import { phenoPrefillFromLabs, computePhenoAge, PHENO_MARKER_TH, type PhenoInput } from "@/lib/bio-age";
 import { classifyStatus } from "@/lib/customers/status-classifier";
 import { generateInsights } from "@/lib/customers/insight-rules";
 import { deriveChronoAge } from "@/lib/bca-derive";
@@ -57,6 +58,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       { count: bcaCount },
       { data: labLatest },
       { data: labHistory },
+      { data: phenoRows },
       { data: latestRecord },
       { data: allergyTests },
       { data: supplementSafety },
@@ -75,6 +77,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         .order("recorded_at", { ascending: false })
         .limit(50),
       admin.from("customer_lab_values").select("metric_key, value_num, recorded_at").eq("customer_id", params.id).order("recorded_at", { ascending: true }).limit(200),
+      // PhenoAge (Health Age) markers — newest-first so phenoPrefillFromLabs takes the latest per marker
+      admin.from("customer_lab_values")
+        .select("metric_key, value_num, unit, recorded_at")
+        .eq("customer_id", params.id)
+        .in("metric_key", ["albumin", "creatinine", "fbs", "hs_crp", "crp", "hscrp", "lymphocytes", "lymphocyte", "mcv", "rdw", "alp", "wbc"])
+        .order("recorded_at", { ascending: false })
+        .limit(80),
       admin.from("customer_records").select("recorded_at, source, document_type, notes, source_id").eq("customer_id", params.id).order("recorded_at", { ascending: false }).limit(10),
       admin.from("customer_allergy_tests").select("id, test_type, test_lab, tested_at, panel_size").eq("customer_id", params.id).order("tested_at", { ascending: false }).limit(1),
       admin.from("customer_supplement_safety").select("status, product_th, product_key, conflicting_ingredients").eq("customer_id", params.id),
@@ -140,6 +149,22 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       lab: labVals,
       recency: { bca_days: bcaLapseDays, lab_days: labLapseDays, order_days: orderLapseDays },
     });
+
+    // ─── Health Age (PhenoAge · Levine 2018) — big score #2 ───
+    // Auto-computes only when all 9 blood markers are on file; otherwise the UI
+    // shows "ตรวจเพิ่ม N ตัว" + a link to the /v2/bio-age calculator.
+    const phenoPrefill = phenoPrefillFromLabs(phenoRows ?? [], chronoAge);
+    let bioAge: any;
+    if (phenoPrefill.complete && chronoAge != null) {
+      const res = computePhenoAge(phenoPrefill.input as PhenoInput);
+      bioAge = { complete: true, chronoAge, phenoAge: res.phenoAge, delta: res.delta,
+        level: res.level, mortalityPct: res.mortalityPct, acuteFlag: res.acuteFlag,
+        missing: [] as string[] };
+    } else {
+      bioAge = { complete: false, chronoAge,
+        presentCount: phenoPrefill.present.length,
+        missing: phenoPrefill.missing.map((m) => PHENO_MARKER_TH[m] ?? m) };
+    }
 
     // ─── Score delta vs previous BCA (if exists) ───
     let scoreDelta: number | null = null;
@@ -255,6 +280,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return NextResponse.json({
       customer: { ...customer, chrono_age: chronoAge },
       score: { ...score, delta: scoreDelta, deltaReason: scoreDeltaReason },
+      bioAge,
       status,
       insights,
       labVals,

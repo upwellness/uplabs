@@ -46,6 +46,7 @@ const STATUS_TAG: Record<AppMeta["status"], { label: string; cls: string }> = {
 const V2_ROUTE: Record<string, string> = {
   customers: "/v2/customers",
   bca: "/v2/bca",
+  "bio-age": "/v2/bio-age",
   pulse: "/v2/pulse",
   checkform: "/v2/checkform",
   prospects: "/v2/prospects",

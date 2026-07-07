@@ -27,6 +27,7 @@ export const APPS: AppMeta[] = [
   // ── Business ──
   { slug: "customers",    name: "Customer Profiles",description: "จัดการลูกค้า · link BCA + CGM + Wearable · master profile",    icon: "👥", audience: "business", href: "/customers",   status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "bca",          name: "BCA Tracker",     description: "ติดตาม Body Composition ของลูกค้าแบบต่อเนื่อง",     icon: "📊", audience: "business", href: "/bca",          status: "live", allowedRoles: ["abo", "admin"] },
+  { slug: "bio-age",      name: "อายุสุขภาพ (Health Age)", description: "คำนวณอายุร่างกายจากค่าเลือด 9 ตัว (PhenoAge · Levine 2018) · ดึงค่าจากแล็บอัตโนมัติ + ติดตามแนวโน้ม “แก่ช้า”", icon: "⏳", audience: "business", href: "/v2/bio-age", status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "cgm",          name: "CGM Analyzer",    description: "วิเคราะห์ glucose monitoring patterns",            icon: "📈", audience: "business", href: "/cgm",          status: "live", allowedRoles: ["abo", "admin"] },
   { slug: "pulse",        name: "UP Pulse",        description: "Wearable biomarker → Nutrient → Nutrilite mapping",icon: "📱", audience: "business", href: "/pulse",        status: "beta", allowedRoles: ["abo", "admin"] },
   { slug: "nutriscan",    name: "NutriScan AI",    description: "AI วิเคราะห์โภชนาการจากรูปภาพ/ข้อความ · macros + glucose impact + Nutrilite SKU",                     icon: "🥗", audience: "business", href: "/nutriscan",    status: "live", allowedRoles: ["abo", "admin"] },

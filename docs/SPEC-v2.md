@@ -1,6 +1,7 @@
-# UP Labs — Redesign Specification (v2.2 · BUILT)
+# UP Labs — Redesign Specification (v2.3 · BUILT)
 
-_SPEC v2.2 · BUILT · 2026-07-02 · repo `upwellness/uplabs` · Supabase project `qzqvwbucjxwgtmbdkrlu` · Hosting Vercel (`sin1`)_
+_SPEC v2.3 · BUILT · 2026-07-07 · repo `upwellness/uplabs` · Supabase project `qzqvwbucjxwgtmbdkrlu` · Hosting Vercel (`sin1`)_
+_v2.3: + อายุสุขภาพ (Health Age/PhenoAge) เป็น big-score #2 ของลูกค้า (§7.11) · BCA/status = ไฟจราจรคลินิก 5 ระดับ ตามเกณฑ์การประเมินทางการ (§7.2)_
 
 > เอกสารคู่กับ `docs/SPEC-v2.html` (เนื้อหาตรงกัน) · status ล่าสุดของงานที่กำลังทำ ดู `docs/SESSION_STATUS.md`
 
@@ -47,7 +48,8 @@ App Shell (`app/v2/_components/Shell.tsx` — top bar + app switcher + breadcrum
 - **Customer 360** `/v2/customers/[id]` — IdentityBlock · status · action bar · Vital Dashboard (gauge + 6 metric) · Insights · Timeline 90 วัน · 8 tabs (Body·Labs·Trends·Allergy·CGM·Supplements·Pulse·Notes)
 
 ### 7.2 · BCA + Labs body-map — live
-- **BCA** `/v2/bca` — ฟอร์มวัด · gauges · trend · BMI · ตารางประวัติ + แก้/ลบ · ReportBuilder (PNG). อ่านข้อมูลผ่าน `/api/customers/[id]/360` + `/measurements`
+- **BCA** `/v2/bca` — ฟอร์มวัด · gauges · trend · BMI · ตารางประวัติ + แก้/ลบ · ReportBuilder (PNG) · **BCA Scan Reveal** (`/v2/bca` cinematic). อ่านข้อมูลผ่าน `/api/customers/[id]/360` + `/measurements`
+- **★ Status = ไฟจราจรคลินิก 5 ระดับ (v2.3)** ตาม**เกณฑ์การประเมินทางการ**ของคลินิก (แยกเพศ ป้ายรายค่า): เขียวเข้ม#166534→เขียว#16A34A→เหลือง#C18A03→ส้ม#EA580C→แดง#DC2626 · Fat `ต่ำ/ปกติ/เริ่มอ้วน/อ้วน` · Muscle `ต่ำ/ปกติ/สูง/สูงมาก` · V.Fat `ดี/ปกติ/เริ่มเสี่ยง/เสี่ยงสูง/อันตราย` · BMI `ผอม/ปกติสุขภาพดี/อ้วน1-3` · เกณฑ์+สีเดียว (`lib/medical-status.ts` `bandX`/`statusHex`) ใช้ทั้งแอป (gauge/scan/labs/badge) — scan mirror lib เป๊ะ (cross-check)
 - **Labs tab** — panel ตามหมวด + ref + status · trend charts · ปุ่ม BodyView (metric→อวัยวะ·สีตามสถานะ)
 
 ### 7.3 · UP Pulse + Report — live
@@ -80,6 +82,14 @@ Med-Map (auth) · Longevity Lab Report (auth + public `/r/lab/<token>` noindex) 
 - **★ Invitation signup** — user ทุกคนสร้างลิงก์เชิญได้ (`/v2/invite` · `lib/invites/actions.ts`) · single-use · หมดอายุ 14 วัน · invitee เปิด `/join/[token]` ตั้ง password เอง + email จริง → auto sign-in → กลายเป็น downline ของผู้เชิญ (role `abo`) · public `/api/join` ตรวจ token ฝั่ง server · ตาราง `user_invites`
 - **★ View-as (admin)** — จำลองเป็น user อื่นเพื่อทดสอบมุมมอง · **read-only** (middleware บล็อก mutating `/api/*` ขณะ view-as) · cookie `up_view_as` (httpOnly) · banner + ปุ่มออก · audit `admin_view_as_log` · `getSession()` คืน target ส่วน `requireAdmin()`/`getRealSession()` เช็คตัวจริงเสมอ
 - **v2 เพิ่มลูกค้าใหม่** — modal ใน `/v2/customers` (เดิมต้องกลับ v1) → `POST /api/customers` → `/v2/customers/[id]`
+
+### 7.11 · ★ อายุสุขภาพ (Health Age · PhenoAge) — ★ ใหม่ (v2.3, live)
+
+- **แนวคิด:** "อายุร่างกาย" จากค่าเลือด 9 ตัว (albumin · creatinine · glucose(fbs) · CRP/hs-CRP · lymphocyte% · MCV · RDW · ALP · WBC) + อายุจริง → โมเดล **PhenoAge (Levine 2018 · Liu et al., PLOS Med)**. วางเป็น **big score #2 ของลูกค้า** (คู่กับ Health Score) เพื่อ*ติดตามแนวโน้ม “แก่ช้า”* — **ไม่ใช่การวินิจฉัย** (มี disclaimer บังคับ · ไวต่ออักเสบเฉียบพลัน → เตือนเมื่อ CRP>3 หรือ WBC>11).
+- **สูตร = `lib/bio-age.ts`** (coefficient verified: test case healthy52→38.3, default→42.1) · `bandX`/level ใช้ภาษาสีเดียวกับ BCA (classifyBodyAge) · **แหล่งเดียว** ใช้ทั้ง 360-gauge และหน้าเครื่องคำนวณ.
+- **Customer 360** (`/v2/customers/[id]`) — Vital Dashboard โชว์วง "อายุสุขภาพ" ถัดจาก Health Score: ถ้าค่าเลือดครบ 9 ตัว **คำนวณอัตโนมัติ** (server ใน `/360` → `bioAge`) + pill อ่อน/แก่กว่าวัย; ถ้าไม่ครบ → "ตรวจเพิ่ม N ตัว" + ปุ่มไปเครื่องคำนวณ.
+- **เครื่องคำนวณ** `/v2/bio-age?customer=<id>` — customer picker → **prefill ค่าจากแล็บอัตโนมัติ** (`GET /api/customers/[id]/bio-age`, ดึง latest ต่อ marker + เดาหน่วย) → โค้ชเติมที่ขาด (dropdown หน่วย กันเลขเพี้ยน) → คำนวณ client-side → วงอายุ + delta + breakdown "อะไรเร่ง/ชะลออายุ" + คำเตือนอักเสบ + disclaimer. เพิ่มใน launcher (`apps-registry` slug `bio-age`, business).
+- **ไม่มีตารางใหม่** — อ่านจาก `customer_lab_values` (metric_key: `albumin/creatinine/fbs/hs_crp|crp/lymphocytes/mcv/rdw/alp/wbc`). ⚠️ ปัจจุบันลูกค้าส่วนใหญ่ยังไม่มี CRP/lymphocyte%/RDW → มักต้องเติมมือ.
 
 ---
 
