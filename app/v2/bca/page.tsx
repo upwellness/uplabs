@@ -30,7 +30,7 @@ import { initials, genderLabelWithGlyph, resolveAge } from "@/lib/v2/identity";
 import { statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 import { statusTextHex } from "@/lib/v2/status";
 import { deriveBMI, deriveChronoAge, enrichMeasurement } from "@/lib/bca-derive";
-import { classifyBMI, classifyVisceralFat, classifyBodyFat, classifyMusclePct, classifyBodyAge } from "@/lib/medical-status";
+import { classifyBMI, classifyVisceralFat, classifyBodyFat, classifyMusclePct, classifyBodyAge, bandBMI, bandBodyFat, bandMusclePct, bandVisceralFat } from "@/lib/medical-status";
 import type { Customer, Measurement, MeasurementWithDerived } from "@/lib/types";
 import { buildScanData, type ScanRevealData } from "./_scan-data";
 
@@ -499,13 +499,15 @@ function GaugePanel({ customer, latest, classified }: { customer: Customer; late
   const visceralLevel: StatusLevel | null = classified?.visceral?.level ?? (latest.visceral != null ? classifyVisceralFat(latest.visceral) : null);
   const bodyAgeLevel: StatusLevel | null = classified?.body_age?.level ?? (latest.body_age != null && chrono != null ? classifyBodyAge(latest.body_age, chrono) : null);
 
+  // Per-metric labels = the clinic's own words (bandX); body age has no chart band → generic label.
+  const bmiText = bmi != null ? bandBMI(bmi).label : null;
   const gauges = [
-    { label: "BMI", value: clamp(bmi, 15, 40), display: bmi != null ? String(bmi) : "—", unit: "", level: bmiLevel },
-    { label: "น้ำหนัก", value: clamp(latest.weight, 40, 120), display: latest.weight != null ? String(latest.weight) : "—", unit: "kg", level: bmiLevel },
-    { label: "Body fat", value: pct(latest.fat_pct, 50), display: latest.fat_pct != null ? `${latest.fat_pct}` : "—", unit: "%", level: fatLevel },
-    { label: "Muscle", value: pct(latest.muscle_pct, 60), display: latest.muscle_pct != null ? `${latest.muscle_pct}` : "—", unit: "%", level: muscleLevel },
-    { label: "Visceral", value: clamp(latest.visceral, 1, 20), display: latest.visceral != null ? String(latest.visceral) : "—", unit: "lv", level: visceralLevel },
-    { label: "Body age", value: pct(latest.body_age, 90), display: latest.body_age != null ? String(latest.body_age) : "—", unit: "ปี", level: bodyAgeLevel },
+    { label: "BMI", value: clamp(bmi, 15, 40), display: bmi != null ? String(bmi) : "—", unit: "", level: bmiLevel, statusLabel: bmiText },
+    { label: "น้ำหนัก", value: clamp(latest.weight, 40, 120), display: latest.weight != null ? String(latest.weight) : "—", unit: "kg", level: bmiLevel, statusLabel: bmiText },
+    { label: "Body fat", value: pct(latest.fat_pct, 50), display: latest.fat_pct != null ? `${latest.fat_pct}` : "—", unit: "%", level: fatLevel, statusLabel: latest.fat_pct != null && knownGender ? bandBodyFat(latest.fat_pct, customer.gender).label : null },
+    { label: "Muscle", value: pct(latest.muscle_pct, 60), display: latest.muscle_pct != null ? `${latest.muscle_pct}` : "—", unit: "%", level: muscleLevel, statusLabel: latest.muscle_pct != null && knownGender ? bandMusclePct(latest.muscle_pct, customer.gender).label : null },
+    { label: "Visceral", value: clamp(latest.visceral, 1, 20), display: latest.visceral != null ? String(latest.visceral) : "—", unit: "lv", level: visceralLevel, statusLabel: latest.visceral != null ? bandVisceralFat(latest.visceral).label : null },
+    { label: "Body age", value: pct(latest.body_age, 90), display: latest.body_age != null ? String(latest.body_age) : "—", unit: "ปี", level: bodyAgeLevel, statusLabel: bodyAgeLevel ? STATUS_LABEL_TH[bodyAgeLevel] : null },
   ];
 
   return (
@@ -518,7 +520,7 @@ function GaugePanel({ customer, latest, classified }: { customer: Customer; late
         {gauges.map((g) => (
           <div key={g.label}>
             <MetricGauge value={g.value} display={g.display} unit={g.unit} label={g.label} level={g.level ?? "caution"} size={88} />
-            {g.level && <div className="mt-0.5 text-center text-[10px] font-semibold" style={{ color: statusTextHex[g.level] }}>{STATUS_LABEL_TH[g.level]}</div>}
+            {g.level && g.statusLabel && <div className="mt-0.5 text-center text-[10px] font-semibold" style={{ color: statusTextHex[g.level] }}>{g.statusLabel}</div>}
           </div>
         ))}
       </div>

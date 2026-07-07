@@ -57,74 +57,68 @@ export const statusHex: Record<StatusLevel, string> = {
 };
 
 /* ── BCA Thresholds ──────────────────────────────────
- * Sources:
- *   Body fat  → Gallagher et al. 2000 (Am J Clin Nutr) healthy-body-fat ranges
- *               by age + sex — the reference BIA smart-scales (Tanita/InBody)
- *               calibrate to. Age-adjusted (a 55-yr-old's healthy % > a 25-yr-old's).
- *   Muscle    → skeletal-muscle % of body weight, sex-specific (higher = better).
- *   Visceral  → Tanita visceral-fat rating (1–9 healthy · 10–14 high · 15+ very high).
- *   BMI       → WHO Asian-Pacific cut-offs (appropriate for Thai population).
- *   Body age  → offset from chronological age.
- * ★ These are the ONLY BCA thresholds in the app — the scan reveal mirrors them.
+ * ★ SOURCE = UP Wellness official evaluation chart (เกณฑ์การประเมิน) — the exact
+ *   bands + Thai category words the clinic uses with customers. Sex-split, NOT
+ *   age-adjusted. Each band() returns {level (→colour), label (→the clinic word)}.
+ *   classify*() are thin wrappers returning just the level, so every existing
+ *   colour caller keeps working. The scan reveal mirrors these numbers + words.
  */
 
 export type Gender = "male" | "female";
 
-/**
- * Body-fat %, age- and sex-adjusted (Gallagher/Tanita). `age` is optional: when
- * unknown we fall back to a mid-adult band (45) so legacy callers still classify.
- * Healthy range is split across the two greens (optimal = leaner half, good =
- * upper-healthy) so a top-of-healthy reading still reads green, not amber.
- */
-export function classifyBodyFat(pct: number, gender: Gender, age?: number): StatusLevel {
-  const a = age ?? 45;
-  const band = a < 40 ? 0 : a < 60 ? 1 : 2; // Gallagher age bands 20–39 / 40–59 / 60+
-  // [underfat < uf] [healthy uf..ho) [overfat ho..ob) [obese ≥ ob]
-  const [uf, ho, ob] = gender === "male"
-    ? [[8, 20, 25], [11, 22, 28], [13, 25, 30]][band]
-    : [[21, 33, 39], [23, 34, 40], [24, 36, 42]][band];
-  if (pct < uf) return "caution";                       // underfat (too low)
-  if (pct < ho) return pct <= uf + 0.55 * (ho - uf) ? "optimal" : "good"; // healthy
-  if (pct < ob) return "warning";                       // overfat
-  return "danger";                                      // obese
-}
+export interface BcaBand { level: StatusLevel; label: string; }
 
-export function classifyMusclePct(pct: number, gender: Gender): StatusLevel {
-  // Skeletal-muscle % of body weight (BIA). Higher = better; sex-specific.
+/** Body-fat % — 4 bands, sex-split. High = worse; "ต่ำ" (below normal) also flagged. */
+export function bandBodyFat(pct: number, gender: Gender): BcaBand {
   if (gender === "male") {
-    if (pct < 31) return "danger";
-    if (pct < 35) return "warning";
-    if (pct < 38) return "caution";
-    if (pct < 42) return "good";
-    return "optimal";
-  } else {
-    if (pct < 23) return "danger";
-    if (pct < 26) return "warning";
-    if (pct < 29) return "caution";
-    if (pct < 33) return "good";
-    return "optimal";
+    if (pct < 10) return { level: "caution", label: "ต่ำ" };       // 5.0–9.9
+    if (pct < 20) return { level: "good",    label: "ปกติ" };      // 10.0–19.9
+    if (pct < 25) return { level: "warning", label: "เริ่มอ้วน" }; // 20.0–24.9
+    return { level: "danger", label: "อ้วน" };                     // 25.0+
   }
+  if (pct < 20) return { level: "caution", label: "ต่ำ" };         // 5.0–19.9
+  if (pct < 30) return { level: "good",    label: "ปกติ" };        // 20.0–29.9
+  if (pct < 35) return { level: "warning", label: "เริ่มอ้วน" };   // 30.0–34.5
+  return { level: "danger", label: "อ้วน" };                       // 35.0+
 }
 
-export function classifyVisceralFat(level: number): StatusLevel {
-  // Tanita visceral-fat rating (device standard):
-  //   1–9  healthy · 10–14 high · 15+ very high
-  if (level <= 5)  return "optimal"; // 1–5  solidly healthy
-  if (level <= 9)  return "good";    // 6–9  healthy, upper end
-  if (level <= 12) return "caution"; // 10–12 high — monitor
-  if (level <= 14) return "warning"; // 13–14 high — intervene
-  return "danger";                   // 15+  very high
+/** Muscle % — 4 bands, sex-split. Higher = better (สูง/สูงมาก are the good end). */
+export function bandMusclePct(pct: number, gender: Gender): BcaBand {
+  if (gender === "male") {
+    if (pct < 32.9) return { level: "warning", label: "ต่ำ" };     // 5.0–32.8
+    if (pct < 35.8) return { level: "good",    label: "ปกติ" };    // 32.9–35.7
+    if (pct < 37.4) return { level: "optimal", label: "สูง" };     // 35.8–37.3
+    return { level: "optimal", label: "สูงมาก" };                  // 37.4+
+  }
+  if (pct < 25.9) return { level: "warning", label: "ต่ำ" };       // 5.0–25.8
+  if (pct < 28.0) return { level: "good",    label: "ปกติ" };      // 25.9–27.9
+  if (pct < 29.1) return { level: "optimal", label: "สูง" };       // 28.0–29.0
+  return { level: "optimal", label: "สูงมาก" };                    // 29.1+
 }
 
-export function classifyBMI(bmi: number): StatusLevel {
-  // WHO Asian-Pacific cutoffs (more appropriate for Thai population)
-  if (bmi < 18.5) return "caution";
-  if (bmi < 23)   return "optimal";
-  if (bmi < 25)   return "good";
-  if (bmi < 30)   return "caution";
-  if (bmi < 35)   return "warning";
-  return "danger";
+/** Visceral fat rating — 5 bands (device rating, sex-neutral). */
+export function bandVisceralFat(level: number): BcaBand {
+  if (level <= 2)  return { level: "optimal", label: "ดี" };        // 1–2
+  if (level <= 5)  return { level: "good",    label: "ปกติ" };      // 3–5
+  if (level <= 10) return { level: "caution", label: "เริ่มเสี่ยง" }; // 6–10
+  if (level <= 15) return { level: "warning", label: "เสี่ยงสูง" };  // 11–15
+  return { level: "danger", label: "อันตราย" };                     // 16+
 }
+
+/** BMI — 5 bands, WHO Asian-Pacific (clinic labels). */
+export function bandBMI(bmi: number): BcaBand {
+  if (bmi < 18.5) return { level: "caution", label: "ผอมกว่าปกติ" };   // < 18.5
+  if (bmi < 23)   return { level: "good",    label: "ปกติสุขภาพดี" };  // 18.5–22.9
+  if (bmi < 25)   return { level: "caution", label: "อ้วนระดับ 1" };   // 23–24.9
+  if (bmi <= 30)  return { level: "warning", label: "อ้วนระดับ 2" };   // 25–30
+  return { level: "danger", label: "อ้วนระดับ 3" };                    // > 30
+}
+
+// ── Level-only wrappers (colour callers: gauges, labs, badges, 360 body map) ──
+export function classifyBodyFat(pct: number, gender: Gender, _age?: number): StatusLevel { return bandBodyFat(pct, gender).level; }
+export function classifyMusclePct(pct: number, gender: Gender): StatusLevel { return bandMusclePct(pct, gender).level; }
+export function classifyVisceralFat(level: number): StatusLevel { return bandVisceralFat(level).level; }
+export function classifyBMI(bmi: number): StatusLevel { return bandBMI(bmi).level; }
 
 export function classifyBodyAge(bodyAge: number, chronoAge: number): StatusLevel {
   // Being AT or below your actual age reads "good"; only older-than-actual escalates.
