@@ -51,20 +51,20 @@ const config: Config = {
         surface: "#F7F5F3",
         "warm-white": "#FDFCFB",
 
-        /* ── Medical Status · CI-harmonized 5-level ramp (see lib/medical-status.ts) ── */
+        /* ── Medical Status · traffic-light 5-level ramp (see lib/medical-status.ts) ── */
         status: {
-          optimal:  "#2E6B4C",   // deep pine green — Normal / Healthy range
-          good:     "#4E8168",   // wellness green — Acceptable
-          caution:  "#BE8B1E",   // gold — Borderline
-          warning:  "#B5623A",   // terracotta — High Risk
-          danger:   "#8C4C4C",   // old rose — Critical
+          optimal:  "#166534",   // เขียวเข้ม — ดีมาก
+          good:     "#16A34A",   // เขียว — ปกติ
+          caution:  "#C18A03",   // เหลือง — ควรระวัง
+          warning:  "#EA580C",   // ส้ม — เสี่ยงสูง
+          danger:   "#DC2626",   // แดง — อันตราย
         },
         "status-bg": {
-          optimal: "#E4EEE8",    // green mist
-          good:    "#EAF1EB",
-          caution: "#F4EAD0",    // gold mist
-          warning: "#F3E4DB",    // terracotta mist
-          danger:  "#F0E1E1",    // rose mist
+          optimal: "#BBF7D0",
+          good:    "#DCFCE7",
+          caution: "#FEF9C3",
+          warning: "#FFEDD5",
+          danger:  "#FEE2E2",
         },
       },
       fontFamily: {

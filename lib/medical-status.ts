@@ -1,14 +1,13 @@
 /**
  * Medical Status Color System
  * ────────────────────────────
- * ★ UP Wellness CI-harmonized 5-level ramp (single source of truth).
+ * ★ 5-level clinical traffic light (single source of truth — Ton's spec 2026-07-06):
+ *   เขียวเข้ม ดีมาก · เขียว ปกติ · เหลือง ควรระวัง · ส้ม เสี่ยงสูง · แดง อันตราย
  * Every status surface — BCA gauges, the cinematic scan reveal, lab badges,
  * customer-status dots — reads these SAME five levels + hexes, so a metric can
  * never be classified (or coloured) two different ways on two screens.
  *
- * The ramp stays inside the brand family (two greens → gold → terracotta →
- * old-rose) instead of a generic red/orange traffic light, so it reads
- * "clinical-warm" on cream, not cold. Contrast is WCAG-checked:
+ * Contrast is WCAG-checked:
  *   - statusHex (rings/dots/graphics) ≥ 3:1 on white
  *   - statusTextHex (lib/v2/status, for LABEL text) ≥ 4.5:1 on white
  *
@@ -22,17 +21,19 @@
 
 export type StatusLevel = "optimal" | "good" | "caution" | "warning" | "danger";
 
+// Middle levels stay direction-neutral ("ควรระวัง/เสี่ยงสูง" not "สูง/สูงมาก")
+// because LOW values also land there (muscle %, underweight BMI, low HDL).
 export const STATUS_LABEL_TH: Record<StatusLevel, string> = {
-  optimal: "เหมาะสม",
-  good:    "ดี",
+  optimal: "ดีมาก",
+  good:    "ปกติ",
   caution: "ควรระวัง",
   warning: "เสี่ยงสูง",
   danger:  "อันตราย",
 };
 
 export const STATUS_LABEL_EN: Record<StatusLevel, string> = {
-  optimal: "Optimal",
-  good:    "Good",
+  optimal: "Excellent",
+  good:    "Normal",
   caution: "Caution",
   warning: "High Risk",
   danger:  "Critical",
@@ -45,14 +46,14 @@ export const statusClasses = {
   ring:  { optimal: "ring-status-optimal/30", good: "ring-status-good/30", caution: "ring-status-caution/30", warning: "ring-status-warning/30", danger: "ring-status-danger/30" } as Record<StatusLevel, string>,
 };
 
-// ★ CI-harmonized graphics ramp (rings, dots, chart strokes). WCAG ≥3:1 on white.
+// ★ Traffic-light graphics ramp (rings, dots, chart strokes). WCAG ≥3:1 on white.
 // Keep in sync with the scan reveal's COLHEX and tailwind `status` tokens.
 export const statusHex: Record<StatusLevel, string> = {
-  optimal: "#2E6B4C", // deep pine green — best
-  good:    "#4E8168", // wellness green — healthy
-  caution: "#BE8B1E", // gold — monitor
-  warning: "#B5623A", // terracotta — elevated risk
-  danger:  "#8C4C4C", // old rose — critical
+  optimal: "#166534", // เขียวเข้ม — ดีมาก
+  good:    "#16A34A", // เขียว — ปกติ
+  caution: "#C18A03", // เหลือง — ควรระวัง
+  warning: "#EA580C", // ส้ม — เสี่ยงสูง
+  danger:  "#DC2626", // แดง — อันตราย
 };
 
 /* ── BCA Thresholds ──────────────────────────────────
