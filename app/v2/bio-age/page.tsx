@@ -294,8 +294,11 @@ function ResultView({ est, age, form, units }: { est: PhenoEstimate; age: number
 
       {estimate && (
         <div className="mt-3 rounded-xl border border-ink-10 bg-surface/60 px-3 py-2 text-left font-thai text-[11.5px] text-ink-60">
-          <b className="text-ink-80">≈ ประมาณการ</b> — ยังไม่ได้ตรวจ {est.imputed.length} ตัว ({est.imputedLabels.join(" · ")}) ระบบใช้<b>ค่าปกติ</b>แทน
+          <b className="text-ink-80">≈ ประมาณการ (ลองดูเท่านั้น)</b> — ยังไม่ได้ตรวจ {est.imputed.length} ตัว ({est.imputedLabels.join(" · ")}) ระบบใช้<b>ค่าปกติ</b>แทน
           {est.crpImputed && <span className="text-status-warning"> · ⚠️ ไม่มี CRP — ถ้ามีการอักเสบซ่อนอยู่ อายุจริงอาจสูงกว่านี้</span>}
+          {(est.imputed.includes("crp") || est.imputed.includes("rdw")) && (
+            <><br /><b className="text-wellness">คะแนนนี้จะไม่ขึ้นบนโปรไฟล์ลูกค้าจนกว่าจะมี CRP + RDW จริง</b></>
+          )}
           <br /><span className="text-ink-40">ตรวจครบจะแม่นขึ้น · ค่าอาจขยับเมื่อเติมผลจริง</span>
         </div>
       )}

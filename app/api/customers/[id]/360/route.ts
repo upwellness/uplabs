@@ -155,15 +155,21 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     // reference and the result is flagged ≈ ประมาณการ. Too many gaps → "ตรวจเพิ่ม".
     const phenoPrefill = phenoPrefillFromLabs(phenoRows ?? [], chronoAge);
     const est = estimatePhenoAge(phenoPrefill.input, customer.gender);
+    // ★ Big-score gate (Ton's call): show a number ONLY when the discriminating markers
+    // CRP + RDW are REAL. Imputing them makes an obese/unhealthy-but-clean-CBC person look
+    // young; requiring them keeps the headline honest and nudges the customer to test.
+    const keyReal = est.computable && !est.imputed.includes("crp") && !est.imputed.includes("rdw");
     let bioAge: any;
-    if (est.computable && est.result) {
+    if (est.computable && est.result && keyReal) {
       bioAge = { computable: true, complete: est.confidence === "full", confidence: est.confidence,
         chronoAge, phenoAge: est.result.phenoAge, delta: est.result.delta, level: est.result.level,
         mortalityPct: est.result.mortalityPct, acuteFlag: est.result.acuteFlag,
         imputedCount: est.imputed.length, imputedLabels: est.imputedLabels, crpImputed: est.crpImputed,
         missing: [] as string[] };
     } else {
-      bioAge = { computable: false, complete: false, chronoAge, reason: est.reason,
+      const needKey = est.computable && !keyReal; // has age+glucose but is missing CRP/RDW
+      bioAge = { computable: false, complete: false, chronoAge,
+        reason: needKey ? "ต้องมีผล CRP + RDW จริงก่อน (ตัวชี้วัดหลัก เดาแทนไม่ได้)" : est.reason,
         presentCount: phenoPrefill.present.length,
         missing: phenoPrefill.missing.map((m) => PHENO_MARKER_TH[m] ?? m) };
     }
