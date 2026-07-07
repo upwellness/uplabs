@@ -21,8 +21,8 @@ import { initials, genderLabelWithGlyph, resolveAge } from "@/lib/v2/identity";
 import { statusHex } from "@/lib/medical-status";
 import { statusTextHex } from "@/lib/v2/status";
 import {
-  computePhenoAge, PHENO_MARKER_TH, PHENO_DEFAULT_UNITS,
-  type PhenoInput, type PhenoResult,
+  estimatePhenoAge, PHENO_DEFAULT_UNITS,
+  type PhenoEstimate, type PhenoInput,
 } from "@/lib/bio-age";
 
 export default function V2BioAgePage() {
@@ -131,7 +131,7 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
   const [form, setForm] = useState<Record<string, string>>({});
   const [units, setUnits] = useState<Record<string, string>>({ ...PHENO_DEFAULT_UNITS });
   const [missingLabels, setMissingLabels] = useState<string[]>([]);
-  const [result, setResult] = useState<PhenoResult | null>(null);
+  const [result, setResult] = useState<PhenoEstimate | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -147,8 +147,8 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
       setForm(f);
       setUnits({ ...PHENO_DEFAULT_UNITS, ...pickUnits(inp) });
       setMissingLabels(j.prefill.missingLabels ?? []);
-      // auto-show a result if the server already computed one
-      setResult(j.result ?? null);
+      // auto-show the server's estimate (imputes missing) if age + glucose are on file
+      setResult(j.estimate?.computable ? j.estimate : null);
     } catch (e: any) { setError(e.message ?? "โหลดข้อมูลไม่สำเร็จ"); }
     finally { setLoading(false); }
   }, [customerId]);
@@ -157,22 +157,22 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const setUnit = (k: string, v: string) => setUnits((p) => ({ ...p, [k]: v }));
 
-  const missing = FIELDS.filter((f) => form[f.key] == null || form[f.key] === "" || isNaN(Number(form[f.key])));
+  const filled = (k: string) => form[k] != null && form[k] !== "" && !isNaN(Number(form[k]));
+  const blankKeys = FIELDS.filter((f) => !filled(f.key)).map((f) => f.key);
   const ageKnown = meta?.age != null;
-  const canCompute = ageKnown && missing.length === 0;
+  const glucoseKnown = filled("glucose");
+  const canCompute = ageKnown && glucoseKnown;
 
+  // Mode C: blanks are imputed with healthy reference → result is flagged ≈ ประมาณการ.
   const compute = () => {
     if (!canCompute) return;
-    const inp: PhenoInput = {
-      age: meta!.age!,
-      albumin: Number(form.albumin), albuminUnit: units.albuminUnit as any,
-      creatinine: Number(form.creatinine), creatinineUnit: units.creatinineUnit as any,
-      glucose: Number(form.glucose), glucoseUnit: units.glucoseUnit as any,
-      crp: Number(form.crp), crpUnit: units.crpUnit as any,
-      lymphocytePct: Number(form.lymphocytePct),
-      mcv: Number(form.mcv), rdw: Number(form.rdw), alp: Number(form.alp), wbc: Number(form.wbc),
+    const raw: any = {
+      age: meta!.age,
+      albuminUnit: units.albuminUnit, creatinineUnit: units.creatinineUnit,
+      glucoseUnit: units.glucoseUnit, crpUnit: units.crpUnit,
     };
-    setResult(computePhenoAge(inp));
+    for (const f of FIELDS) if (filled(f.key)) raw[f.key] = Number(form[f.key]);
+    setResult(estimatePhenoAge(raw, (meta?.gender as any) ?? null));
   };
 
   if (loading) return <Card><LoadingState label="กำลังโหลดค่าเลือด…" /></Card>;
@@ -194,9 +194,9 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
         </div>
       </div>
 
-      {missingLabels.length > 0 && !result && (
+      {missingLabels.length > 0 && (
         <div className="rounded-xl border border-status-caution/30 bg-status-bg-caution px-4 py-3 text-[13px] text-status-caution">
-          🩸 ดึงค่าจากแล็บอัตโนมัติแล้ว — ยังขาด <b>{missingLabels.length}</b> ตัว ({missingLabels.join(" · ")}) กรอกเพิ่มด้านล่างเพื่อคำนวณ
+          🩸 ดึงค่าจากแล็บอัตโนมัติแล้ว — ยังขาด <b>{missingLabels.length}</b> ตัว ({missingLabels.join(" · ")}) · กรอกเพิ่มเพื่อความแม่นยำ หรือ<b>เว้นว่างไว้</b> ระบบจะประมาณการด้วยค่าปกติ (ผลติดป้าย ≈ ประมาณการ)
         </div>
       )}
 
@@ -232,12 +232,21 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
             className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-wellness px-5 py-3 text-[15px] font-bold text-white transition-colors hover:bg-wellness/90 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2">
             <Sparkles size={17} strokeWidth={2.25} aria-hidden /> คำนวณอายุสุขภาพ
           </button>
-          {!canCompute && <p className="mt-2 text-center font-thai text-[11px] text-ink-40">{!ageKnown ? "ต้องมีวันเกิดของลูกค้าก่อน" : `กรอกให้ครบอีก ${missing.length} ช่อง`}</p>}
+          {!canCompute
+            ? <p className="mt-2 text-center font-thai text-[11px] text-status-warning">{!ageKnown ? "⚠️ ต้องมีวันเกิดของลูกค้าก่อน" : "⚠️ ต้องกรอกค่าน้ำตาล (Glucose/FBS) จริงก่อน — เดาไม่ได้"}</p>
+            : blankKeys.length > 0 && <p className="mt-2 text-center font-thai text-[11px] text-ink-40">เว้นว่าง {blankKeys.length} ช่อง → จะใช้ค่าอ้างอิงสุขภาพดี (ผลเป็น “ประมาณการ”)</p>}
         </Card>
 
         {/* RESULT */}
         <Card className="flex flex-col items-center justify-center p-5 lg:p-6">
-          {result ? <ResultView result={result} age={meta!.age!} form={form} units={units} /> : (
+          {result?.computable && result.result ? (
+            <ResultView est={result} age={meta!.age!} form={form} units={units} />
+          ) : result && !result.computable ? (
+            <div className="py-14 text-center font-thai text-[13px] text-status-warning">
+              <Hourglass size={34} strokeWidth={1.5} className="mx-auto mb-3 text-status-caution" aria-hidden />
+              {result.reason}<br /><span className="text-ink-40">กรอกค่าจริงเพิ่มอีกนิดแล้วลองใหม่</span>
+            </div>
+          ) : (
             <div className="py-16 text-center font-thai text-[14px] text-ink-40">
               <Hourglass size={34} strokeWidth={1.5} className="mx-auto mb-3 text-ink-20" aria-hidden />
               กรอกค่าเลือดแล้วกด<br />“คำนวณ” เพื่อดูอายุสุขภาพ 🌿
@@ -254,8 +263,9 @@ function Workspace({ customerId, onClear }: { customerId: string; onClear: () =>
 }
 
 /* ─────────── Result view ─────────── */
-function ResultView({ result, age, form, units }: { result: PhenoResult; age: number; form: Record<string, string>; units: Record<string, string> }) {
-  const { phenoAge, delta, mortalityPct, level, acuteFlag } = result;
+function ResultView({ est, age, form, units }: { est: PhenoEstimate; age: number; form: Record<string, string>; units: Record<string, string> }) {
+  const { phenoAge, delta, mortalityPct, level, acuteFlag } = est.result!;
+  const estimate = est.confidence === "estimate";
   const younger = delta <= -1, older = delta >= 1;
   const ringColor = statusHex[level];
   const C = 578, frac = Math.max(0.05, Math.min(1, phenoAge / 100));
@@ -269,7 +279,7 @@ function ResultView({ result, age, form, units }: { result: PhenoResult; age: nu
             strokeDasharray={C} strokeDashoffset={C - C * frac} style={{ transition: "stroke-dashoffset .9s ease" }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="font-head text-[58px] font-extrabold leading-none" style={{ color: ringColor }}>{phenoAge}</div>
+          <div className="font-head text-[58px] font-extrabold leading-none" style={{ color: ringColor }}>{estimate ? "≈" : ""}{phenoAge}</div>
           <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-ink-40">ปี · Health Age</div>
         </div>
       </div>
@@ -281,6 +291,14 @@ function ResultView({ result, age, form, units }: { result: PhenoResult; age: nu
       <p className="mt-2 font-thai text-[13px] text-ink-60">
         อายุจริง {age} ปี · ความเสี่ยงเชิงสถิติ 10 ปี ≈ {mortalityPct}%
       </p>
+
+      {estimate && (
+        <div className="mt-3 rounded-xl border border-ink-10 bg-surface/60 px-3 py-2 text-left font-thai text-[11.5px] text-ink-60">
+          <b className="text-ink-80">≈ ประมาณการ</b> — ยังไม่ได้ตรวจ {est.imputed.length} ตัว ({est.imputedLabels.join(" · ")}) ระบบใช้<b>ค่าปกติ</b>แทน
+          {est.crpImputed && <span className="text-status-warning"> · ⚠️ ไม่มี CRP — ถ้ามีการอักเสบซ่อนอยู่ อายุจริงอาจสูงกว่านี้</span>}
+          <br /><span className="text-ink-40">ตรวจครบจะแม่นขึ้น · ค่าอาจขยับเมื่อเติมผลจริง</span>
+        </div>
+      )}
 
       {acuteFlag && (
         <div className="mt-3 rounded-xl border border-status-caution/40 bg-status-bg-caution px-3 py-2 text-left font-thai text-[12px] text-status-caution">
@@ -304,7 +322,8 @@ const REF: Record<string, { lo: number; hi: number; dir: -1 | 0 | 1; label: stri
   wbc: { lo: 4, hi: 7, dir: 0, label: "WBC", get: (f) => Number(f.wbc) },
   alp: { lo: 44, hi: 100, dir: 0, label: "ALP", get: (f) => Number(f.alp) },
 };
-function markerStatus(k: string, f: Record<string, string>, u: Record<string, string>): "good" | "mid" | "bad" {
+function markerStatus(k: string, f: Record<string, string>, u: Record<string, string>): "good" | "mid" | "bad" | "na" {
+  if (f[k] == null || f[k] === "" || isNaN(Number(f[k]))) return "na"; // imputed / untested
   const r = REF[k], v = r.get(f, u);
   if (r.dir === -1) return v > r.hi * 2.2 ? "bad" : v > r.hi ? "mid" : "good";
   if (r.dir === 1) return v < r.lo * 0.9 ? "bad" : v < r.lo ? "mid" : "good";
@@ -312,9 +331,9 @@ function markerStatus(k: string, f: Record<string, string>, u: Record<string, st
   return "good";
 }
 function Breakdown({ form, units }: { form: Record<string, string>; units: Record<string, string> }) {
-  const tone = { good: statusHex.good, mid: statusHex.caution, bad: statusHex.danger };
-  const txt = { good: "ดีเยี่ยม", mid: "เฝ้าระวัง", bad: "ควรปรับ" };
-  const w = { good: 92, mid: 58, bad: 30 };
+  const tone: Record<string, string> = { good: statusHex.good, mid: statusHex.caution, bad: statusHex.danger, na: "#B8B2AA" };
+  const txt: Record<string, string> = { good: "ดีเยี่ยม", mid: "เฝ้าระวัง", bad: "ควรปรับ", na: "ยังไม่ตรวจ" };
+  const w: Record<string, number> = { good: 92, mid: 58, bad: 30, na: 18 };
   return (
     <div className="mt-5 text-left">
       <h3 className="mb-2.5 font-head text-[13px] font-bold text-ink">🔍 อะไรกำลังเร่ง / ชะลออายุ</h3>

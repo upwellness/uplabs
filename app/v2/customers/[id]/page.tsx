@@ -77,7 +77,7 @@ const PulseTab = dynamic(() => import("./_v2/PulseCgmTabs").then((m) => m.PulseT
 interface Customer360 {
   customer: any;
   score: { total: number | null; bca: number | null; lab: number | null; recency: number | null; delta: number | null; deltaReason: string | null };
-  bioAge?: { complete: boolean; chronoAge: number | null; phenoAge?: number; delta?: number; level?: StatusLevel; mortalityPct?: number; acuteFlag?: boolean; presentCount?: number; missing: string[] };
+  bioAge?: { computable?: boolean; complete: boolean; confidence?: "full" | "estimate"; chronoAge: number | null; phenoAge?: number; delta?: number; level?: StatusLevel; mortalityPct?: number; acuteFlag?: boolean; imputedCount?: number; imputedLabels?: string[]; crpImputed?: boolean; reason?: string; presentCount?: number; missing: string[] };
   status: { status: string; label: string; icon: string; color: string; bg: string; reason: string };
   insights: { alerts: any[]; trends: any[]; actions: any[]; hasCriticalAlert: boolean };
   labVals: { hba1c: number | null; fbs: number | null; ldl: number | null; hdl: number | null; triglyceride: number | null; alt: number | null; ast: number | null };
@@ -354,7 +354,7 @@ function VitalDashboard({ data }: { data: Customer360 }) {
 function BioAgeBlock({ bioAge, customerId }: { bioAge?: Customer360["bioAge"]; customerId: string }) {
   const href = `/v2/bio-age?customer=${customerId}`;
 
-  if (!bioAge || !bioAge.complete) {
+  if (!bioAge || !bioAge.computable) {
     const need = bioAge?.missing?.length ?? 9;
     return (
       <div className="flex items-center gap-3">
@@ -367,7 +367,7 @@ function BioAgeBlock({ bioAge, customerId }: { bioAge?: Customer360["bioAge"]; c
             <span className="font-head text-[15px] font-bold text-ink">อายุสุขภาพ</span>
           </div>
           <p className="mt-0.5 max-w-[210px] font-thai text-[12px] leading-[1.5] text-ink-60">
-            {need > 0 ? `ต้องตรวจเลือดเพิ่ม ${need} ตัว จึงคำนวณได้` : "คำนวณอายุร่างกายจากค่าเลือด"}
+            {bioAge?.reason ?? (need > 0 ? `ต้องตรวจเลือดเพิ่ม ${need} ตัว จึงคำนวณได้` : "คำนวณอายุร่างกายจากค่าเลือด")}
           </p>
           <Link href={href} className="mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-wellness/25 bg-wellness-ultra px-3.5 py-1.5 text-[12px] font-semibold text-wellness transition-colors hover:bg-wellness hover:text-white">
             <Sparkles size={13} strokeWidth={2.25} aria-hidden /> เปิดเครื่องคำนวณ
@@ -377,13 +377,14 @@ function BioAgeBlock({ bioAge, customerId }: { bioAge?: Customer360["bioAge"]; c
     );
   }
 
-  const { phenoAge, chronoAge, delta = 0, level = "caution", acuteFlag } = bioAge;
+  const { phenoAge, chronoAge, delta = 0, level = "caution", acuteFlag, confidence, imputedCount = 0, crpImputed } = bioAge;
+  const estimate = confidence === "estimate";
   const younger = delta <= -1, older = delta >= 1;
   const deltaColor = younger ? statusTextHex.optimal : older ? statusTextHex.danger : statusTextHex.caution;
   const deltaBg = younger ? "bg-status-bg-optimal" : older ? "bg-status-bg-danger" : "bg-status-bg-caution";
   return (
     <Link href={href} className="group flex items-center gap-4 rounded-2xl p-1 transition-colors hover:bg-surface/60">
-      <MetricGauge value={0.66} display={phenoAge != null ? String(phenoAge) : "—"} unit="ปี" label="อายุสุขภาพ" level={level} size={104} />
+      <MetricGauge value={0.66} display={phenoAge != null ? `${estimate ? "≈" : ""}${phenoAge}` : "—"} unit="ปี" label="อายุสุขภาพ" level={level} size={104} />
       <div>
         <div className="flex items-center gap-1.5">
           <Hourglass size={15} strokeWidth={2.25} className="text-wellness" aria-hidden />
@@ -394,6 +395,7 @@ function BioAgeBlock({ bioAge, customerId }: { bioAge?: Customer360["bioAge"]; c
         <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${deltaBg}`} style={{ color: deltaColor }}>
           {younger ? "🌿 อ่อนกว่าวัย" : older ? "อายุเร่งขึ้น" : "ตามวัย"} {delta !== 0 ? `${Math.abs(delta).toFixed(1)} ปี` : ""}
         </div>
+        {estimate && <div className="mt-1 font-thai text-[10px] text-ink-40">≈ ประมาณการ · เดา {imputedCount} ตัว{crpImputed ? " (รวม CRP)" : ""}</div>}
         {acuteFlag && <div className="mt-1 font-mono text-[10px] text-status-warning">⚠️ ค่าอักเสบสูง — อาจสูงชั่วคราว</div>}
       </div>
     </Link>

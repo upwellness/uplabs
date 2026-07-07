@@ -9,7 +9,7 @@
  * ship with the disclaimer; sensitive to acute inflammation (CRP/WBC spikes).
  */
 
-import type { StatusLevel } from "./medical-status";
+import type { StatusLevel, Gender } from "./medical-status";
 import { classifyBodyAge } from "./medical-status";
 
 export type AlbuminUnit = "g/dL" | "g/L";
@@ -163,3 +163,76 @@ export const PHENO_DEFAULT_UNITS = {
   glucoseUnit: "mg/dL" as GlucoseUnit,
   crpUnit: "mg/L" as CrpUnit,
 };
+
+/* ── Hybrid (mode C) — estimate with imputation when markers are missing ──
+ * PhenoAge is a fixed 9-term model; you cannot drop a term. So a missing marker
+ * is filled with a HEALTHY-reference value ("assume this untested marker is normal")
+ * and the result is labelled ≈ ประมาณการ. Two markers must be REAL (never imputed):
+ * age + glucose — the metabolic anchors that swing the result most and that we
+ * almost always have. Too many imputed (> MAX_IMPUTE) → refuse (too unreliable).
+ */
+export const PHENO_MAX_IMPUTE = 5;
+const IMPUTABLE: (keyof PhenoInput)[] = ["albumin", "creatinine", "crp", "lymphocytePct", "mcv", "rdw", "alp", "wbc"];
+
+/** Healthy-reference fill values (sex-aware where it matters). */
+export function phenoReference(sex: Gender | null): Record<string, { value: number; unit?: string }> {
+  return {
+    albumin: { value: 4.5, unit: "g/dL" },
+    creatinine: { value: sex === "female" ? 0.75 : 0.95, unit: "mg/dL" },
+    crp: { value: 0.5, unit: "mg/L" },
+    lymphocytePct: { value: 32 },
+    mcv: { value: 90 },
+    rdw: { value: 13.0 },
+    alp: { value: 65 },
+    wbc: { value: 6.0 },
+  };
+}
+
+export interface PhenoEstimate {
+  computable: boolean;
+  reason?: string;                 // why not computable (age/glucose missing, or too many gaps)
+  result?: PhenoResult;
+  imputed: string[];               // field names filled with reference
+  imputedLabels: string[];         // Thai labels of imputed markers
+  crpImputed: boolean;             // CRP was assumed normal → hidden inflammation could be missed
+  confidence: "full" | "estimate"; // full = all 9 real
+}
+
+/**
+ * Estimate PhenoAge from a partial marker set (mode C). `raw` is the calculator/lab
+ * input (values + units for whatever is present); blanks/nulls get the healthy
+ * reference. Returns computable:false when age or glucose is missing, or when more
+ * than PHENO_MAX_IMPUTE markers would need imputing.
+ */
+export function estimatePhenoAge(raw: Partial<PhenoInput> & Record<string, any>, sex: Gender | null): PhenoEstimate {
+  const has = (v: any) => v != null && !(typeof v === "number" && isNaN(v)) && v !== "";
+  const base = { imputed: [] as string[], imputedLabels: [] as string[], crpImputed: false, confidence: "estimate" as const };
+  if (!has(raw.age)) return { computable: false, reason: "ยังไม่มีอายุ (วันเกิด) ของลูกค้า", ...base };
+  if (!has(raw.glucose)) return { computable: false, reason: "ต้องมีค่าน้ำตาล (FBS/Glucose) จริงก่อน", ...base };
+
+  const ref = phenoReference(sex);
+  const input: any = {
+    age: Number(raw.age),
+    glucose: Number(raw.glucose), glucoseUnit: raw.glucoseUnit ?? "mg/dL",
+    albuminUnit: raw.albuminUnit ?? "g/dL", creatinineUnit: raw.creatinineUnit ?? "mg/dL", crpUnit: raw.crpUnit ?? "mg/L",
+  };
+  const imputed: string[] = [];
+  for (const m of IMPUTABLE) {
+    if (has(raw[m])) { input[m] = Number(raw[m]); if (raw[`${m}Unit`]) input[`${m}Unit`] = raw[`${m}Unit`]; }
+    else {
+      const r = ref[m]; input[m] = r.value; if (r.unit) input[`${m}Unit`] = r.unit;
+      imputed.push(m);
+    }
+  }
+  const imputedLabels = imputed.map((m) => PHENO_MARKER_TH[m] ?? m);
+  if (imputed.length > PHENO_MAX_IMPUTE) {
+    return { computable: false, reason: `ขาดผลเลือด ${imputed.length} ตัว — เยอะเกินกว่าจะประเมินได้`, imputed, imputedLabels, crpImputed: imputed.includes("crp"), confidence: "estimate" };
+  }
+  return {
+    computable: true,
+    result: computePhenoAge(input as PhenoInput),
+    imputed, imputedLabels,
+    crpImputed: imputed.includes("crp"),
+    confidence: imputed.length === 0 ? "full" : "estimate",
+  };
+}

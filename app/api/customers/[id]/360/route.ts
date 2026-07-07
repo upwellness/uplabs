@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { healthScore } from "@/lib/customers/health-score";
-import { phenoPrefillFromLabs, computePhenoAge, PHENO_MARKER_TH, type PhenoInput } from "@/lib/bio-age";
+import { phenoPrefillFromLabs, estimatePhenoAge, PHENO_MARKER_TH } from "@/lib/bio-age";
 import { classifyStatus } from "@/lib/customers/status-classifier";
 import { generateInsights } from "@/lib/customers/insight-rules";
 import { deriveChronoAge } from "@/lib/bca-derive";
@@ -150,18 +150,20 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       recency: { bca_days: bcaLapseDays, lab_days: labLapseDays, order_days: orderLapseDays },
     });
 
-    // ─── Health Age (PhenoAge · Levine 2018) — big score #2 ───
-    // Auto-computes only when all 9 blood markers are on file; otherwise the UI
-    // shows "ตรวจเพิ่ม N ตัว" + a link to the /v2/bio-age calculator.
+    // ─── Health Age (PhenoAge · Levine 2018) — big score #2 · hybrid mode C ───
+    // Needs age + glucose real; missing secondary markers are imputed with a healthy
+    // reference and the result is flagged ≈ ประมาณการ. Too many gaps → "ตรวจเพิ่ม".
     const phenoPrefill = phenoPrefillFromLabs(phenoRows ?? [], chronoAge);
+    const est = estimatePhenoAge(phenoPrefill.input, customer.gender);
     let bioAge: any;
-    if (phenoPrefill.complete && chronoAge != null) {
-      const res = computePhenoAge(phenoPrefill.input as PhenoInput);
-      bioAge = { complete: true, chronoAge, phenoAge: res.phenoAge, delta: res.delta,
-        level: res.level, mortalityPct: res.mortalityPct, acuteFlag: res.acuteFlag,
+    if (est.computable && est.result) {
+      bioAge = { computable: true, complete: est.confidence === "full", confidence: est.confidence,
+        chronoAge, phenoAge: est.result.phenoAge, delta: est.result.delta, level: est.result.level,
+        mortalityPct: est.result.mortalityPct, acuteFlag: est.result.acuteFlag,
+        imputedCount: est.imputed.length, imputedLabels: est.imputedLabels, crpImputed: est.crpImputed,
         missing: [] as string[] };
     } else {
-      bioAge = { complete: false, chronoAge,
+      bioAge = { computable: false, complete: false, chronoAge, reason: est.reason,
         presentCount: phenoPrefill.present.length,
         missing: phenoPrefill.missing.map((m) => PHENO_MARKER_TH[m] ?? m) };
     }

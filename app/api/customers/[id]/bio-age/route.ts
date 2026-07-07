@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { deriveChronoAge } from "@/lib/bca-derive";
-import { phenoPrefillFromLabs, computePhenoAge, PHENO_MARKER_TH, type PhenoInput } from "@/lib/bio-age";
+import { phenoPrefillFromLabs, estimatePhenoAge, PHENO_MARKER_TH } from "@/lib/bio-age";
 
 const PHENO_KEYS = ["albumin", "creatinine", "fbs", "hs_crp", "crp", "hscrp", "lymphocytes", "lymphocyte", "mcv", "rdw", "alp", "wbc"];
 
@@ -46,7 +46,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
     const age = deriveChronoAge(customer.birth_date ?? customer.birth_year, new Date().toISOString());
     const prefill = phenoPrefillFromLabs(rows ?? [], age);
-    const result = prefill.complete && age != null ? computePhenoAge(prefill.input as PhenoInput) : null;
+    const estimate = estimatePhenoAge(prefill.input, customer.gender);
 
     return NextResponse.json({
       customer: { id: customer.id, name: customer.name, gender: customer.gender, age },
@@ -57,7 +57,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         missingLabels: prefill.missing.map((m) => PHENO_MARKER_TH[m] ?? m),
         complete: prefill.complete,
       },
-      result,
+      estimate,
     });
   } catch (err: any) {
     console.error("[bio-age] error", err);
