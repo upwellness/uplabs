@@ -10,6 +10,7 @@
  */
 'use client';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { isGeminiKeyError, AI_STUDIO_URL } from '@/lib/gemini-error';
 
 export type PlatePlannerProps = { initialW?: number; initialH?: number };
 
@@ -592,7 +593,13 @@ function MealCard({ m, onEdit, onReset, edited, onShake, cfg }) {
         </div>
       </div>
       {img && <div className="text-[11px] text-ink-40 mb-2">📷 ภาพ AI ไว้เทียบหน้าตา · <span className="text-ink-60">ปริมาณจริงดูตารางด้านล่าง</span> · <button onClick={() => { delete IMG_CACHE[sig]; IDB.del(sig); setImg(null); }} className="text-wellness underline">สร้างใหม่</button></div>}
-      {err && <div className="text-xs text-amber mb-2">{err}</div>}
+      {err && (isGeminiKeyError(err)
+        ? <div className="text-xs text-amber mb-2">
+            {tr('คีย์ AI หมดอายุ/ไม่ถูกต้อง — ', 'AI key invalid/expired — ')}
+            <a href={AI_STUDIO_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline">{tr('ขอคีย์ใหม่ (ฟรี)', 'get a free key')}</a>
+            {tr(' แล้วกด ⚙️ ตั้งค่าคีย์', ' then press ⚙️ to set the key')}
+          </div>
+        : <div className="text-xs text-amber mb-2">{err}</div>)}
       <div className="border-t border-ink/5 pt-3">
         <div className="flex items-center justify-between text-[11px] text-ink-40 mb-1 px-0.5"><span>🍽️ {tr('อาหารในมื้อนี้', 'In this meal')}</span><span>{tr('ปริมาณ · กรัม · แคล', 'amount · g · kcal')}</span></div>
         {m.items.map((it, i) => {

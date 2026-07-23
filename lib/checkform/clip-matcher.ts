@@ -10,6 +10,7 @@
 
 import type { CheckformProfile, AIAnalysis } from "./ai-analyze";
 import { getActiveClipsForMatcher, type StpClip } from "@/app/checkform/_data/stp-clips";
+import { classifyGeminiFetchError } from "@/lib/gemini-error";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
@@ -172,7 +173,7 @@ ${JSON.stringify(trimmedClips, null, 2)}
 
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`Gemini fetch failed: ${res.status} ${t.slice(0, 300)}`);
+    throw new Error(classifyGeminiFetchError(res.status, t));
   }
   const json = await res.json();
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";

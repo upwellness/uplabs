@@ -5,6 +5,8 @@
  * Output: structured JSON (food, macros, glucose impact, health score, recs)
  */
 
+import { classifyGeminiFetchError } from "@/lib/gemini-error";
+
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness — food analysis tool
@@ -182,7 +184,7 @@ export async function analyzeFood(input: NutriScanInput, apiKey: string): Promis
 
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`Gemini Vision failed: ${res.status} ${t}`);
+    throw new Error(classifyGeminiFetchError(res.status, t));
   }
 
   const json = await res.json();

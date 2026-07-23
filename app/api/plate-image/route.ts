@@ -70,7 +70,11 @@ export async function POST(req: Request) {
         },
       );
       const j = await r.json();
-      if (j.error) return NextResponse.json({ error: "Gemini: " + (j.error.message || "error") }, { status: 400 });
+      if (j.error) {
+        const gm = j.error.message || "error";
+        const keyBad = j.error.status === "INVALID_ARGUMENT" || j.error.status === "PERMISSION_DENIED" || /api[_ ]?key/i.test(gm);
+        return NextResponse.json({ error: keyBad ? "GEMINI_KEY_INVALID" : ("Gemini: " + gm) }, { status: 400 });
+      }
       const parts = j?.candidates?.[0]?.content?.parts || [];
       const p = parts.find((x: { inlineData?: { data: string; mimeType?: string } }) => x.inlineData);
       if (p?.inlineData) { b64 = p.inlineData.data; mime = p.inlineData.mimeType || "image/png"; }

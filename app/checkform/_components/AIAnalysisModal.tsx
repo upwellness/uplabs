@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/Button";
 import type { AIAnalysis } from "@/lib/checkform/ai-analyze";
 import type { ClipRecommendations, ClipMatch } from "@/lib/checkform/clip-matcher";
 import { findClipById } from "../_data/stp-clips";
+import { isGeminiKeyError } from "@/lib/gemini-error";
+import { GeminiKeyErrorNotice } from "@/components/GeminiKeyErrorNotice";
 
 interface Props {
   open: boolean;
@@ -127,48 +129,10 @@ function Loading() {
   );
 }
 
-/** True when the failure is about the Gemini API key (bad/expired/revoked/missing/restricted). */
-function isGeminiKeyError(msg: string): boolean {
-  const s = (msg || "").toLowerCase();
-  return (
-    s.includes("gemini_key_invalid") ||
-    s.includes("api key not valid") ||
-    s.includes("api_key_invalid") ||
-    s.includes("invalid_argument") ||
-    s.includes("permission_denied") ||
-    s.includes("กรุณาใส่ api key")
-  );
-}
-
 function ErrorPanel({ error, onClose }: { error: string; onClose: () => void }) {
   // Key problem → guide the user to get a fresh (free) key instead of showing a raw error.
   if (isGeminiKeyError(error)) {
-    return (
-      <div className="px-7 py-10 text-center">
-        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-ultra text-2xl ring-1 ring-ink-10">
-          🔑
-        </div>
-        <div className="mt-4 font-head text-[17px] font-extrabold text-ink">คีย์ Gemini ใช้ไม่ได้แล้ว</div>
-        <p className="mt-2 max-w-md mx-auto font-thai text-[13px] leading-relaxed text-ink-80">
-          คีย์ AI ที่ใส่ไว้หมดอายุหรือไม่ถูกต้อง — ขอคีย์ใหม่ได้ <b>ฟรี</b> จาก Google AI Studio
-          แล้วกด <b>⚙️ เปลี่ยนคีย์</b> ด้านบนของหน้าเพื่อวางคีย์ใหม่ จากนั้นกด “วิเคราะห์ใหม่”
-        </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-wellness px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-wellness-deep"
-          >
-            🔑 ขอคีย์ใหม่ (ฟรี) ที่ Google AI Studio
-          </a>
-          <Button variant="ghost" size="sm" onClick={onClose}>ปิด</Button>
-        </div>
-        <p className="mt-4 font-thai text-[11px] text-ink-40">
-          🔐 คีย์เก็บในเบราว์เซอร์นี้เท่านั้น · ใส่ครั้งเดียวใช้ได้ทั้ง CheckForm และ NutriScan
-        </p>
-      </div>
-    );
+    return <GeminiKeyErrorNotice onClose={onClose} className="m-6" />;
   }
 
   return (
@@ -363,9 +327,13 @@ function ClipRecommendationsSection({
 
       {loading && <ClipLoading />}
       {error && (
-        <div className="rounded-xl bg-status-bg-danger/40 px-4 py-3 font-mono text-[11px] text-status-danger break-words">
-          ⚠ {error}
-        </div>
+        isGeminiKeyError(error) ? (
+          <GeminiKeyErrorNotice className="mt-1" />
+        ) : (
+          <div className="rounded-xl bg-status-bg-danger/40 px-4 py-3 font-mono text-[11px] text-status-danger break-words">
+            ⚠ {error}
+          </div>
+        )
       )}
       {recs && !loading && !error && (
         <>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { CPFPie } from "@/components/CPFPie";
 import { GeminiKeyField, getGeminiKey } from "@/components/GeminiKeyField";
+import { isGeminiKeyError } from "@/lib/gemini-error";
+import { GeminiKeyErrorNotice } from "@/components/GeminiKeyErrorNotice";
 import { macroBreakdown, type Macros } from "@/lib/nutriscan/macros";
 
 interface CustomerOpt {
@@ -287,9 +289,13 @@ export function NutriScanClient() {
           )}
 
           {error && (
-            <div className="mt-4 rounded-xl border border-status-danger/30 bg-status-bg-danger/50 px-4 py-3 font-thai text-sm text-status-danger">
-              {error}
-            </div>
+            isGeminiKeyError(error) ? (
+              <GeminiKeyErrorNotice className="mt-4" />
+            ) : (
+              <div className="mt-4 rounded-xl border border-status-danger/30 bg-status-bg-danger/50 px-4 py-3 font-thai text-sm text-status-danger">
+                {error}
+              </div>
+            )
           )}
         </section>
 
