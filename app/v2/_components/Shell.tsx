@@ -20,11 +20,12 @@ import Link from "next/link";
 import {
   LayoutGrid, Users, Scale, ChevronDown, ChevronRight,
   Home, Activity, ExternalLink, X,
-  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield, UserPlus,
+  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield, UserPlus, LogOut, KeyRound,
 } from "lucide-react";
 import { APPS } from "@/lib/apps-registry";
 import { ROLE_LABEL_TH, type Role } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/app/(auth)/actions";
 
 export interface Crumb {
   label: string;
@@ -81,6 +82,8 @@ export function Shell({
 }) {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const [userOpen, setUserOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
 
   // Most v2 pages are client components and don't pass `profile`, so fetch the
   // signed-in user's profile client-side → the user/role indicator shows everywhere.
@@ -115,6 +118,18 @@ export function Shell({
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
   }, [switcherOpen]);
+
+  // Close the user menu on outside click / Escape
+  useEffect(() => {
+    if (!userOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUserOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+  }, [userOpen]);
 
   const liveApps = APPS.filter((a) => a.status !== "soon");
 
@@ -223,14 +238,52 @@ export function Shell({
           {/* Right side: page actions + user/role */}
           <div className="ml-auto flex items-center gap-2.5">
             {actions}
-            <div className="flex items-center gap-2 rounded-full border border-ink-10 bg-white py-1 pl-1 pr-2.5">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">
-                {initialsOf(who?.display_name, who?.email)}
-              </span>
-              <div className="hidden leading-tight sm:block">
-                <div className="max-w-[140px] truncate text-[12px] font-semibold text-ink">{who?.display_name ?? who?.email ?? "ผู้ใช้"}</div>
-                {who?.role && <div className="text-[10px] text-ink-40">{ROLE_LABEL_TH[who.role]}</div>}
-              </div>
+            <div className="relative" ref={userRef}>
+              <button
+                type="button"
+                onClick={() => setUserOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={userOpen}
+                aria-label="เมนูผู้ใช้"
+                className="flex items-center gap-2 rounded-full border border-ink-10 bg-white py-1 pl-1 pr-2 transition-colors hover:border-ink-20 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
+              >
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-white">
+                  {initialsOf(who?.display_name, who?.email)}
+                </span>
+                <div className="hidden leading-tight sm:block">
+                  <div className="max-w-[140px] truncate text-[12px] font-semibold text-ink">{who?.display_name ?? who?.email ?? "ผู้ใช้"}</div>
+                  {who?.role && <div className="text-[10px] text-ink-40">{ROLE_LABEL_TH[who.role]}</div>}
+                </div>
+                <ChevronDown size={13} strokeWidth={2.5} className={cn("mr-0.5 text-ink-40 transition-transform", userOpen && "rotate-180")} aria-hidden />
+              </button>
+
+              {userOpen && (
+                <div
+                  role="menu"
+                  aria-label="เมนูผู้ใช้"
+                  className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-ink-10 bg-white shadow-[0_20px_50px_-20px_rgba(24,21,26,0.35)]"
+                >
+                  <div className="border-b border-ink-5 bg-surface px-4 py-3">
+                    <div className="truncate font-head text-sm font-bold text-ink">{who?.display_name ?? "ผู้ใช้"}</div>
+                    <div className="truncate font-mono text-[11px] text-ink-40">{who?.email ?? "no email"}</div>
+                  </div>
+                  <div className="p-1">
+                    <Link href="/forgot-password" role="menuitem" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-ink-5">
+                      <KeyRound size={15} strokeWidth={2} aria-hidden className="text-ink-40" /> เปลี่ยน password
+                    </Link>
+                    {who?.role === "admin" && (
+                      <Link href="/v2/admin/users" role="menuitem" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-ink-5">
+                        <Shield size={15} strokeWidth={2} aria-hidden className="text-ink-40" /> Admin · จัดการผู้ใช้
+                      </Link>
+                    )}
+                  </div>
+                  <form action={signOut} className="border-t border-ink-5 p-1">
+                    <button type="submit" role="menuitem" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose transition-colors hover:bg-rose-ultra">
+                      <LogOut size={15} strokeWidth={2.25} aria-hidden /> ออกจากระบบ
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>
