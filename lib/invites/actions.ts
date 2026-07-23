@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSession } from "@/lib/auth/session";
 
 function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  // Strip trailing slash(es) so `${siteUrl()}/join/...` never becomes `//join` (→ 404).
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 }
 
 export interface InviteRow {

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     });
     if (error) throw error;
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "");
     return NextResponse.json({
       token,
       provider: inviteProvider,

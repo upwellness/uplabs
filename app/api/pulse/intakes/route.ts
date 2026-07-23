@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       token,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/intake/${token}`,
+      url: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "")}/intake/${token}`,
       expires_in_days: 14,
     });
   } catch (err: any) {
