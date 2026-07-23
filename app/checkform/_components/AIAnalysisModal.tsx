@@ -127,7 +127,50 @@ function Loading() {
   );
 }
 
+/** True when the failure is about the Gemini API key (bad/expired/revoked/missing/restricted). */
+function isGeminiKeyError(msg: string): boolean {
+  const s = (msg || "").toLowerCase();
+  return (
+    s.includes("gemini_key_invalid") ||
+    s.includes("api key not valid") ||
+    s.includes("api_key_invalid") ||
+    s.includes("invalid_argument") ||
+    s.includes("permission_denied") ||
+    s.includes("กรุณาใส่ api key")
+  );
+}
+
 function ErrorPanel({ error, onClose }: { error: string; onClose: () => void }) {
+  // Key problem → guide the user to get a fresh (free) key instead of showing a raw error.
+  if (isGeminiKeyError(error)) {
+    return (
+      <div className="px-7 py-10 text-center">
+        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-ultra text-2xl ring-1 ring-ink-10">
+          🔑
+        </div>
+        <div className="mt-4 font-head text-[17px] font-extrabold text-ink">คีย์ Gemini ใช้ไม่ได้แล้ว</div>
+        <p className="mt-2 max-w-md mx-auto font-thai text-[13px] leading-relaxed text-ink-80">
+          คีย์ AI ที่ใส่ไว้หมดอายุหรือไม่ถูกต้อง — ขอคีย์ใหม่ได้ <b>ฟรี</b> จาก Google AI Studio
+          แล้วกด <b>⚙️ เปลี่ยนคีย์</b> ด้านบนของหน้าเพื่อวางคีย์ใหม่ จากนั้นกด “วิเคราะห์ใหม่”
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-wellness px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-wellness-deep"
+          >
+            🔑 ขอคีย์ใหม่ (ฟรี) ที่ Google AI Studio
+          </a>
+          <Button variant="ghost" size="sm" onClick={onClose}>ปิด</Button>
+        </div>
+        <p className="mt-4 font-thai text-[11px] text-ink-40">
+          🔐 คีย์เก็บในเบราว์เซอร์นี้เท่านั้น · ใส่ครั้งเดียวใช้ได้ทั้ง CheckForm และ NutriScan
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-7 py-10 text-center">
       <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-status-bg-danger text-2xl">
@@ -135,7 +178,7 @@ function ErrorPanel({ error, onClose }: { error: string; onClose: () => void }) 
       </div>
       <div className="mt-4 font-head text-[16px] font-extrabold text-status-danger">วิเคราะห์ไม่สำเร็จ</div>
       <p className="mt-2 max-w-md mx-auto font-mono text-[11px] text-ink-60 break-words">{error}</p>
-      <p className="mt-3 font-thai text-[12px] text-ink-50">ลองอีกครั้งหรือ check GEMINI_API_KEY ใน env</p>
+      <p className="mt-3 font-thai text-[12px] text-ink-50">ลองกด “วิเคราะห์ใหม่” อีกครั้ง · ถ้ายังไม่หายแจ้งทีมช่วยเหลือ</p>
       <Button variant="ghost" size="sm" onClick={onClose} className="mt-4">ปิด</Button>
     </div>
   );

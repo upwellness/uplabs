@@ -163,6 +163,11 @@ ${JSON.stringify(profile, null, 2)}
 
   if (!res.ok) {
     const t = await res.text();
+    // Key problems (bad/expired/revoked key = 400 API_KEY_INVALID · disabled/restricted = 403)
+    // → throw a clean sentinel so the UI can guide the user to get a new key.
+    if ((res.status === 400 && /api[_ ]?key|API_KEY_INVALID|INVALID_ARGUMENT/i.test(t)) || res.status === 403) {
+      throw new Error("GEMINI_KEY_INVALID");
+    }
     throw new Error(`Gemini fetch failed: ${res.status} ${t.slice(0, 300)}`);
   }
   const json = await res.json();
