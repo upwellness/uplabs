@@ -10,8 +10,9 @@ export function ResetForm() {
   const [ready, setReady] = useState(false);
   const [pending, start] = useTransition();
 
-  // The Supabase password-recovery link sets a session via URL fragment.
-  // @supabase/ssr's browser client picks it up on mount.
+  // The recovery link routes through /auth/callback, which exchanges the code
+  // and writes the auth cookies before redirecting here. The @supabase/ssr
+  // browser client reads that same cookie session on mount.
   useEffect(() => {
     const supa = createClient();
     supa.auth.getSession().then(({ data }) => {

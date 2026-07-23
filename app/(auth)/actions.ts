@@ -3,10 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-}
+import { siteUrl } from "@/lib/site-url";
 
 export async function signIn(formData: FormData) {
   const identifier = String(formData.get("identifier") ?? formData.get("email") ?? "").trim();
@@ -51,7 +48,7 @@ export async function requestPasswordReset(formData: FormData) {
 
   const supa = createClient();
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl()}/reset-password`,
+    redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
   });
   if (error) return { error: error.message };
   return { ok: true };

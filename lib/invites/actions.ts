@@ -2,10 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSession } from "@/lib/auth/session";
-
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-}
+import { siteUrl } from "@/lib/site-url";
 
 export interface InviteRow {
   token: string;

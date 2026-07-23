@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/session";
+import { siteUrl } from "@/lib/site-url";
 import type { Role } from "@/lib/auth/roles";
 
 export interface ManagedCustomer {
@@ -31,10 +32,6 @@ export interface AssignableCustomer {
   id: string;
   name: string;
   coach_id: string | null;
-}
-
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 export async function listUsers(): Promise<UserListRow[]> {
@@ -159,7 +156,7 @@ export async function sendResetEmail(email: string) {
   if (!email) return { error: "ไม่มี email" };
   const admin = createAdminClient();
   const { error } = await admin.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl()}/reset-password`,
+    redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
   });
   if (error) return { error: error.message };
   return { ok: true };
@@ -175,7 +172,7 @@ export async function generateResetLink(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "recovery",
     email,
-    options: { redirectTo: `${siteUrl()}/reset-password` },
+    options: { redirectTo: `${siteUrl()}/auth/callback?next=/reset-password` },
   });
   if (error) return { error: error.message };
   return { ok: true, url: data?.properties?.action_link ?? null };
