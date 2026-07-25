@@ -27,7 +27,7 @@ export default function HealthPage() {
           NEXT_PUBLIC_SUPABASE_URL=https://&lt;project&gt;.supabase.co<br />
           NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...<br />
           SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...<br />
-          NEXT_PUBLIC_SITE_URL=https://upwellness.vercel.app
+          NEXT_PUBLIC_SITE_URL=https://upwellness-ops.vercel.app
         </div>
       </div>
     </main>

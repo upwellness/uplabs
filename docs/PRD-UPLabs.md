@@ -177,8 +177,8 @@ UP Labs คือ **แพลตฟอร์มภายในของ UP Welln
 | # | เรื่อง | สถานะ |
 |---|---|---|
 | 1 | **Google Fit sync ตาย** — OAuth ยังเป็น Testing mode (refresh token อายุ 7 วัน) + Google ปิด Fit REST API สิ้นปี 2026 | ต้องเลือกทาง: Google Health API (cloud) หรือ upload ไฟล์ · ดู memory `project_uplabs_google_health_migration` |
-| 2 | `NEXT_PUBLIC_SITE_URL` ใน Vercel ยังชี้โดเมนเว็บไซต์ (ผิด) | **ต้นต้องแก้เป็น `https://upwellness-ops.vercel.app` + redeploy** |
-| 3 | `app/setup/page.tsx` แสดงตัวอย่างโดเมนผิด | pending |
+| 2 | `NEXT_PUBLIC_SITE_URL` เคยชี้โดเมนเว็บไซต์ (ทำให้ลิงก์ invite/reset 404) | ✅ **แก้แล้ว 24 ก.ค. 2026** เป็น `https://upwellness-ops.vercel.app` · ⚠️ env มีผลหลัง **redeploy** เท่านั้น · วิธีตรวจ: สร้างลิงก์เชิญที่ `/v2/invite` แล้วดูว่าขึ้น `upwellness-ops…/join/…` |
+| 3 | `app/setup/page.tsx` แสดงตัวอย่างโดเมนผิด | ✅ แก้แล้ว |
 | 4 | CGM ยังไม่มีหน้า v2 | backlog |
 | 5 | v1 ↔ v2 ยังอยู่คู่กัน (ลูกค้ามี 2 หน้า) | ทยอย cutover |
 
