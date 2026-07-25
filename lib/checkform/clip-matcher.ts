@@ -12,7 +12,9 @@ import type { CheckformProfile, AIAnalysis } from "./ai-analyze";
 import { getActiveClipsForMatcher, type StpClip } from "@/app/checkform/_data/stp-clips";
 import { classifyGeminiFetchError } from "@/lib/gemini-error";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
+
+const GEMINI_MODEL = GEMINI_TEXT_MODEL;
 
 const SYSTEM_PROMPT = `คุณคือ STP Matcher Agent ของ UP Wellness — ทำหน้าที่แนะนำ "คลิปคนสำเร็จ" ให้ ABO ส่งให้ prospect ฟัง
 

@@ -58,6 +58,11 @@ export function isGeminiKeyError(msg?: string | null): boolean {
 export function classifyGeminiFetchError(status: number, bodyText: string): string {
   // 403 = key exists but is not allowed (API not enabled on its project / key restricted).
   if (status === 403) return GEMINI_FORBIDDEN_SENTINEL;
+  // 404 = the model id is gone (Google retires versions — e.g. gemini-2.5-flash on 9 ก.ค. 2026).
+  // Nothing the user can do in-app; say so plainly instead of dumping Google's JSON.
+  if (status === 404) {
+    return "โมเดล AI ที่ระบบตั้งไว้ถูกปลดระวางแล้ว — ทีมงานต้องอัปเดตค่า GEMINI_MODEL เป็นรุ่นปัจจุบัน (ดู ai.google.dev/gemini-api/docs/models) · ไม่เกี่ยวกับคีย์ของคุณ";
+  }
   if (status === 400 && /api[_ ]?key|API_KEY_INVALID|INVALID_ARGUMENT/i.test(bodyText)) {
     return GEMINI_KEY_SENTINEL;
   }

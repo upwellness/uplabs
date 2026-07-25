@@ -134,6 +134,7 @@ UP Labs คือ **แพลตฟอร์มภายในของ UP Welln
 
 | เรื่อง | กติกา |
 |---|---|
+| **AI model** | ประกาศที่ `lib/gemini-config.ts` ที่เดียว · default = alias **`gemini-flash-latest`** (ห้าม hardcode เลขรุ่น — Google ปลดรุ่นเป็นระยะ เคยทำระบบล่มมาแล้ว) · ภาพใช้ fallback list |
 | **AI key** | **BYO Gemini key** — เก็บใน browser `localStorage['uplabs_gemini_key']` ผ่าน `components/GeminiKeyField` · **ไม่มี fallback ฝั่ง server** · error เรื่อง key ต้องโชว์ `GeminiKeyErrorNotice` (ชวนไปขอคีย์) ห้ามโชว์ error ดิบ · ข้อยกเว้น: `lib/pulse/gemini.ts` ใช้ `GEMINI_API_KEY` ฝั่ง server |
 | **เกณฑ์สุขภาพ** | ใช้ `lib/medical-status.ts` ที่เดียว ห้าม hardcode สี/เกณฑ์ซ้ำ |
 | **Compliance** | wellness ≠ diagnosis · ผลผิดปกติ → "ปรึกษาแพทย์" · อาหารเสริมต้องผ่านเภสัชกร (จิ้น) + แพทย์ · ห้ามคำว่า "รักษา/หาย/100%" |
@@ -197,6 +198,7 @@ UP Labs คือ **แพลตฟอร์มภายในของ UP Welln
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-07-24 | **โมเดล AI: เลิก hardcode รุ่น** — Google หยุดให้บริการ `gemini-2.5-flash` กับคีย์ใหม่ (9 ก.ค. 2026) ทุกฟีเจอร์ AI เลย 404 · ย้ายไป `lib/gemini-config.ts` ใช้ alias **`gemini-flash-latest`** (ชี้รุ่นล่าสุดเสมอ ไม่พังซ้ำ) · โมเดลภาพมี fallback list + ข้ามอัตโนมัติเมื่อ 404 · override ได้ด้วย env `GEMINI_MODEL` / `GEMINI_IMAGE_MODEL` | (รอ commit) |
 | 2026-07-24 | **RBAC: upline ดูแลได้ทุกระดับชั้นลงไป (อ่าน+เขียน)** — เพิ่ม `canManageCustomer()` เป็น helper เดียว แล้วสลับ 26 จุดใน 24 route จาก owner/assigned เป็น helper นี้ · เดิม downline เป็น read-only ทำให้ upline เจอ `forbidden` เวลาบันทึกข้อมูลลูกค้าของสายงาน · **อุดช่องโหว่: `POST /api/customers/[id]/measurements` (บันทึก BCA) ไม่มีเช็คสิทธิ์เลย** · ทุก 403 คืนข้อความไทยบอกเหตุผล ไม่ใช่คำว่า `forbidden` | (รอ commit) |
 | 2026-07-16 | **NutriScan สิทธิ์:** เช็คความเป็นเจ้าของลูกค้า **เฉพาะเมื่อจะบันทึก** (วิเคราะห์เฉย ๆ ไม่ใช้ `customer_id` เลย จึงไม่ต้องกัน) + เปลี่ยน `forbidden` ดิบเป็นข้อความไทยที่บอกสาเหตุ (ลูกค้าของ downline = ดูได้ บันทึกแทนไม่ได้) | (รอ commit) |
 | 2026-07-16 | แยก error คีย์ AI เป็น 2 เคส: **400 = คีย์ผิด/หมดอายุ** (ขอคีย์ใหม่) vs **403 = คีย์ถูกแต่ไม่มีสิทธิ์** (โปรเจกต์ยังไม่เปิด Generative Language API / คีย์ถูกจำกัด → บอกวิธีแก้ที่ถูก ไม่ใช่ให้ขอคีย์ใหม่ซ้ำ) | (รอ commit) |

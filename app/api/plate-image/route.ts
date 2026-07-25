@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
+import { GEMINI_IMAGE_MODELS } from "@/lib/gemini-config";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -58,28 +59,45 @@ export async function POST(req: Request) {
       if (j.error) return NextResponse.json({ error: "OpenAI: " + (j.error.message || "error") }, { status: 400 });
       b64 = j?.data?.[0]?.b64_json;
     } else {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-          }),
-        },
-      );
-      const j = await r.json();
-      if (j.error) {
-        const gm = j.error.message || "error";
-        const forbidden = j.error.status === "PERMISSION_DENIED" || j.error.code === 403;
-        const keyBad = j.error.status === "INVALID_ARGUMENT" || /api[_ ]?key/i.test(gm);
-        const msg = forbidden ? "GEMINI_KEY_FORBIDDEN" : keyBad ? "GEMINI_KEY_INVALID" : ("Gemini: " + gm);
-        return NextResponse.json({ error: msg }, { status: 400 });
+      // Try each configured image model; a retired one answers 404 → fall through to the next.
+      let lastError: { msg: string; status: number } | null = null;
+      for (const model of GEMINI_IMAGE_MODELS) {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+            }),
+          },
+        );
+        const j = await r.json();
+        if (j.error) {
+          const gm = j.error.message || "error";
+          const code = j.error.code ?? r.status;
+          // Model gone / unknown → try the next id in the list before giving up.
+          if (code === 404 || j.error.status === "NOT_FOUND") {
+            lastError = { msg: `โมเดลสร้างภาพ "${model}" ใช้ไม่ได้แล้ว (${gm})`, status: 400 };
+            continue;
+          }
+          const forbidden = j.error.status === "PERMISSION_DENIED" || code === 403;
+          const keyBad = j.error.status === "INVALID_ARGUMENT" || /api[_ ]?key/i.test(gm);
+          const msg = forbidden ? "GEMINI_KEY_FORBIDDEN" : keyBad ? "GEMINI_KEY_INVALID" : ("Gemini: " + gm);
+          return NextResponse.json({ error: msg }, { status: 400 });
+        }
+        const parts = j?.candidates?.[0]?.content?.parts || [];
+        const p = parts.find((x: { inlineData?: { data: string; mimeType?: string } }) => x.inlineData);
+        if (p?.inlineData) { b64 = p.inlineData.data; mime = p.inlineData.mimeType || "image/png"; }
+        break; // model answered — stop trying others
       }
-      const parts = j?.candidates?.[0]?.content?.parts || [];
-      const p = parts.find((x: { inlineData?: { data: string; mimeType?: string } }) => x.inlineData);
-      if (p?.inlineData) { b64 = p.inlineData.data; mime = p.inlineData.mimeType || "image/png"; }
+      if (!b64 && lastError) {
+        return NextResponse.json(
+          { error: `${lastError.msg} · ตั้งค่า GEMINI_IMAGE_MODEL เป็นรุ่นปัจจุบัน (ดู ai.google.dev/gemini-api/docs/models)` },
+          { status: lastError.status },
+        );
+      }
     }
 
     if (!b64) return NextResponse.json({ error: "ไม่ได้ภาพกลับมา (อาจโดน safety filter หรือคีย์ไม่มีสิทธิ์สร้างภาพ)" }, { status: 502 });

@@ -7,7 +7,9 @@
 
 import { classifyGeminiFetchError } from "@/lib/gemini-error";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
+
+const GEMINI_MODEL = GEMINI_TEXT_MODEL;
 
 const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness — food analysis tool
 หน้าที่: วิเคราะห์ภาพอาหารและประเมิน nutritional impact + คำแนะนำที่ปฏิบัติได้

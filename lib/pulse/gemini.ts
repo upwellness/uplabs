@@ -10,7 +10,9 @@
 
 import type { MasterSnapshot } from "./master-data";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
+
+const GEMINI_MODEL = GEMINI_TEXT_MODEL;
 
 const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness — wellness coaching tool
 หน้าที่: วิเคราะห์ข้อมูลสุขภาพหลายแหล่งของลูกค้า (BCA + CGM + wearable + Inbody + intake)

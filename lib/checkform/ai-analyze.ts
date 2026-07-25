@@ -6,7 +6,9 @@
 
 import { classifyGeminiFetchError } from "@/lib/gemini-error";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
+
+const GEMINI_MODEL = GEMINI_TEXT_MODEL;
 
 const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness Ops — เครื่องมือช่วย ABO (Amway business owner) วิเคราะห์ prospect ก่อนเปิดบทสนทนา
 
