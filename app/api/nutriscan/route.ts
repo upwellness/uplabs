@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
 import { analyzeFood, type NutriScanResult } from "@/lib/nutriscan/gemini-vision";
 
 export const runtime = "nodejs";
@@ -29,14 +29,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "กรุณาใส่ API Key ก่อน" }, { status: 400 });
     }
 
-    // Optional: verify customer belongs to this coach (or admin)
-    if (customer_id) {
+    // Ownership matters only when we actually write to the customer's history.
+    // Analyze-only never touches customer data (the AI call uses meal_type/notes, not customer_id),
+    // so a coach may analyze while viewing a downline's customer — same as read access elsewhere.
+    if (customer_id && shouldSave) {
       const supa = createClient();
       const { data: c } = await supa.from("customers").select("coach_id").eq("id", customer_id).maybeSingle();
       if (!c) return NextResponse.json({ error: "customer not found" }, { status: 404 });
       const isAdmin = session.profile.role === "admin";
-      if (!isAdmin && c.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, customer_id))) {
-        return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      const isOwner = c.coach_id === session.user.id;
+      if (!isAdmin && !isOwner && !(await isAssignedToCustomer(session.user.id, customer_id))) {
+        // Downline customers are read-only by design → explain instead of a bare "forbidden".
+        const isDownline = await isDownlineCustomer(session.user.id, customer_id);
+        return NextResponse.json(
+          {
+            error: isDownline
+              ? "ลูกค้าคนนี้อยู่ในความดูแลของโค้ชในสายงานของคุณ — คุณดูข้อมูลได้ แต่บันทึกผลสแกนแทนไม่ได้ · ปิด “บันทึกเข้าประวัติ” เพื่อวิเคราะห์อย่างเดียว หรือให้โค้ชเจ้าของบันทึกเอง"
+              : "ลูกค้าคนนี้ไม่ได้อยู่ในความดูแลของคุณ — เลือกลูกค้าของคุณ หรือขอสิทธิ์จากแอดมิน",
+          },
+          { status: 403 },
+        );
       }
     }
 

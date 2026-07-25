@@ -29,8 +29,9 @@ export function isGeminiForbidden(msg?: string | null): boolean {
     s.includes("service_disabled") ||
     s.includes("api_key_service_blocked") ||
     s.includes("has not been used in project") ||
-    s.includes("blocked") ||
-    s.includes("forbidden")
+    s.includes("requests from referer")
+    // NOTE: never match a bare "forbidden" — our own RBAC returns that for
+    // customer-access denials, which has nothing to do with the AI key.
   );
 }
 
