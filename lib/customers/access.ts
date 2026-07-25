@@ -37,11 +37,15 @@ export async function assignedCustomerIds(userId: string): Promise<string[]> {
 }
 
 /**
- * MLM hierarchy (READ-ONLY). An "upline" user may VIEW — never edit — the customers
- * owned by everyone transitively below them in the profiles.parent_id tree. This is
- * intentionally separate from `isAssignedToCustomer` (co-coach, which is read+write):
- * downline visibility must NOT grant write access, so write routes keep using the
- * owner/assigned checks and never call these helpers.
+ * MLM hierarchy — FULL CARE (read + write) since 2026-07-24.
+ *
+ * An "upline" user may view AND manage the customers owned by everyone transitively
+ * below them in the profiles.parent_id tree (all levels, not just direct children —
+ * see the recursive `profile_descendant_ids` RPC). Business rule from ต้น:
+ * "upline สามารถดูแลได้ทุกระดับชั้นลงไป".
+ *
+ * ⚠️ Route authors: do NOT hand-roll owner/assigned checks — call `canManageCustomer`
+ * so read and write paths can never drift apart again.
  */
 
 /** User ids transitively below `userId` (their downline). Empty if none. */
@@ -53,7 +57,22 @@ export async function downlineUserIds(userId: string): Promise<string[]> {
   return Array.isArray(data) ? (data as string[]) : [];
 }
 
-/** True if `customerId` is owned by anyone in `userId`'s downline (read-only visibility). */
+/**
+ * THE access check for everything except "is this literally my own customer".
+ *
+ * True when the user may view *and* manage the customer because they are either a
+ * co-coach (`customer_assignments`) or anywhere upline of the owner. Callers still
+ * short-circuit on admin + owner first:
+ *
+ *   if (!isAdmin && c.coach_id !== uid && !(await canManageCustomer(uid, cid))) → 403
+ */
+export async function canManageCustomer(userId: string, customerId: string): Promise<boolean> {
+  if (!userId || !customerId) return false;
+  if (await isAssignedToCustomer(userId, customerId)) return true;
+  return isDownlineCustomer(userId, customerId);
+}
+
+/** True if `customerId` is owned by anyone transitively below `userId` in the tree. */
 export async function isDownlineCustomer(userId: string, customerId: string): Promise<boolean> {
   if (!userId || !customerId) return false;
   const downline = await downlineUserIds(userId);

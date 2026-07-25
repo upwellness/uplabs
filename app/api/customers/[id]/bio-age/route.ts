@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 import { deriveChronoAge } from "@/lib/bca-derive";
 import { phenoPrefillFromLabs, estimatePhenoAge, PHENO_MARKER_TH } from "@/lib/bio-age";
 
@@ -30,8 +30,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (
       !isAdmin &&
       customer.coach_id !== session.user.id &&
-      !(await isAssignedToCustomer(session.user.id, params.id)) &&
-      !(await isDownlineCustomer(session.user.id, params.id))
+      !(await canManageCustomer(session.user.id, params.id))
     ) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }

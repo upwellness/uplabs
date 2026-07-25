@@ -22,7 +22,7 @@ async function fetchCustomersList(coachId: string | null) {
       .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
       .order("name");
     if (!isAdmin) {
-      // owner's own customers + any assigned (co-coach) + any owned by the downline (read-only)
+      // own customers + assigned (co-coach) + everyone owned by the downline (full care, all levels)
       const [assigned, downline] = await Promise.all([
         assignedCustomerIds(coachId!),
         downlineUserIds(coachId!),

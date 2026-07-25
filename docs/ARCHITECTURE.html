@@ -188,7 +188,7 @@
     <tr><th>ชั้น</th><th>กลไก</th></tr>
     <tr><td>Auth</td><td>Supabase Auth (email+password) · session ผ่าน <code>lib/auth/session.ts</code></td></tr>
     <tr><td>Role</td><td><code>admin</code> / <code>abo</code> + <code>user_app_grants</code> รายแอป</td></tr>
-    <tr><td>ข้อมูลลูกค้า</td><td><code>lib/customers/access.ts</code> — เจ้าของ (<code>coach_id</code>) · ผู้ได้รับมอบหมาย · downline (read-only)</td></tr>
+    <tr><td>ข้อมูลลูกค้า</td><td><code>lib/customers/access.ts</code> → <b><code>canManageCustomer()</code> = ด่านเดียว</b> — เจ้าของ (<code>coach_id</code>) · ผู้ได้รับมอบหมาย · <b>upline ของเจ้าของทุกระดับชั้น (อ่าน+เขียน · recursive ผ่าน RPC <code>profile_descendant_ids</code>)</b> · ห้าม route เขียนเช็คสิทธิ์เอง</td></tr>
     <tr><td>RLS</td><td>เปิดบนตารางอ่อนไหว (<code>cgm_readings</code>, <code>cgm_meals</code>) · CGM ใช้ passcode + SECURITY DEFINER RPC</td></tr>
     <tr><td>Service role</td><td>เฉพาะ <code>lib/supabase/admin.ts</code> ฝั่งเซิร์ฟเวอร์ · ห้ามหลุดไป client</td></tr>
     <tr><td>ลิงก์สาธารณะ</td><td>token ใช้ครั้งเดียว/มีวันหมดอายุ (<code>user_invites</code>, <code>pulse_invites</code>, <code>pulse_intakes</code>)</td></tr>

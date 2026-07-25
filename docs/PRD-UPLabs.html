@@ -104,11 +104,11 @@
   <table>
     <tr><th>Role</th><th>ใคร</th><th>เห็นอะไร</th></tr>
     <tr><td><span class="tag t-rose">admin</span></td><td>ต้น / ผู้ดูแล</td><td>ทุกอย่าง + จัดการผู้ใช้ + backup/restore + view-as</td></tr>
-    <tr><td><span class="tag t-well">abo</span></td><td>นักธุรกิจ/โค้ช</td><td>ลูกค้าของตัวเอง + downline (อ่านอย่างเดียว) + แอปที่ได้รับสิทธิ์</td></tr>
+    <tr><td><span class="tag t-well">abo</span></td><td>นักธุรกิจ/โค้ช</td><td>ลูกค้าของตัวเอง + <b>ลูกค้าของสายงานทุกระดับชั้นลงไป (ดูแลได้เต็มที่ อ่าน+เขียน)</b> + แอปที่ได้รับสิทธิ์</td></tr>
     <tr><td><span class="tag t-amber">public link</span></td><td>ลูกค้า/ผู้สนใจ</td><td>เฉพาะหน้า token-gated ที่ได้รับลิงก์ (ไม่ต้องล็อกอิน)</td></tr>
   </table>
   <ul>
-    <li><b>Downline (MLM):</b> <code>profiles.parent_id</code> — ผู้ถูกเชิญกลายเป็น downline ของผู้เชิญอัตโนมัติ</li>
+    <li><b>Downline (MLM):</b> <code>profiles.parent_id</code> — ผู้ถูกเชิญกลายเป็น downline ของผู้เชิญอัตโนมัติ · <b>upline ดูแลลูกค้าของสายงานได้ทุกระดับชั้นลงไป ทั้งดูและแก้ไข</b> (24 ก.ค. 2026) · ใช้ helper เดียว <code>canManageCustomer()</code> ห้ามเขียนเช็คสิทธิ์เอง</li>
     <li><b>App grants:</b> <code>user_app_grants</code> เปิด/ปิดแอปรายคน</li>
     <li><b>View-as:</b> admin สวมมุมมองผู้ใช้อื่นเพื่อ support · ลง <code>admin_view_as_log</code> ทุกครั้ง</li>
   </ul>
@@ -252,6 +252,7 @@
   <h2><span class="num">11</span> Changelog</h2>
   <table>
     <tr><th>วันที่</th><th>เปลี่ยนอะไร</th><th>commit</th></tr>
+    <tr><td>2026-07-24</td><td><b>RBAC: upline ดูแลได้ทุกระดับชั้นลงไป (อ่าน+เขียน)</b> — เพิ่ม <code>canManageCustomer()</code> เป็น helper เดียว สลับ 26 จุดใน 24 route · เดิม downline read-only ทำให้ upline เจอ <code>forbidden</code> เวลาบันทึก · <b>อุดช่องโหว่ <code>POST /api/customers/[id]/measurements</code> (บันทึก BCA) ที่ไม่มีเช็คสิทธิ์เลย</b> · ทุก 403 คืนข้อความไทยบอกเหตุผล</td><td>—</td></tr>
     <tr><td>2026-07-16</td><td><b>NutriScan สิทธิ์:</b> เช็คเจ้าของลูกค้า <b>เฉพาะเมื่อจะบันทึก</b> (วิเคราะห์เฉย ๆ ไม่ใช้ <code>customer_id</code>) + เปลี่ยน <code>forbidden</code> ดิบเป็นข้อความไทยบอกสาเหตุ (ลูกค้าของ downline = ดูได้ บันทึกแทนไม่ได้)</td><td>—</td></tr>
     <tr><td>2026-07-16</td><td>แยก error คีย์ AI 2 เคส: <b>400 = คีย์ผิด/หมดอายุ</b> (ขอคีย์ใหม่) vs <b>403 = คีย์ถูกแต่ไม่มีสิทธิ์</b> (โปรเจกต์ยังไม่เปิด Generative Language API / คีย์ถูกจำกัด → บอกวิธีแก้ที่ถูก)</td><td>—</td></tr>
     <tr><td>2026-07-16</td><td>เพิ่ม user dropdown + logout ใน v2 Shell</td><td><code>077ea56</code></td></tr>

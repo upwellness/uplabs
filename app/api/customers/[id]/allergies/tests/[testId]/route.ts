@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 
 /**
  * DELETE · Remove allergy test (cascades to allergens via FK ON DELETE CASCADE)
@@ -22,7 +22,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string; 
     if (!customer) return NextResponse.json({ error: "customer not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
+    if (!isAdmin && customer.coach_id !== session.user.id && !(await canManageCustomer(session.user.id, params.id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

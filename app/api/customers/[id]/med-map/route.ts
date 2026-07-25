@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getReportHtml, saveReportHtml } from "@/lib/reports/report-store";
 
@@ -34,8 +34,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (
     !isAdmin &&
     customer.coach_id !== session.user.id &&
-    !(await isAssignedToCustomer(session.user.id, params.id)) &&
-    !(await isDownlineCustomer(session.user.id, params.id))
+    !(await canManageCustomer(session.user.id, params.id))
   ) {
     return new NextResponse("forbidden", { status: 403 });
   }
@@ -70,8 +69,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (!customer) return new NextResponse("customer not found", { status: 404 });
 
   const isAdmin = session.profile.role === "admin";
-  // write access = admin / owner / co-coach (NOT downline — that's read-only)
-  if (!isAdmin && customer.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, params.id))) {
+  // write access = admin / owner / co-coach / upline (canManageCustomer)
+  if (!isAdmin && customer.coach_id !== session.user.id && !(await canManageCustomer(session.user.id, params.id))) {
     return new NextResponse("forbidden", { status: 403 });
   }
 

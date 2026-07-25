@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 
 /** Coach view: connection + readings + intakes + assessments for one customer. */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -18,8 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (
       !isAdmin &&
       customer.coach_id !== session.user.id &&
-      !(await isAssignedToCustomer(session.user.id, params.id)) &&
-      !(await isDownlineCustomer(session.user.id, params.id))
+      !(await canManageCustomer(session.user.id, params.id))
     ) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }

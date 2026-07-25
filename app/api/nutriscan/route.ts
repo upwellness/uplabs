@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer, isDownlineCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 import { analyzeFood, type NutriScanResult } from "@/lib/nutriscan/gemini-vision";
 
 export const runtime = "nodejs";
@@ -38,15 +38,10 @@ export async function POST(req: Request) {
       if (!c) return NextResponse.json({ error: "customer not found" }, { status: 404 });
       const isAdmin = session.profile.role === "admin";
       const isOwner = c.coach_id === session.user.id;
-      if (!isAdmin && !isOwner && !(await isAssignedToCustomer(session.user.id, customer_id))) {
-        // Downline customers are read-only by design → explain instead of a bare "forbidden".
-        const isDownline = await isDownlineCustomer(session.user.id, customer_id);
+      if (!isAdmin && !isOwner && !(await canManageCustomer(session.user.id, customer_id))) {
+        // Never a bare "forbidden" — say why, in Thai.
         return NextResponse.json(
-          {
-            error: isDownline
-              ? "ลูกค้าคนนี้อยู่ในความดูแลของโค้ชในสายงานของคุณ — คุณดูข้อมูลได้ แต่บันทึกผลสแกนแทนไม่ได้ · ปิด “บันทึกเข้าประวัติ” เพื่อวิเคราะห์อย่างเดียว หรือให้โค้ชเจ้าของบันทึกเอง"
-              : "ลูกค้าคนนี้ไม่ได้อยู่ในความดูแลของคุณ — เลือกลูกค้าของคุณ หรือขอสิทธิ์จากแอดมิน",
-          },
+          { error: "ลูกค้าคนนี้ไม่ได้อยู่ในความดูแลของคุณ (ไม่ใช่ลูกค้าของคุณหรือของสายงานคุณ) — เลือกลูกค้าของคุณ หรือขอสิทธิ์จากแอดมิน" },
           { status: 403 },
         );
       }

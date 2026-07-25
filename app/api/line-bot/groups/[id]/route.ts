@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
-import { isAssignedToCustomer } from "@/lib/customers/access";
+import { canManageCustomer } from "@/lib/customers/access";
 
 /**
  * น้องจาน · update / delete a single LINE bot group mapping.
@@ -43,7 +43,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const { group, ownerCoachId } = await loadGroupOwner(admin, params.id);
     if (!group) return NextResponse.json({ error: "group not found" }, { status: 404 });
-    if (!isAdmin && ownerCoachId !== session.user.id && !(await isAssignedToCustomer(session.user.id, group.customer_id))) {
+    if (!isAdmin && ownerCoachId !== session.user.id && !(await canManageCustomer(session.user.id, group.customer_id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
@@ -59,7 +59,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         .eq("id", newCustId)
         .maybeSingle();
       if (!newCust) return NextResponse.json({ error: "customer not found" }, { status: 404 });
-      if (!isAdmin && newCust.coach_id !== session.user.id && !(await isAssignedToCustomer(session.user.id, newCustId))) {
+      if (!isAdmin && newCust.coach_id !== session.user.id && !(await canManageCustomer(session.user.id, newCustId))) {
         return NextResponse.json({ error: "forbidden — ผูกได้เฉพาะลูกค้าของตัวเอง" }, { status: 403 });
       }
       update.customer_id = newCustId;
@@ -104,7 +104,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
     const { group, ownerCoachId } = await loadGroupOwner(admin, params.id);
     if (!group) return NextResponse.json({ error: "group not found" }, { status: 404 });
-    if (!isAdmin && ownerCoachId !== session.user.id && !(await isAssignedToCustomer(session.user.id, group.customer_id))) {
+    if (!isAdmin && ownerCoachId !== session.user.id && !(await canManageCustomer(session.user.id, group.customer_id))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
