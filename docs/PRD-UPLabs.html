@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRD — UP Labs (upwellness-ops)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F1E1B; --ink80:#3D3840; --ink60:#5C5660; --ink40:#8A838E; --ink10:#E2DED8;
+    --cream:#F7F4EE; --paper:#fff; --surface:#FBF9F5;
+    --rose:#8C4C4C; --rose-u:#FAF3F2; --well:#396755; --well-u:#F0F8F4;
+    --amber:#C47A2A; --amber-u:#FEFAF3; --sci:#2A7B8F; --sci-u:#EDF7FA;
+    --gold:#C99D2F; --danger:#DC2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:Sarabun,-apple-system,sans-serif;font-size:15px;line-height:1.8}
+  h1,h2,h3,h4{font-family:Kanit,sans-serif;line-height:1.35;margin:0}
+  a{color:var(--rose)}
+  code{background:var(--surface);border:1px solid var(--ink10);border-radius:5px;padding:1px 5px;font-size:.88em;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+  header.top{background:linear-gradient(135deg,var(--rose-u),var(--cream) 45%,var(--well-u));border-bottom:1px solid var(--ink10)}
+  .hero{max-width:1080px;margin:0 auto;padding:38px 20px 30px}
+  .eyebrow{font-family:Kanit;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rose)}
+  h1{font-size:clamp(26px,4.5vw,40px);margin-top:8px}
+  .sub{color:var(--ink60);margin-top:10px;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{background:#fff;border:1px solid var(--ink10);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--ink60)}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink10)}
+  nav.toc .in{max-width:1080px;margin:0 auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto}
+  nav.toc a{white-space:nowrap;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink60);border:1px solid var(--ink10);background:#fff;border-radius:999px;padding:5px 12px}
+  nav.toc a:hover{color:var(--rose);border-color:var(--rose)}
+  section{background:var(--paper);border:1px solid var(--ink10);border-radius:22px;padding:26px 26px 22px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.02),0 20px 40px -34px rgba(140,76,76,.25)}
+  section>h2{font-size:22px;display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:var(--rose);color:#fff;font-size:13px}
+  h3{font-size:16.5px;margin-top:22px;color:var(--ink)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--ink10);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--surface);font-family:Kanit;font-weight:600;font-size:12.5px}
+  tr:nth-child(even) td{background:#FCFBF9}
+  .callout{border-left:4px solid var(--gold);background:var(--amber-u);border-radius:0 14px 14px 0;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-color:var(--danger);background:#FEF2F2}
+  .callout.ok{border-color:var(--well);background:var(--well-u)}
+  .callout b{color:var(--ink)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:14px 0}
+  .card{border:1px solid var(--ink10);border-radius:16px;padding:14px 16px;background:#fff}
+  .card .t{font-family:Kanit;font-weight:600;font-size:14.5px}
+  .card .d{font-size:13px;color:var(--ink60);margin-top:4px}
+  .tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;font-family:Kanit}
+  .t-rose{background:var(--rose-u);color:var(--rose)} .t-well{background:var(--well-u);color:var(--well)}
+  .t-amber{background:var(--amber-u);color:var(--amber)} .t-sci{background:var(--sci-u);color:var(--sci)}
+  footer{max-width:1080px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
+  @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hero">
+    <div class="eyebrow">Product Requirements Document</div>
+    <h1>UP Labs — Health Intelligence Platform</h1>
+    <p class="sub">แพลตฟอร์มภายในของ UP Wellness ที่รวมข้อมูลสุขภาพลูกค้าทุกช่องทางไว้ที่เดียว แล้วเปลี่ยนเป็นคำแนะนำที่ลงมือได้สำหรับโค้ช — ไม่ใช่เครื่องมือขายของ แต่เป็นเครื่องมือดูแลคน</p>
+    <div class="meta">
+      <span class="chip">v1.0 · 16 ก.ค. 2026</span>
+      <span class="chip">upwellness-ops.vercel.app</span>
+      <span class="chip">repo upwellness/uplabs</span>
+      <span class="chip">Next.js 16 + Supabase</span>
+      <span class="chip">Owner: ต้น</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="in">
+  <a href="#s1">1 ภาพรวม</a><a href="#s2">2 ผู้ใช้</a><a href="#s3">3 หน้าจอ</a><a href="#s4">4 ฟีเจอร์</a>
+  <a href="#s5">5 กฎร่วม</a><a href="#s6">6 Non-Goals</a><a href="#s7">7 ตัวชี้วัด</a><a href="#s8">8 Data</a>
+  <a href="#s9">9 ปัญหาค้าง</a><a href="#s10">10 Roadmap</a><a href="#s11">11 Changelog</a>
+</div></nav>
+
+<div class="wrap">
+
+<div class="callout warn">
+  <b>⚠️ LIVING DOCUMENT — กติกา:</b> ทุกครั้งที่แก้โค้ดแล้ว <b>ฟีเจอร์เปลี่ยน / เพิ่ม route / เพิ่มตาราง / เปลี่ยน data model</b>
+  ต้องอัปเดต <code>PRD-UPLabs.md</code> + ไฟล์นี้ + <code>ARCHITECTURE.md/.html</code> <b>ในคอมมิตเดียวกัน</b> แล้วเติม 1 บรรทัดใน Changelog เสมอ
+</div>
+
+<section id="s1">
+  <h2><span class="num">1</span> ภาพรวมผลิตภัณฑ์</h2>
+  <p><b>ปัญหา:</b> ข้อมูลลูกค้ากระจัดกระจาย — ใบแล็บกระดาษ · เครื่องชั่ง BCA · นาฬิกา · CGM · แชท LINE โค้ชต้องจำเอง คำแนะนำเลยไม่ต่อเนื่องและพิสูจน์ผลไม่ได้</p>
+  <p><b>ทางแก้:</b> ศูนย์กลางเดียวคือ <b>Customer Profile</b> ที่ทุกโมดูลเขียนเข้า/อ่านออก + ชั้น AI ช่วยแปลผล + ลิงก์สาธารณะให้ลูกค้ากรอก/เชื่อมข้อมูลเองได้</p>
+  <div class="grid">
+    <div class="card"><div class="t">1 · Customer profile เป็นแกนกลาง</div><div class="d">ทุกฟีเจอร์ต้องผูกกับ <code>customers.id</code></div></div>
+    <div class="card"><div class="t">2 · Evidence over vibes</div><div class="d">ตัวเลขจริงจากใบตรวจ/อุปกรณ์ ห้ามเดา</div></div>
+    <div class="card"><div class="t">3 · Wellness ≠ diagnosis</div><div class="d">ผิดปกติ → "ปรึกษาแพทย์" ห้ามเคลมรักษา</div></div>
+    <div class="card"><div class="t">4 · โค้ชเร็วขึ้น ไม่ใช่ถูกแทนที่</div><div class="d">AI สรุป/จัดลำดับ · คนตัดสินใจ</div></div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span> ผู้ใช้ &amp; สิทธิ์</h2>
+  <table>
+    <tr><th>Role</th><th>ใคร</th><th>เห็นอะไร</th></tr>
+    <tr><td><span class="tag t-rose">admin</span></td><td>ต้น / ผู้ดูแล</td><td>ทุกอย่าง + จัดการผู้ใช้ + backup/restore + view-as</td></tr>
+    <tr><td><span class="tag t-well">abo</span></td><td>นักธุรกิจ/โค้ช</td><td>ลูกค้าของตัวเอง + downline (อ่านอย่างเดียว) + แอปที่ได้รับสิทธิ์</td></tr>
+    <tr><td><span class="tag t-amber">public link</span></td><td>ลูกค้า/ผู้สนใจ</td><td>เฉพาะหน้า token-gated ที่ได้รับลิงก์ (ไม่ต้องล็อกอิน)</td></tr>
+  </table>
+  <ul>
+    <li><b>Downline (MLM):</b> <code>profiles.parent_id</code> — ผู้ถูกเชิญกลายเป็น downline ของผู้เชิญอัตโนมัติ</li>
+    <li><b>App grants:</b> <code>user_app_grants</code> เปิด/ปิดแอปรายคน</li>
+    <li><b>View-as:</b> admin สวมมุมมองผู้ใช้อื่นเพื่อ support · ลง <code>admin_view_as_log</code> ทุกครั้ง</li>
+  </ul>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span> แผนที่หน้าจอ (v1 / v2)</h2>
+  <div class="callout ok"><b>v2 = surface หลัก</b> (<code>/v2/*</code> ใช้ <code>Shell.tsx</code> — top bar + app switcher + breadcrumb + user menu พร้อม logout) · v1 ยังเปิดอยู่สำหรับหน้าที่ยังไม่ย้าย</div>
+  <table>
+    <tr><th>งาน</th><th>v1</th><th>v2</th></tr>
+    <tr><td>หน้าแรก / app hub</td><td><code>/</code></td><td><code>/v2</code></td></tr>
+    <tr><td>Customer 360</td><td><code>/customers/[id]</code></td><td><code>/v2/customers/[id]</code> ✅หลัก</td></tr>
+    <tr><td>BCA Tracker</td><td><code>/bca</code></td><td><code>/v2/bca</code></td></tr>
+    <tr><td>Health Age (PhenoAge)</td><td>—</td><td><code>/v2/bio-age</code></td></tr>
+    <tr><td>UP Pulse (wearables)</td><td><code>/pulse/*</code></td><td><code>/v2/pulse/*</code></td></tr>
+    <tr><td>Check FORM</td><td><code>/checkform</code></td><td><code>/v2/checkform</code></td></tr>
+    <tr><td>Prospects / Health Check</td><td><code>/prospects</code>, <code>/healthcheck</code></td><td><code>/v2/…</code></td></tr>
+    <tr><td>NutriScan / Food Log</td><td><code>/nutriscan</code></td><td><code>/v2/nutriscan</code></td></tr>
+    <tr><td>Plate Planner / LINE Bot</td><td><code>/plate-planner</code>, <code>/line-bot</code></td><td><code>/v2/…</code></td></tr>
+    <tr><td>Program Designer</td><td><code>/designer</code></td><td><code>/v2/designer</code></td></tr>
+    <tr><td>CGM Analyzer</td><td><code>/cgm</code></td><td>— (backlog)</td></tr>
+    <tr><td>Admin · users/backup</td><td><code>/admin/*</code></td><td><code>/v2/admin/*</code></td></tr>
+    <tr><td>ชวนสมาชิก</td><td>—</td><td><code>/v2/invite</code></td></tr>
+  </table>
+  <h3>หน้าสาธารณะ (token-gated · ไม่ต้องล็อกอิน)</h3>
+  <p><code>/join/[token]</code> สมัครจากคำเชิญ · <code>/connect/[token]</code> เชื่อมนาฬิกา · <code>/intake/[token]</code> แบบสอบถาม Pulse · <code>/check/[coachId]</code> + <code>/metaflex/[coachId]</code> แบบประเมิน · <code>/r/[token]</code> แชร์รายงาน · <code>/login</code> · <code>/forgot-password</code> · <code>/reset-password</code></p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span> ฟีเจอร์ (โมดูลต่อโมดูล)</h2>
+
+  <h3>4.1 Customer 360 — หัวใจของระบบ</h3>
+  <p>รวมทุกอย่างของลูกค้า 1 คนไว้หน้าเดียว: identity + สถานะสุขภาพ + insight + timeline + แท็บ</p>
+  <table>
+    <tr><th>แท็บ</th><th>เนื้อหา</th><th>ตาราง</th></tr>
+    <tr><td>Labs / Trends</td><td>ผลเลือดทุกครั้ง + กราฟ + สถานะ</td><td><code>customer_records</code>, <code>customer_lab_values</code></td></tr>
+    <tr><td>Body Map</td><td>จุดผิดปกติบนภาพร่างกาย</td><td><code>customer_lab_values</code></td></tr>
+    <tr><td>BCA</td><td>น้ำหนัก/ไขมัน/กล้ามเนื้อ/visceral/body-age</td><td><code>measurements</code></td></tr>
+    <tr><td>Allergy</td><td>ผลทดสอบภูมิแพ้อาหาร</td><td><code>customer_allergy_tests</code>, <code>customer_food_allergens</code></td></tr>
+    <tr><td>CGM</td><td>น้ำตาลต่อเนื่อง + มื้ออาหาร</td><td><code>cgm_profiles/readings/meals</code></td></tr>
+    <tr><td>Supplements</td><td>ตารางวิตามิน + ความปลอดภัยคู่ยา</td><td><code>supplement_schedule</code>, <code>customer_supplement_safety</code></td></tr>
+    <tr><td>Pulse</td><td>ข้อมูลนาฬิกา + assessment</td><td><code>pulse_*</code>, <code>whoop_*</code></td></tr>
+    <tr><td>Notes</td><td>โน้ตโค้ช (ปักหมุดได้)</td><td><code>coach_notes</code></td></tr>
+  </table>
+  <p><b>ย่อย:</b> health score + insight rules · Med-Map report · เก็บรายงาน HTML ส่วนตัว (<code>customer_report_html</code>) · access control (เจ้าของ/ผู้รับมอบหมาย/downline) · view log</p>
+
+  <h3>4.2 BCA Tracker + Health Age</h3>
+  <ul>
+    <li><b>BCA:</b> บันทึกผลเครื่องชั่ง → เกจ + กราฟย้อนหลัง + แก้/ลบ + ออกรายงาน</li>
+    <li><b>เกณฑ์เดียวทั้งระบบ:</b> <code>lib/medical-status.ts</code> (5 ระดับ traffic-light + ป้ายไทยตามเกณฑ์คลินิก) ใช้ทั้งเกจ v2 · BCA Scan Reveal · labs</li>
+    <li><b>Health Age (PhenoAge · Levine 2018):</b> <code>lib/bio-age.ts</code> — 9 marker · โหมด hybrid เติมค่าที่ขาดด้วยค่าประชากรตามอายุ + ป้าย "ประมาณ" · <b>Customer 360 โชว์เลขเฉพาะเมื่อมี CRP + RDW จริง</b></li>
+  </ul>
+
+  <h3>4.3 UP Pulse — Wearables &amp; Assessment</h3>
+  <p>Whoop (OAuth + CSV) · Apple Health (export.xml) · Google Fit (⚠️ deprecated) — โค้ชสร้าง invite → ลูกค้าเปิด <code>/connect/[token]</code> → ยินยอม → ดึงข้อมูล · แบบสอบถาม <code>/intake/[token]</code> → ประเมิน → รายงานรวมทุก provider + แชร์ผ่าน <code>/r/[token]</code></p>
+
+  <h3>4.4 CGM Analyzer</h3>
+  <p>น้ำตาลต่อเนื่อง + มื้ออาหาร · เข้าถึงด้วย <b>passcode ต่อ profile</b> (RLS + SECURITY DEFINER RPC) · <code>cgm_readings</code> ใหญ่สุดในระบบ (~34k แถว)</p>
+
+  <h3>4.5 NutriScan AI + Food Log</h3>
+  <p>ถ่ายรูปอาหาร → Gemini Vision → มาโคร + ผลต่อน้ำตาล + คะแนนสุขภาพ + คำแนะนำ → บันทึกเข้า <code>nutriscan_scans</code></p>
+
+  <h3>4.6 Plate Planner + LINE Bot (น้องจาน)</h3>
+  <p>จัดจาน Muscle-Centric (Dr. Gabrielle Lyon) · อาหารไทยไม่ซ้ำ · สร้างภาพจานด้วย AI (แคชใน Storage) · ตั้งค่าต่อลูกค้า · LINE bot ผูกกลุ่มกับลูกค้าแล้วส่งเมนู+วิตามินอัตโนมัติ 18:00</p>
+
+  <h3>4.7 Check FORM — AI Prospect Analysis</h3>
+  <p>โปรไฟล์ผู้มุ่งหวัง + DISC → Gemini วิเคราะห์: แนวทางเข้าหา · สัดส่วน product/business · บทสนทนาตัวอย่าง · roleplay · red flags → <b>จับคู่คลิป STP</b> (reasoning-based) · cache ใน <code>checkform_records</code></p>
+
+  <h3>4.8 Prospect / Lead Pipeline</h3>
+  <p>Prospect List → แปลงเป็น Check FORM record · Health Check สาธารณะ (<code>/check/[coachId]</code>) → <code>healthcheck_leads</code> → ผูกเป็นลูกค้าได้</p>
+
+  <h3>4.9–4.10 Program Designer · Admin &amp; Platform</h3>
+  <p>ออกแบบโปรแกรมรายบุคคล · จัดการผู้ใช้/role/downline · Backup–Restore · View-as · Auth (login/join/reset) + ระบบเชิญ</p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span> กฎร่วมทุกโมดูล</h2>
+  <table>
+    <tr><th>เรื่อง</th><th>กติกา</th></tr>
+    <tr><td><b>AI key</b></td><td><b>BYO Gemini key</b> — เก็บใน browser <code>localStorage['uplabs_gemini_key']</code> · <b>ไม่มี fallback ฝั่ง server</b> · error เรื่องคีย์ต้องโชว์ <code>GeminiKeyErrorNotice</code> (ชวนไปขอคีย์) ห้ามโชว์ error ดิบ · ยกเว้น <code>lib/pulse/gemini.ts</code> ใช้คีย์ server</td></tr>
+    <tr><td><b>เกณฑ์สุขภาพ</b></td><td>ใช้ <code>lib/medical-status.ts</code> ที่เดียว ห้าม hardcode สี/เกณฑ์ซ้ำ</td></tr>
+    <tr><td><b>Compliance</b></td><td>wellness ≠ diagnosis · ผิดปกติ → "ปรึกษาแพทย์" · อาหารเสริมผ่านเภสัชกร (จิ้น) + แพทย์ · ห้าม "รักษา/หาย/100%"</td></tr>
+    <tr><td><b>PII</b></td><td>repo <b>public</b> — ห้าม commit รายงานสุขภาพ/ชื่อลูกค้า/คีย์ · รายงานเก็บใน <code>customer_report_html</code> (private)</td></tr>
+    <tr><td><b>ลิงก์สาธารณะ</b></td><td><code>NEXT_PUBLIC_SITE_URL</code> = <code>https://upwellness-ops.vercel.app</code> (ห้ามมี <code>/</code> ท้าย) · builder strip trailing slash แล้ว</td></tr>
+    <tr><td><b>A11y</b></td><td>WCAG 2.2 AA · สถานะห้ามสื่อด้วยสีอย่างเดียว · touch ≥44px · รองรับ reduced-motion</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span> Non-Goals (จงใจไม่ทำ)</h2>
+  <ol>
+    <li>ไม่เป็นเวชระเบียนโรงพยาบาล (EMR) และไม่วินิจฉัยโรค</li>
+    <li>ไม่ทำ e-commerce / ตะกร้าสินค้าในระบบนี้</li>
+    <li>ไม่เก็บคีย์ AI ของผู้ใช้ไว้บนเซิร์ฟเวอร์ (BYO เท่านั้น)</li>
+    <li>ไม่เปิดข้อมูลลูกค้าข้ามสายที่ไม่ใช่ downline ของตัวเอง</li>
+    <li>ไม่ทำแอปมือถือ native (ยัง) — เว็บ responsive</li>
+  </ol>
+</section>
+
+<section id="s7">
+  <h2><span class="num">7</span> ตัวชี้วัดความสำเร็จ</h2>
+  <table>
+    <tr><th>ตัวชี้วัด</th><th>เป้า</th></tr>
+    <tr><td>ลูกค้าที่มีโปรไฟล์ครบ (lab + BCA อย่างน้อย 1 ชุด)</td><td>เพิ่มทุกเดือน</td></tr>
+    <tr><td>เวลาเตรียมตัวก่อนคุยกับลูกค้า 1 คน</td><td>&lt; 5 นาที</td></tr>
+    <tr><td>ลูกค้าที่เชื่อมอุปกรณ์/ส่งผลแล็บเอง</td><td>↑ ผ่านลิงก์ invite</td></tr>
+    <tr><td>Check FORM → นัดคุยจริง</td><td>ติดตามผ่าน prospect pipeline</td></tr>
+    <tr><td>Longevity Report ที่ส่งมอบ</td><td>ทุกเคสที่มีผลแล็บครบ</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="num">8</span> Data Model (สรุป)</h2>
+  <div class="callout"><b><code>customers</code> = hub</b> — มี <b>28 ตารางที่ FK ตรงเข้า <code>customers.id</code></b> ครอบคลุม lab · BCA · allergy · CGM · wearable · supplement · report · note · LINE · lead<br>
+  ฉบับเต็ม + ไดอะแกรม + โอกาสต่อยอด → <a href="./ARCHITECTURE.html">ARCHITECTURE.html</a></div>
+</section>
+
+<section id="s9">
+  <h2><span class="num">9</span> ปัญหาค้าง / Open Items</h2>
+  <table>
+    <tr><th>#</th><th>เรื่อง</th><th>สถานะ</th></tr>
+    <tr><td>1</td><td><b>Google Fit sync ตาย</b> — OAuth ยัง Testing mode (refresh token 7 วัน) + Google ปิด Fit REST API สิ้นปี 2026</td><td>ต้องเลือก: Google Health API หรือ upload ไฟล์</td></tr>
+    <tr><td>2</td><td><code>NEXT_PUBLIC_SITE_URL</code> ใน Vercel ยังชี้โดเมนเว็บไซต์ (ผิด)</td><td class="warnc"><b>ต้นต้องแก้เป็น upwellness-ops + redeploy</b></td></tr>
+    <tr><td>3</td><td><code>app/setup/page.tsx</code> แสดงตัวอย่างโดเมนผิด</td><td>pending</td></tr>
+    <tr><td>4</td><td>CGM ยังไม่มีหน้า v2</td><td>backlog</td></tr>
+    <tr><td>5</td><td>v1 ↔ v2 อยู่คู่กัน (ลูกค้ามี 2 หน้า)</td><td>ทยอย cutover</td></tr>
+  </table>
+</section>
+
+<section id="s10">
+  <h2><span class="num">10</span> Roadmap</h2>
+  <ol>
+    <li>ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1</li>
+    <li>แก้เส้นทาง wearable (Google Health API หรือ upload) ให้ sync กลับมาได้</li>
+    <li>Longevity Report ให้เป็นปุ่มเดียวในแอป</li>
+    <li>ต่อยอด data model → ดู "โอกาสต่อยอด" ใน ARCHITECTURE</li>
+  </ol>
+</section>
+
+<section id="s11">
+  <h2><span class="num">11</span> Changelog</h2>
+  <table>
+    <tr><th>วันที่</th><th>เปลี่ยนอะไร</th><th>commit</th></tr>
+    <tr><td>2026-07-16</td><td>แยก error คีย์ AI 2 เคส: <b>400 = คีย์ผิด/หมดอายุ</b> (ขอคีย์ใหม่) vs <b>403 = คีย์ถูกแต่ไม่มีสิทธิ์</b> (โปรเจกต์ยังไม่เปิด Generative Language API / คีย์ถูกจำกัด → บอกวิธีแก้ที่ถูก)</td><td>—</td></tr>
+    <tr><td>2026-07-16</td><td>เพิ่ม user dropdown + logout ใน v2 Shell</td><td><code>077ea56</code></td></tr>
+    <tr><td>2026-07-16</td><td>strip trailing slash ทุก link builder (แก้ <code>//join</code> 404)</td><td><code>910590d</code></td></tr>
+    <tr><td>2026-07-16</td><td>ข้อความ "ขอคีย์ใหม่" แทน error ดิบ ทุกฟีเจอร์ BYO key</td><td><code>710c7a7</code>, <code>ed597e4</code></td></tr>
+    <tr><td>2026-07-16</td><td>สร้าง PRD + ARCHITECTURE ฉบับแรก</td><td>เอกสารนี้</td></tr>
+  </table>
+</section>
+
+</div>
+<footer>UP Labs · PRD v1.0 · คู่กับ <a href="./ARCHITECTURE.html">ARCHITECTURE.html</a> และ <code>PRD-UPLabs.md</code> — เอกสารนี้ต้องอัปเดตทุกครั้งที่ฟีเจอร์เปลี่ยน</footer>
+</body>
+</html>

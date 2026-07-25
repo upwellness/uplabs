@@ -132,7 +132,7 @@ function Loading() {
 function ErrorPanel({ error, onClose }: { error: string; onClose: () => void }) {
   // Key problem → guide the user to get a fresh (free) key instead of showing a raw error.
   if (isGeminiKeyError(error)) {
-    return <GeminiKeyErrorNotice onClose={onClose} className="m-6" />;
+    return <GeminiKeyErrorNotice error={error} onClose={onClose} className="m-6" />;
   }
 
   return (
@@ -328,7 +328,7 @@ function ClipRecommendationsSection({
       {loading && <ClipLoading />}
       {error && (
         isGeminiKeyError(error) ? (
-          <GeminiKeyErrorNotice className="mt-1" />
+          <GeminiKeyErrorNotice error={error} className="mt-1" />
         ) : (
           <div className="rounded-xl bg-status-bg-danger/40 px-4 py-3 font-mono text-[11px] text-status-danger break-words">
             ⚠ {error}

@@ -290,7 +290,7 @@ export function NutriScanClient() {
 
           {error && (
             isGeminiKeyError(error) ? (
-              <GeminiKeyErrorNotice className="mt-4" />
+              <GeminiKeyErrorNotice error={error} className="mt-4" />
             ) : (
               <div className="mt-4 rounded-xl border border-status-danger/30 bg-status-bg-danger/50 px-4 py-3 font-thai text-sm text-status-danger">
                 {error}

@@ -4,6 +4,8 @@
  * Returns: approach · dialog samples · product/business ratio · roleplay
  */
 
+import { classifyGeminiFetchError } from "@/lib/gemini-error";
+
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `คุณคือ AI ของ UP Wellness Ops — เครื่องมือช่วย ABO (Amway business owner) วิเคราะห์ prospect ก่อนเปิดบทสนทนา
@@ -163,12 +165,8 @@ ${JSON.stringify(profile, null, 2)}
 
   if (!res.ok) {
     const t = await res.text();
-    // Key problems (bad/expired/revoked key = 400 API_KEY_INVALID · disabled/restricted = 403)
-    // → throw a clean sentinel so the UI can guide the user to get a new key.
-    if ((res.status === 400 && /api[_ ]?key|API_KEY_INVALID|INVALID_ARGUMENT/i.test(t)) || res.status === 403) {
-      throw new Error("GEMINI_KEY_INVALID");
-    }
-    throw new Error(`Gemini fetch failed: ${res.status} ${t.slice(0, 300)}`);
+    // Clean sentinel so the UI can guide the user (invalid key vs. key without permission).
+    throw new Error(classifyGeminiFetchError(res.status, t));
   }
   const json = await res.json();
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";

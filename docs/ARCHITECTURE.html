@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Architecture &amp; Data Model — UP Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F1E1B;--ink80:#3D3840;--ink60:#5C5660;--ink40:#8A838E;--ink10:#E2DED8;
+    --cream:#F7F4EE;--paper:#fff;--surface:#FBF9F5;
+    --rose:#8C4C4C;--rose-u:#FAF3F2;--well:#396755;--well-u:#F0F8F4;
+    --amber:#C47A2A;--amber-u:#FEFAF3;--sci:#2A7B8F;--sci-u:#EDF7FA;--gold:#C99D2F;--danger:#DC2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:Sarabun,-apple-system,sans-serif;font-size:15px;line-height:1.8}
+  h1,h2,h3{font-family:Kanit,sans-serif;line-height:1.35;margin:0}
+  a{color:var(--rose)}
+  code{background:var(--surface);border:1px solid var(--ink10);border-radius:5px;padding:1px 5px;font-size:.88em;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px 80px}
+  header.top{background:linear-gradient(135deg,var(--sci-u),var(--cream) 45%,var(--well-u));border-bottom:1px solid var(--ink10)}
+  .hero{max-width:1100px;margin:0 auto;padding:38px 20px 30px}
+  .eyebrow{font-family:Kanit;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--sci)}
+  h1{font-size:clamp(26px,4.5vw,40px);margin-top:8px}
+  .sub{color:var(--ink60);margin-top:10px;max-width:72ch}
+  .chip{display:inline-block;background:#fff;border:1px solid var(--ink10);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--ink60);margin:14px 6px 0 0}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink10)}
+  nav.toc .in{max-width:1100px;margin:0 auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto}
+  nav.toc a{white-space:nowrap;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink60);border:1px solid var(--ink10);background:#fff;border-radius:999px;padding:5px 12px}
+  nav.toc a:hover{color:var(--sci);border-color:var(--sci)}
+  section{background:var(--paper);border:1px solid var(--ink10);border-radius:22px;padding:26px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.02),0 20px 40px -34px rgba(42,123,143,.25)}
+  section>h2{font-size:22px;display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:var(--sci);color:#fff;font-size:13px}
+  h3{font-size:16.5px;margin-top:22px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--ink10);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--surface);font-family:Kanit;font-weight:600;font-size:12.5px}
+  tr:nth-child(even) td{background:#FCFBF9}
+  .callout{border-left:4px solid var(--gold);background:var(--amber-u);border-radius:0 14px 14px 0;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-color:var(--danger);background:#FEF2F2}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+
+  /* ── layered stack ── */
+  .stack{display:grid;gap:8px;margin:16px 0}
+  .layer{border:1px solid var(--ink10);border-radius:14px;padding:12px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .layer .lb{font-family:Kanit;font-weight:600;min-width:150px}
+  .layer .ld{font-size:13.5px;color:var(--ink60);flex:1;min-width:220px}
+  .L1{background:var(--rose-u)}.L2{background:var(--amber-u)}.L3{background:var(--well-u)}.L4{background:var(--sci-u)}.L5{background:var(--surface)}
+
+  /* ── HUB diagram ── */
+  .hub{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+  .node{border:1px solid var(--ink10);border-radius:16px;padding:12px 14px;background:#fff}
+  .node .nt{font-family:Kanit;font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+  .node .nd{font-size:12px;color:var(--ink60);margin-top:5px;line-height:1.6}
+  .node .nd code{font-size:11.5px;background:#fff}
+  .n-rose{border-color:rgba(140,76,76,.35);background:var(--rose-u)}
+  .n-well{border-color:rgba(57,103,85,.35);background:var(--well-u)}
+  .n-amber{border-color:rgba(196,122,42,.35);background:var(--amber-u)}
+  .n-sci{border-color:rgba(42,123,143,.35);background:var(--sci-u)}
+  .core{grid-column:2;border:2px solid var(--rose);background:linear-gradient(135deg,#fff,var(--rose-u));border-radius:20px;padding:18px 16px;text-align:center;box-shadow:0 18px 40px -22px rgba(140,76,76,.5)}
+  .core .ct{font-family:Kanit;font-weight:700;font-size:19px;color:var(--rose)}
+  .core .cs{font-size:12.5px;color:var(--ink60);margin-top:4px}
+  .core .cn{display:inline-block;margin-top:8px;background:var(--rose);color:#fff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;font-family:Kanit}
+  .arrows{text-align:center;color:var(--ink40);font-size:18px;letter-spacing:12px;margin:2px 0}
+  @media(max-width:760px){.hub{grid-template-columns:1fr}.core{grid-column:1}}
+
+  /* flows */
+  .flow{border:1px solid var(--ink10);border-radius:14px;padding:12px 16px;margin:10px 0;background:#fff}
+  .flow .ft{font-family:Kanit;font-weight:600;font-size:14.5px}
+  .flow .fs{font-size:13px;color:var(--ink60);margin-top:6px;line-height:1.9}
+  .flow .fs b{color:var(--rose)}
+  .op td:first-child{font-weight:700;color:var(--sci);text-align:center}
+  footer{max-width:1100px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
+  @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hero">
+    <div class="eyebrow">System Architecture &amp; Data Model</div>
+    <h1>Customer Profile คือแกนกลางของทุกอย่าง</h1>
+    <p class="sub">แผนผังระบบ UP Labs · โมดูลเชื่อมกันยังไง · ข้อมูลไหลไปทางไหน · และเมื่อมีโปรไฟล์ลูกค้าเป็นศูนย์กลางแล้ว เราต่อยอดทำอะไรได้อีกบ้าง</p>
+    <div>
+      <span class="chip">Updated 16 ก.ค. 2026</span>
+      <span class="chip">58 ตาราง · 28 ผูก customers</span>
+      <span class="chip">60 API routes · 45 lib modules</span>
+      <span class="chip">คู่กับ <a href="./PRD-UPLabs.html">PRD-UPLabs</a></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="in">
+  <a href="#s1">1 Context</a><a href="#s2">2 Layers</a><a href="#s3">3 Module Map</a><a href="#s4">4 Data Model · HUB</a>
+  <a href="#s5">5 Data Flows</a><a href="#s6">6 Security</a><a href="#s7">7 🚀 ต่อยอด</a><a href="#s8">8 Conventions</a>
+</div></nav>
+
+<div class="wrap">
+
+<div class="callout warn"><b>⚠️ LIVING DOCUMENT</b> — เพิ่ม/แก้ตาราง โมดูล หรือ data flow เมื่อไหร่ ต้องอัปเดต <code>ARCHITECTURE.md</code> + ไฟล์นี้ในคอมมิตเดียวกัน</div>
+
+<section id="s1">
+  <h2><span class="num">1</span> System Context</h2>
+  <div class="stack">
+    <div class="layer L1"><div class="lb">👥 คน</div><div class="ld">โค้ช/ABO · Admin · <b>ลูกค้า</b> (เข้าผ่าน token link: join · connect · intake · check · r — ไม่ต้องล็อกอิน)</div></div>
+    <div class="arrows">↓</div>
+    <div class="layer L2"><div class="lb">🖥 UP Labs</div><div class="ld">upwellness-ops.vercel.app — Next.js App Router (v2 Shell + v1 pages) → <code>/api/*</code> (60 routes) → <code>lib/*</code> (45 modules)</div></div>
+    <div class="arrows">↓</div>
+    <div class="layer L3"><div class="lb">🗄 Supabase</div><div class="ld">Postgres + RLS (58 ตาราง) · Storage (รูปจาน, รายงาน) · Auth</div></div>
+    <div class="arrows">↕</div>
+    <div class="layer L4"><div class="lb">🔌 ภายนอก</div><div class="ld">Google Gemini (BYO key ต่อผู้ใช้) · LINE Messaging API · Whoop OAuth · Apple Health export · <s>Google Fit</s> ⚠️ deprecated</div></div>
+  </div>
+  <div class="callout"><b>หลักการเชื่อม:</b> ทุก request ที่แตะข้อมูลลูกค้าต้องผ่าน <code>getSession()</code> + <code>lib/customers/access.ts</code> — ยกเว้น <b>token link สาธารณะ</b> ที่ตรวจ token เองในหน้านั้น</div>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span> Layers</h2>
+  <table>
+    <tr><th>ชั้น</th><th>ที่อยู่</th><th>หน้าที่</th></tr>
+    <tr><td>Presentation</td><td><code>app/v2/*</code> (หลัก), <code>app/*</code> (v1)</td><td>UI · Shell (nav/switcher/breadcrumb/user menu)</td></tr>
+    <tr><td>API / BFF</td><td><code>app/api/**/route.ts</code></td><td>ด่านตรวจสิทธิ์ → เรียก lib → ตอบ JSON · <b>ที่เดียวที่คุยกับ external API</b></td></tr>
+    <tr><td>Domain logic</td><td><code>lib/*</code></td><td>กฎคลินิก/ธุรกิจ ไม่มี UI</td></tr>
+    <tr><td>Data access</td><td><code>lib/supabase/{server,admin,client}</code></td><td>server = ผู้ใช้ (RLS) · admin = service-role (server เท่านั้น)</td></tr>
+    <tr><td>Data</td><td>Supabase</td><td>Postgres + Storage</td></tr>
+  </table>
+  <div class="callout"><b>Single sources of truth ที่ห้ามซ้ำ:</b> <code>medical-status.ts</code> (เกณฑ์+สี) · <code>bio-age.ts</code> (PhenoAge) · <code>apps-registry.ts</code> · <code>auth/roles.ts</code> · <code>gemini-error.ts</code> · <code>customers/access.ts</code></div>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span> Module Map</h2>
+  <p>โมดูล “เขียน” ลงโปรไฟล์ → โปรไฟล์ “อ่าน” ออกมาเป็นคุณค่า</p>
+  <div class="hub">
+    <div class="node n-well"><div class="nt">🩺 คลินิก</div><div class="nd">Labs &amp; Records · BCA + Health Age · Allergy · CGM</div></div>
+    <div class="node n-amber"><div class="nt">🏃 ไลฟ์สไตล์</div><div class="nd">UP Pulse (wearables) · NutriScan · Plate Planner · LINE Bot</div></div>
+    <div class="node n-sci"><div class="nt">📈 การเติบโต</div><div class="nd">Check FORM · Prospects · Health Check leads · Invite/Downline</div></div>
+  </div>
+  <div class="arrows">↓ ↓ ↓</div>
+  <div class="hub"><div class="core"><div class="ct">customers</div><div class="cs">Customer Profile — แกนกลาง</div><div class="cn">28 ตารางชี้เข้ามา</div></div></div>
+  <div class="arrows">↓ ↓ ↓</div>
+  <div class="hub">
+    <div class="node n-rose"><div class="nt">🧭 Customer 360</div><div class="nd">รวมทุกอย่างของคน 1 คนไว้หน้าเดียว</div></div>
+    <div class="node n-rose"><div class="nt">📄 Reports</div><div class="nd">Longevity Report · Med-Map · Pulse report · แชร์ผ่านลิงก์</div></div>
+    <div class="node n-rose"><div class="nt">🎯 Program Designer</div><div class="nd">ออกแบบโปรแกรมเฉพาะบุคคลจากข้อมูลจริง</div></div>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span> Data Model — Customer Profile เป็นแกนกลาง</h2>
+  <p><b>แกน:</b> <code>customers</code> (46 แถว) — <code>id · coach_id → profiles · name · gender · birth_year/birth_date · height · cgm_profile_names[]</code></p>
+
+  <h3>28 ตารางที่ผูกกับลูกค้าโดยตรง</h3>
+  <div class="hub">
+    <div class="node n-well"><div class="nt">🧪 ผลตรวจ</div><div class="nd"><code>customer_records</code> → <code>customer_lab_values</code> (431)<br><code>customer_report_html</code> (PII·private)<br>⚠️ <code>record_id</code> NOT NULL — สร้าง record ก่อนเสมอ</div></div>
+    <div class="node n-well"><div class="nt">⚖️ องค์ประกอบร่างกาย</div><div class="nd"><code>measurements</code> (248) — น้ำหนัก ไขมัน กล้ามเนื้อ visceral body-age BMR</div></div>
+    <div class="node n-well"><div class="nt">🥜 ภูมิแพ้</div><div class="nd"><code>customer_allergy_tests</code> → <code>customer_food_allergens</code></div></div>
+    <div class="node n-sci"><div class="nt">🩸 CGM</div><div class="nd"><code>cgm_profiles</code> + <code>cgm_readings</code> (34k) + <code>cgm_meals</code> · passcode-gated</div></div>
+    <div class="node n-sci"><div class="nt">⌚ อุปกรณ์สวมใส่</div><div class="nd"><code>pulse_connections</code> · <code>pulse_readings</code> · <code>biomarker_readings</code> · <code>wearable_connections</code> · <code>sync_jobs</code><br><code>whoop_daily/sleeps/workouts/journal</code></div></div>
+    <div class="node n-sci"><div class="nt">📋 ประเมิน</div><div class="nd"><code>pulse_intakes</code> → <code>pulse_assessments</code> · <code>pulse_invites</code> · <code>wearable_invites</code></div></div>
+    <div class="node n-amber"><div class="nt">🍽 โภชนาการ</div><div class="nd"><code>nutriscan_scans</code> (29) · <code>plate_plan_config</code> · <code>supplement_schedule</code></div></div>
+    <div class="node n-amber"><div class="nt">💊 ความปลอดภัยยา</div><div class="nd"><code>customer_supplement_safety</code> — safe/caution/avoid + สารที่ตีกับยา</div></div>
+    <div class="node n-rose"><div class="nt">💬 สื่อสาร &amp; สิทธิ์</div><div class="nd"><code>line_bot_groups</code>→<code>line_bot_logs</code> · <code>coach_notes</code> · <code>customer_assignments</code> · <code>customer_view_log</code> · <code>healthcheck_leads</code></div></div>
+  </div>
+
+  <h3>คลัสเตอร์รอบนอก (ยังไม่ผูก customers)</h3>
+  <table>
+    <tr><th>คลัสเตอร์</th><th>ตาราง</th><th>หมายเหตุ</th></tr>
+    <tr><td>ผู้ใช้/สิทธิ์</td><td><code>profiles</code> (parent_id = downline), <code>user_invites</code>, <code>user_app_grants</code>, <code>admin_view_as_log</code></td><td>MLM tree อยู่ที่ <code>profiles.parent_id</code></td></tr>
+    <tr><td>ผู้มุ่งหวัง</td><td><code>checkform_records</code>, <code>prospect_list</code>, <code>leads</code>, <code>metabolic_leads</code>, <code>aw_prospects</code>, <code>warm_leads</code>+4</td><td><b>โอกาส:</b> ยังไม่ต่อเข้า customers → ทำ lead→customer ให้ครบวงจรได้</td></tr>
+    <tr><td>อื่น ๆ (คนละแอป)</td><td><code>budgets, categories, transactions, symbols, losmtd, driver_logs, call_logs, contacts, link_hub</code></td><td>ไม่ใช่ของ UP Labs — <b>อย่าไปแตะ</b></td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span> Data Flows หลัก</h2>
+  <div class="flow"><div class="ft">① ผลแล็บเข้าโปรไฟล์</div><div class="fs">ใบตรวจ (PDF/รูป) → อ่านค่าจริง → <b>customer_records</b> (1 ครั้งที่ตรวจ) → <b>customer_lab_values</b> (หลายค่า + status) → Customer 360 (Labs/Trends/Body Map) → Longevity Report</div></div>
+  <div class="flow"><div class="ft">② เชื่อมนาฬิกา</div><div class="fs">โค้ชสร้าง invite → ลูกค้าเปิด <code>/connect/[token]</code> → OAuth → เก็บ token (เข้ารหัส) ใน <b>pulse_connections</b> → sync → <b>pulse_readings/whoop_*</b> → รายงาน → แชร์ <code>/r/[token]</code></div></div>
+  <div class="flow"><div class="ft">③ AI วิเคราะห์ (BYO key)</div><div class="fs">client อ่านคีย์จาก <code>localStorage</code> → POST <code>/api/…</code> พร้อม apiKey → lib เรียก Gemini → คืนผล → cache ลง DB · <b>คีย์พัง → GeminiKeyErrorNotice ชวนไปขอคีย์ใหม่</b></div></div>
+  <div class="flow"><div class="ft">④ Check FORM → ผู้มุ่งหวัง</div><div class="fs">โปรไฟล์+DISC → Gemini → แนวทางเข้าหา + คลิป STP → cache ใน <b>checkform_records</b> → <b>prospect_list</b></div></div>
+  <div class="flow"><div class="ft">⑤ สมาชิกใหม่ (MLM)</div><div class="fs"><code>/v2/invite</code> → <b>user_invites</b> → ลิงก์ <code>/join/[token]</code> → สมัคร → <b>profiles.parent_id = ผู้เชิญ</b> → เห็น downline แบบอ่านอย่างเดียว</div></div>
+  <div class="flow"><div class="ft">⑥ LINE ประจำวัน</div><div class="fs">cron → <code>/api/line/push-tomorrow</code> → อ่าน <b>plate_plan_config</b> + <b>supplement_schedule</b> → ส่ง Flex เข้ากลุ่มใน <b>line_bot_groups</b> → log</div></div>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span> Security &amp; Access</h2>
+  <table>
+    <tr><th>ชั้น</th><th>กลไก</th></tr>
+    <tr><td>Auth</td><td>Supabase Auth (email+password) · session ผ่าน <code>lib/auth/session.ts</code></td></tr>
+    <tr><td>Role</td><td><code>admin</code> / <code>abo</code> + <code>user_app_grants</code> รายแอป</td></tr>
+    <tr><td>ข้อมูลลูกค้า</td><td><code>lib/customers/access.ts</code> — เจ้าของ (<code>coach_id</code>) · ผู้ได้รับมอบหมาย · downline (read-only)</td></tr>
+    <tr><td>RLS</td><td>เปิดบนตารางอ่อนไหว (<code>cgm_readings</code>, <code>cgm_meals</code>) · CGM ใช้ passcode + SECURITY DEFINER RPC</td></tr>
+    <tr><td>Service role</td><td>เฉพาะ <code>lib/supabase/admin.ts</code> ฝั่งเซิร์ฟเวอร์ · ห้ามหลุดไป client</td></tr>
+    <tr><td>ลิงก์สาธารณะ</td><td>token ใช้ครั้งเดียว/มีวันหมดอายุ (<code>user_invites</code>, <code>pulse_invites</code>, <code>pulse_intakes</code>)</td></tr>
+    <tr><td>ความลับ</td><td>AI key = BYO ในเบราว์เซอร์ · token อุปกรณ์เข้ารหัสก่อนเก็บ · <b>repo public → ห้าม commit PII</b></td></tr>
+    <tr><td>Audit</td><td><code>customer_view_log</code> · <code>admin_view_as_log</code> · <code>line_bot_logs</code></td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="num">7</span> 🚀 ต่อยอดอะไรได้อีก</h2>
+  <div class="callout"><b>ข้อดีของการมีแกนกลาง:</b> ทั้ง 13 ข้อนี้ <b>ไม่ต้องเก็บข้อมูลใหม่เลย</b> — เป็นการ “อ่านแกนเดิมในมุมใหม่” เรียงตาม <i>ใช้ข้อมูลที่มีแล้ว → คุณค่าสูง → งานน้อย</i></div>
+  <table class="op">
+    <tr><th>#</th><th>โอกาส</th><th>ใช้ข้อมูลที่มีแล้ว</th><th>ต้องเพิ่ม</th><th>คุณค่า</th></tr>
+    <tr><td>1</td><td><b>Longevity Report ปุ่มเดียวในแอป</b></td><td>labs + measurements + pulse + bio-age</td><td>template renderer ในระบบ</td><td>ส่งมอบเร็วขึ้นมาก · เป็นบริการมาตรฐาน</td></tr>
+    <tr><td>2</td><td><b>Health Age trend</b> (PhenoAge หลายครั้ง)</td><td><code>customer_lab_values</code> ย้อนหลัง</td><td>กราฟ + เก็บผลคำนวณ</td><td>“อายุสุขภาพลดลง” = แรงจูงใจแรงที่สุด</td></tr>
+    <tr><td>3</td><td><b>Attention Queue</b> — ใครต้องดูแลด่วนวันนี้</td><td>status ทุก lab/BCA + วันที่ล่าสุด</td><td>dashboard + rule</td><td>โค้ชเลิกเดาว่าจะโทรหาใคร</td></tr>
+    <tr><td>4</td><td><b>Auto supplement stack</b></td><td>lab values + supplement_safety + ยา</td><td>rule engine + แคตตาล็อก</td><td>คำแนะนำเฉพาะคน + ปลอดภัยกับยา</td></tr>
+    <tr><td>5</td><td><b>อาหาร ↔ น้ำตาล</b></td><td><code>nutriscan_scans</code> + <code>cgm_readings</code></td><td>join ตามเวลา</td><td>“จานนี้ทำให้น้ำตาลคุณขึ้นเท่าไร” — ของจริงเฉพาะบุคคล</td></tr>
+    <tr><td>6</td><td><b>นอน/HRV ↔ ค่าอักเสบ</b></td><td><code>whoop_*</code> + labs (hs-CRP)</td><td>correlation view</td><td>เชื่อมไลฟ์สไตล์กับผลเลือด</td></tr>
+    <tr><td>7</td><td><b>Program outcome analytics</b></td><td>measurements + labs ก่อน/หลัง</td><td>ผูก “โปรแกรม” เป็น entity</td><td>พิสูจน์ผลเป็นตัวเลข → ใช้ขาย/ปรับสูตร</td></tr>
+    <tr><td>8</td><td><b>Adherence score</b></td><td>LINE log + nutriscan + การเข้าใช้</td><td>สูตรคะแนน</td><td>รู้ว่าใครกำลังหลุด ก่อนหลุดจริง</td></tr>
+    <tr><td>9</td><td><b>Household / family linking</b></td><td>ที่อยู่ + ผู้แนะนำ</td><td>field <code>household_id</code></td><td>ดูแลทั้งบ้าน = LTV สูงขึ้น</td></tr>
+    <tr><td>10</td><td><b>Lead → Customer ครบวงจร</b></td><td>healthcheck_leads · prospect_list · warm_leads</td><td>FK เข้า customers + funnel view</td><td>ปิดช่องว่างที่ lead ยังไม่ต่อกับโปรไฟล์</td></tr>
+    <tr><td>11</td><td><b>Coach / downline analytics</b></td><td><code>profiles.parent_id</code> + customers ต่อโค้ช</td><td>dashboard</td><td>เห็นว่าทีมใครโตจริง</td></tr>
+    <tr><td>12</td><td><b>Benchmark ไม่ระบุตัวตน</b></td><td>ค่า lab/BCA ทั้งฐาน</td><td>aggregate + de-identify</td><td>“คนวัยเดียวกันค่าเฉลี่ยเท่าไร”</td></tr>
+    <tr><td>13</td><td><b>Clip/content แนะนำจากสุขภาพ</b></td><td>STP matcher + โปรไฟล์สุขภาพ</td><td>ขยาย matcher ให้รับ customer</td><td>คอนเทนต์ตรงปัญหาเขาจริง</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="num">8</span> Conventions สำหรับคนที่มาต่อ</h2>
+  <ol>
+    <li>ฟีเจอร์ใหม่ที่เกี่ยวกับคน → <b>ต้องมี <code>customer_id</code></b> อย่าสร้างเกาะข้อมูลใหม่</li>
+    <li>ตรรกะคลินิกอยู่ใน <code>lib/</code> เท่านั้น (หน้าเว็บห้ามตัดสินเกณฑ์เอง)</li>
+    <li>API route = ด่านตรวจสิทธิ์ + ที่เดียวที่คุยกับภายนอก</li>
+    <li>เพิ่มแอป → ลงทะเบียนใน <code>lib/apps-registry.ts</code> + เพิ่มลิงก์ v2 ใน <code>Shell.tsx</code></li>
+    <li><b>แก้ฟีเจอร์ → อัปเดต PRD + ARCHITECTURE (md และ html) ในคอมมิตเดียวกัน</b></li>
+  </ol>
+</section>
+
+</div>
+<footer>UP Labs · Architecture v1.0 · คู่กับ <a href="./PRD-UPLabs.html">PRD-UPLabs.html</a> — เอกสารนี้ต้องอัปเดตทุกครั้งที่ data model หรือโมดูลเปลี่ยน</footer>
+</body>
+</html>

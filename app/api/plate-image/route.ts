@@ -72,8 +72,10 @@ export async function POST(req: Request) {
       const j = await r.json();
       if (j.error) {
         const gm = j.error.message || "error";
-        const keyBad = j.error.status === "INVALID_ARGUMENT" || j.error.status === "PERMISSION_DENIED" || /api[_ ]?key/i.test(gm);
-        return NextResponse.json({ error: keyBad ? "GEMINI_KEY_INVALID" : ("Gemini: " + gm) }, { status: 400 });
+        const forbidden = j.error.status === "PERMISSION_DENIED" || j.error.code === 403;
+        const keyBad = j.error.status === "INVALID_ARGUMENT" || /api[_ ]?key/i.test(gm);
+        const msg = forbidden ? "GEMINI_KEY_FORBIDDEN" : keyBad ? "GEMINI_KEY_INVALID" : ("Gemini: " + gm);
+        return NextResponse.json({ error: msg }, { status: 400 });
       }
       const parts = j?.candidates?.[0]?.content?.parts || [];
       const p = parts.find((x: { inlineData?: { data: string; mimeType?: string } }) => x.inlineData);
