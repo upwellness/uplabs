@@ -10,6 +10,7 @@
 
 import type { MasterSnapshot } from "./master-data";
 
+import { geminiGenerate } from "@/lib/gemini-call";
 import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
 
 const GEMINI_MODEL = GEMINI_TEXT_MODEL;
@@ -116,29 +117,15 @@ ${JSON.stringify(input.matched_rules, null, 2)}
 - Behavior changes 2-3 ข้อ + Nutrient recommendations จาก matched_rules
 - ภาษาไทย โทนเป็นกันเอง ห้ามอ้าง pharmacist/doctor/citation`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        generationConfig: {
-          temperature:      0.4,
-          maxOutputTokens:  8192,
-          responseMimeType: "application/json",
-          thinkingConfig:   { thinkingBudget: 0 },
-        },
-      }),
+  const json = await geminiGenerate(GEMINI_MODEL, apiKey, {
+    contents: [{ parts: [{ text: userPrompt }] }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature:      0.4,
+      maxOutputTokens:  8192,
+      responseMimeType: "application/json",
     },
-  );
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Gemini fetch failed: ${res.status} ${t}`);
-  }
-  const json = await res.json();
+  });
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const finishReason = json.candidates?.[0]?.finishReason;
 

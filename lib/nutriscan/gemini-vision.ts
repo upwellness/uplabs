@@ -5,8 +5,7 @@
  * Output: structured JSON (food, macros, glucose impact, health score, recs)
  */
 
-import { classifyGeminiFetchError } from "@/lib/gemini-error";
-
+import { geminiGenerate } from "@/lib/gemini-call";
 import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
 
 const GEMINI_MODEL = GEMINI_TEXT_MODEL;
@@ -166,30 +165,15 @@ export async function analyzeFood(input: NutriScanInput, apiKey: string): Promis
     parts.push({ inline_data: { mime_type: input.mimeType, data: input.imageBase64 } });
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        generationConfig: {
-          temperature:      0.3,
-          maxOutputTokens:  4096,
-          responseMimeType: "application/json",
-          thinkingConfig:   { thinkingBudget: 0 },
-        },
-      }),
+  const json = await geminiGenerate(GEMINI_MODEL, apiKey, {
+    contents: [{ parts }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature:      0.3,
+      maxOutputTokens:  4096,
+      responseMimeType: "application/json",
     },
-  );
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(classifyGeminiFetchError(res.status, t));
-  }
-
-  const json = await res.json();
+  });
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 
   let parsed: NutriScanResult;

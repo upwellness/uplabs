@@ -10,8 +10,7 @@
 
 import type { CheckformProfile, AIAnalysis } from "./ai-analyze";
 import { getActiveClipsForMatcher, type StpClip } from "@/app/checkform/_data/stp-clips";
-import { classifyGeminiFetchError } from "@/lib/gemini-error";
-
+import { geminiGenerate } from "@/lib/gemini-call";
 import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
 
 const GEMINI_MODEL = GEMINI_TEXT_MODEL;
@@ -155,29 +154,15 @@ ${JSON.stringify(trimmedClips, null, 2)}
 - share_message_th + follow_up_question_th ต้องสด · ไม่ template
 - Output JSON strict ตาม schema`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1800, // 1-3 matches · ~200-300 tokens each + reasoning
-          responseMimeType: "application/json",
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
+  const json = await geminiGenerate(GEMINI_MODEL, apiKey, {
+    contents: [{ parts: [{ text: userPrompt }] }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1800, // 1-3 matches · ~200-300 tokens each + reasoning
+      responseMimeType: "application/json",
     },
-  );
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(classifyGeminiFetchError(res.status, t));
-  }
-  const json = await res.json();
+  });
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const finishReason = json.candidates?.[0]?.finishReason;
 

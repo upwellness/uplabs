@@ -63,8 +63,20 @@ export function classifyGeminiFetchError(status: number, bodyText: string): stri
   if (status === 404) {
     return "โมเดล AI ที่ระบบตั้งไว้ถูกปลดระวางแล้ว — ทีมงานต้องอัปเดตค่า GEMINI_MODEL เป็นรุ่นปัจจุบัน (ดู ai.google.dev/gemini-api/docs/models) · ไม่เกี่ยวกับคีย์ของคุณ";
   }
-  if (status === 400 && /api[_ ]?key|API_KEY_INVALID|INVALID_ARGUMENT/i.test(bodyText)) {
+  // 400 = bad key ONLY when Google actually says so. `INVALID_ARGUMENT` on its own is
+  // Google's generic "malformed request" (a rejected generationConfig field, for
+  // instance) — treating it as a key problem sent ต้น chasing new keys for a bug in
+  // our own request body.
+  if (status === 400 && /api[_ ]?key|API_KEY_INVALID/i.test(bodyText)) {
     return GEMINI_KEY_SENTINEL;
   }
-  return `Gemini fetch failed: ${status} ${(bodyText || "").slice(0, 200)}`;
+  // Anything else: say it's on our side, and keep Google's reason for the log/screenshot.
+  const reason = (() => {
+    try {
+      return JSON.parse(bodyText)?.error?.message ?? bodyText;
+    } catch {
+      return bodyText;
+    }
+  })();
+  return `เรียก AI ไม่สำเร็จ (${status}) — ไม่ใช่ปัญหาคีย์ของคุณ · รายละเอียด: ${String(reason).slice(0, 180)}`;
 }

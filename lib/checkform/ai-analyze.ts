@@ -4,8 +4,7 @@
  * Returns: approach · dialog samples · product/business ratio · roleplay
  */
 
-import { classifyGeminiFetchError } from "@/lib/gemini-error";
-
+import { geminiGenerate } from "@/lib/gemini-call";
 import { GEMINI_TEXT_MODEL } from "@/lib/gemini-config";
 
 const GEMINI_MODEL = GEMINI_TEXT_MODEL;
@@ -147,30 +146,15 @@ ${JSON.stringify(profile, null, 2)}
 - roleplay: 6-10 turn · สลับ abo/prospect · มี curve · จบ next step
 - ภาษาไทยล้วน · โทนเป็นกันเอง · ไม่ใช่ sales pressure`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 4096,
-          responseMimeType: "application/json",
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
+  const json = await geminiGenerate(GEMINI_MODEL, apiKey, {
+    contents: [{ parts: [{ text: userPrompt }] }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature: 0.6,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
     },
-  );
-
-  if (!res.ok) {
-    const t = await res.text();
-    // Clean sentinel so the UI can guide the user (invalid key vs. key without permission).
-    throw new Error(classifyGeminiFetchError(res.status, t));
-  }
-  const json = await res.json();
+  });
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   const finishReason = json.candidates?.[0]?.finishReason;
 
