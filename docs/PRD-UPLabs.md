@@ -198,6 +198,7 @@ UP Labs คือ **แพลตฟอร์มภายในของ UP Welln
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-07-24 | **AI call รวมที่เดียว + error ไม่โทษคีย์มั่ว** — `thinkingBudget: 0` (ของรุ่น 2.5) รุ่นใหม่ไม่รับ → 400 แต่ระบบแปลเป็น "คีย์ผิด" (เพราะเดิมตี INVALID_ARGUMENT ทุกกรณี = คีย์ผิด) · เพิ่ม `lib/gemini-call.ts` ส่ง `thinkingLevel: "minimal"` + retry ตัด thinking อัตโนมัติถ้าโมเดลไม่รับ · 400 = คีย์ผิดเฉพาะเมื่อ Google พูดถึง api key · ✅ ต้นยืนยันทุกฟีเจอร์ใช้ได้ | `19adc03` |
 | 2026-07-24 | **โมเดล AI: เลิก hardcode รุ่น** — Google หยุดให้บริการ `gemini-2.5-flash` กับคีย์ใหม่ (9 ก.ค. 2026) ทุกฟีเจอร์ AI เลย 404 · ย้ายไป `lib/gemini-config.ts` ใช้ alias **`gemini-flash-latest`** (ชี้รุ่นล่าสุดเสมอ ไม่พังซ้ำ) · โมเดลภาพมี fallback list + ข้ามอัตโนมัติเมื่อ 404 · override ได้ด้วย env `GEMINI_MODEL` / `GEMINI_IMAGE_MODEL` | (รอ commit) |
 | 2026-07-24 | **RBAC: upline ดูแลได้ทุกระดับชั้นลงไป (อ่าน+เขียน)** — เพิ่ม `canManageCustomer()` เป็น helper เดียว แล้วสลับ 26 จุดใน 24 route จาก owner/assigned เป็น helper นี้ · เดิม downline เป็น read-only ทำให้ upline เจอ `forbidden` เวลาบันทึกข้อมูลลูกค้าของสายงาน · **อุดช่องโหว่: `POST /api/customers/[id]/measurements` (บันทึก BCA) ไม่มีเช็คสิทธิ์เลย** · ทุก 403 คืนข้อความไทยบอกเหตุผล ไม่ใช่คำว่า `forbidden` | (รอ commit) |
 | 2026-07-16 | **NutriScan สิทธิ์:** เช็คความเป็นเจ้าของลูกค้า **เฉพาะเมื่อจะบันทึก** (วิเคราะห์เฉย ๆ ไม่ใช้ `customer_id` เลย จึงไม่ต้องกัน) + เปลี่ยน `forbidden` ดิบเป็นข้อความไทยที่บอกสาเหตุ (ลูกค้าของ downline = ดูได้ บันทึกแทนไม่ได้) | (รอ commit) |
