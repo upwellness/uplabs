@@ -1,0 +1,274 @@
+import { NextResponse } from "next/server";
+import { SCOPES } from "@/lib/api/scopes";
+import { INTENT_NAMES } from "@/lib/api/resolver";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/v1/openapi.json — the schema ChatGPT Actions (or n8n) imports.
+ *
+ * Public on purpose: it is a description of the interface, not of anyone's data, and
+ * every path behind it still demands a token. Making the schema itself token-gated
+ * would break the one-click import that is the whole point of publishing it.
+ *
+ * Descriptions here are written for a model to read. They say when to reach for each
+ * path, because that is what the caller's LLM uses to route a question.
+ */
+export async function GET(req: Request) {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, "");
+
+  const customerId = {
+    name: "id", in: "path", required: true,
+    schema: { type: "string", format: "uuid" },
+    description: "customer id จาก /customers",
+  };
+
+  const spec = {
+    openapi: "3.1.0",
+    info: {
+      title: "UP Labs External API",
+      version: "1.0.0",
+      description:
+        "อ่านและอัปเดตข้อมูลสุขภาพลูกค้าใน UP Labs · ทุก endpoint ต้องมี Bearer token ที่แอดมินออกให้ " +
+        "และสิทธิ์ถูกจำกัดตาม scope ของ token นั้น · ระบบคืนข้อมูลดิบพร้อมข้อจำกัดของข้อมูล " +
+        "(caveats) ให้ผู้เรียกนำไปเรียบเรียงเอง — ไม่มีการตีความหรือวินิจฉัยจากฝั่งนี้",
+    },
+    servers: [{ url: `${base}/api/v1` }],
+    security: [{ bearerAuth: [] }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: "http", scheme: "bearer", description: "token รูปแบบ uplab_live_…" },
+      },
+      schemas: {
+        Error: {
+          type: "object",
+          properties: {
+            ok: { type: "boolean" },
+            error: { type: "string", description: "รหัสข้อผิดพลาด เช่น insufficient_scope, needs_disambiguation" },
+            message: { type: "string" },
+          },
+        },
+      },
+    },
+    paths: {
+      "/meta": {
+        get: {
+          operationId: "getMeta",
+          summary: "ดูว่า token นี้ทำอะไรได้บ้าง",
+          description: "เรียกก่อนเสมอเมื่อไม่แน่ใจสิทธิ์ — คืน scope, ขอบเขตลูกค้า, จำนวนลูกค้าที่เห็น และรายการ intent",
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/query": {
+        post: {
+          operationId: "askUpLabs",
+          summary: "ถามด้วยภาษาคน (ไทย/อังกฤษ)",
+          description:
+            "ส่งคำสั่งเป็นประโยค เช่น 'ช่วยเทียบผลแล็บย้อนหลัง 3 รอบของ คุณสมหญิง หน่อย' · " +
+            "ถ้าชื่อลูกค้ากำกวมจะคืน needs_disambiguation พร้อมรายชื่อผู้สมัคร ให้เรียกซ้ำโดยใส่ customer_id · " +
+            "ถ้ารู้ customer_id อยู่แล้วให้ใส่มาด้วยเสมอ จะแม่นกว่า",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["q"],
+                  properties: {
+                    q: { type: "string", description: "คำสั่งภาษาคน" },
+                    customer_id: { type: "string", description: "ระบุตัวลูกค้าให้ชัด (แนะนำ)" },
+                    intent: { type: "string", enum: INTENT_NAMES, description: "บังคับ intent ข้ามการเดา" },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "ok" }, "400": { description: "กำกวมหรือไม่เข้าใจคำสั่ง" } },
+        },
+      },
+      "/customers": {
+        get: {
+          operationId: "searchCustomers",
+          summary: "ค้นหาลูกค้าด้วยชื่อ",
+          parameters: [
+            { name: "q", in: "query", schema: { type: "string" }, description: "ชื่อบางส่วน" },
+            { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+          ],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "createCustomer",
+          summary: "สร้างลูกค้าใหม่",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object", required: ["name"],
+                  properties: {
+                    name: { type: "string" },
+                    gender: { type: "string", enum: ["male", "female"] },
+                    birth_date: { type: "string", format: "date" },
+                    height: { type: "string" },
+                    coach_id: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}": {
+        get: {
+          operationId: "getCustomer",
+          summary: "โปรไฟล์ลูกค้า + สรุปว่ามีข้อมูลอะไรบ้าง",
+          parameters: [customerId],
+          responses: { "200": { description: "ok" } },
+        },
+        patch: {
+          operationId: "updateCustomer",
+          summary: "แก้โปรไฟล์",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: { type: "object", properties: {
+              name: { type: "string" }, gender: { type: "string" },
+              birth_date: { type: "string", format: "date" }, height: { type: "string" },
+            } } } },
+          },
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/labs": {
+        get: {
+          operationId: "getLabs",
+          summary: "ผลแล็บย้อนหลัง",
+          description: "ไม่ใส่ metric = คืนทั้งใบตรวจล่าสุด N รอบ · ใส่ metric = คืนค่าตัวนั้นทุกครั้งเรียงตามเวลา",
+          parameters: [
+            customerId,
+            { name: "rounds", in: "query", schema: { type: "integer", default: 3, maximum: 20 } },
+            { name: "metric", in: "query", schema: { type: "string" }, description: "เช่น hba1c, ldl, hdl" },
+          ],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "addLabResult",
+          summary: "บันทึกผลแล็บใหม่ (1 ใบตรวจ + หลายค่า)",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: {
+              type: "object", required: ["recorded_at", "values"],
+              properties: {
+                recorded_at: { type: "string", format: "date", description: "วันเจาะเลือด ปี ค.ศ." },
+                source: { type: "string", description: "ชื่อโรงพยาบาล/แล็บ" },
+                notes: { type: "string" },
+                values: {
+                  type: "array",
+                  items: {
+                    type: "object", required: ["metric_key", "value"],
+                    properties: {
+                      metric_key: { type: "string" }, metric_label_th: { type: "string" },
+                      value: { type: "string" }, value_num: { type: "number" },
+                      unit: { type: "string" }, ref_text: { type: "string" }, category: { type: "string" },
+                      status: { type: "string", enum: ["normal", "low", "high", "borderline"] },
+                    },
+                  },
+                },
+              },
+            } } },
+          },
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/labs/compare": {
+        get: {
+          operationId: "compareLabs",
+          summary: "ตารางเทียบผลแล็บ N รอบล่าสุด",
+          description:
+            "ใช้ตัวนี้เมื่อถูกถามว่า 'เทียบผลแล็บย้อนหลัง N รอบ' · คืนแต่ละ metric เป็นแถว " +
+            "แต่ละรอบเป็นคอลัมน์ พร้อม delta ของสองรอบล่าสุดที่มีค่า · ค่า null = รอบนั้นไม่ได้ตรวจตัวนี้ ห้ามตีความเป็น 0",
+          parameters: [customerId, { name: "rounds", in: "query", schema: { type: "integer", default: 3, maximum: 20 } }],
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/overview": {
+        get: {
+          operationId: "getOverview",
+          summary: "ภาพรวมสุขภาพทุกด้าน",
+          description:
+            "ใช้ตัวนี้เมื่อถูกถามให้ 'วิเคราะห์ภาพรวม' · คืนค่าล่าสุดแยกตามหมวด + สิ่งที่ผิดปกติ + " +
+            "สิ่งที่ยังไม่เคยตรวจ + caveats · ต้องอ่าน caveats ก่อนสรุป เพราะ 'ไม่มีข้อมูล' ไม่เท่ากับ 'ปกติ'",
+          parameters: [customerId],
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/measurements": {
+        get: {
+          operationId: "getMeasurements",
+          summary: "ค่าองค์ประกอบร่างกาย (BCA)",
+          parameters: [customerId, { name: "limit", in: "query", schema: { type: "integer", default: 12 } }],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "addMeasurement",
+          summary: "บันทึกค่า BCA",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: {
+              type: "object", required: ["recorded_at"],
+              properties: {
+                recorded_at: { type: "string", format: "date" },
+                weight: { type: "number" }, fat_pct: { type: "number" }, muscle_pct: { type: "number" },
+                visceral: { type: "number" }, body_age: { type: "number" }, bmr: { type: "number" },
+              },
+            } } },
+          },
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/supplements": {
+        get: {
+          operationId: "getSupplements",
+          summary: "อาหารเสริมที่ทานอยู่ + ความปลอดภัยคู่ยา",
+          parameters: [customerId],
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/notes": {
+        get: {
+          operationId: "getNotes",
+          summary: "โน้ตโค้ช",
+          parameters: [customerId, { name: "limit", in: "query", schema: { type: "integer", default: 20 } }],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "addNote",
+          summary: "เพิ่มโน้ตโค้ช",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: {
+              type: "object", required: ["body"],
+              properties: { body: { type: "string" }, pinned: { type: "boolean" } },
+            } } },
+          },
+          responses: { "200": { description: "ok" } },
+        },
+      },
+    },
+    "x-uplabs": {
+      scopes: SCOPES,
+      intents: INTENT_NAMES,
+      compliance:
+        "ข้อมูลนี้ใช้เพื่อการดูแลเชิงป้องกัน ไม่ใช่การวินิจฉัย · ห้ามนำไปสรุปว่าเป็นโรคใด · " +
+        "ค่าผิดปกติให้แนะนำพบแพทย์ · อาหารเสริมต้องผ่านเภสัชกรและแพทย์",
+    },
+  };
+
+  return NextResponse.json(spec, {
+    headers: { "cache-control": "public, max-age=300" },
+  });
+}

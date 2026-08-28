@@ -53,6 +53,7 @@ const V2_LINKS: { href: string; label: string; icon: typeof Users; adminOnly?: b
   { href: "/v2/line-bot", label: "LINE Bot", icon: MessageCircle },
   { href: "/v2/invite", label: "ชวนสมาชิกใหม่", icon: UserPlus },
   { href: "/v2/admin/users", label: "Admin · ผู้ใช้", icon: Shield, adminOnly: true },
+  { href: "/v2/admin/api-tokens", label: "Admin · API Token", icon: KeyRound, adminOnly: true },
 ];
 
 /** Registry slug → v2 route (so the "all apps" list prefers v2 where it exists). */

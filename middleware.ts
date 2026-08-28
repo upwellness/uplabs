@@ -24,6 +24,12 @@ const PUBLIC_PATHS = [
   "/cgm-v1.html",             // CGM Analyzer static embed (iframe·does its own Supabase auth) — กัน middleware เด้ง iframe → /login → จอเปล่า
   "/api/line/webhook",        // LINE bot webhook — called by LINE (no session) · auth = x-line-signature in the route
   "/api/line/push-tomorrow",  // LINE bot cron push — called by Vercel Cron (no session) · auth = CRON_SECRET in the route
+  // External API v1 — called by outside systems (ChatGPT Actions, n8n, scripts) that
+  // have no session cookie. "Public" here means "does not use the session", NOT
+  // "unauthenticated": every /api/v1 route authenticates a Bearer token itself via
+  // lib/api/auth.ts. Without this entry middleware would redirect the caller to
+  // /login and the token would never even be read.
+  "/api/v1",
 ];
 
 const isPublic = (path: string) =>

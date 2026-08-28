@@ -31,8 +31,11 @@
 ## 3. ก่อน push
 
 ```bash
-npx tsc --noEmit && npm run build
+npm test && npx tsc --noEmit && npm run docs && npm run build
 ```
+
+- `npm test` — ชุดทดสอบ (node:test) ของตรรกะบริสุทธิ์ · **ห้ามให้ตรรกะที่ตัดสินใจแทนคนอยู่ในไฟล์ที่ import ฐานข้อมูล** ไม่งั้นเทสต์ไม่ได้ (ดู `lib/api/compare.ts` แยกจาก `lib/api/data.ts` เป็นตัวอย่าง)
+- `npm run docs` — regenerate `docs/*.html` จาก `.md` · **ห้ามแก้ .html มือ จะถูกทับ**
 push ไป `upwellness/uplabs` (branch `main`) → Vercel deploy อัตโนมัติ · ใช้ GitHub account **upwellness** (`gh auth switch -u upwellness`) และ `git fetch && git rebase origin/main` ก่อนเสมอ
 
 ## 4. Next.js

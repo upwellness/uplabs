@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UP Labs External API — ให้ AI ข้างนอกถามข้อมูลได้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F1E1B; --ink80:#3D3840; --ink60:#5C5660; --ink40:#8A838E; --ink10:#E2DED8;
+    --cream:#F7F4EE; --paper:#fff; --surface:#FBF9F5;
+    --rose:#8C4C4C; --rose-u:#FAF3F2; --well:#396755; --well-u:#F0F8F4;
+    --amber:#C47A2A; --amber-u:#FEFAF3; --sci:#2A7B8F; --sci-u:#EDF7FA;
+    --gold:#C99D2F; --danger:#DC2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:Sarabun,-apple-system,sans-serif;font-size:15px;line-height:1.8}
+  h1,h2,h3,h4{font-family:Kanit,sans-serif;line-height:1.35;margin:0}
+  a{color:var(--rose)}
+  code{background:var(--surface);border:1px solid var(--ink10);border-radius:5px;padding:1px 5px;font-size:.88em;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+  header.top{background:linear-gradient(135deg,var(--rose-u),var(--cream) 45%,var(--well-u));border-bottom:1px solid var(--ink10)}
+  .hero{max-width:1080px;margin:0 auto;padding:38px 20px 30px}
+  .eyebrow{font-family:Kanit;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rose)}
+  h1{font-size:clamp(26px,4.5vw,40px);margin-top:8px}
+  .sub{color:var(--ink60);margin-top:10px;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{background:#fff;border:1px solid var(--ink10);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--ink60)}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink10)}
+  nav.toc .in{max-width:1080px;margin:0 auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto}
+  nav.toc a{white-space:nowrap;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink60);border:1px solid var(--ink10);background:#fff;border-radius:999px;padding:5px 12px}
+  nav.toc a:hover{color:var(--rose);border-color:var(--rose)}
+  section{background:var(--paper);border:1px solid var(--ink10);border-radius:22px;padding:26px 26px 22px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.02),0 20px 40px -34px rgba(140,76,76,.25)}
+  section>h2{font-size:22px;display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:var(--rose);color:#fff;font-size:13px}
+  h3{font-size:16.5px;margin-top:22px;color:var(--ink)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--ink10);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--surface);font-family:Kanit;font-weight:600;font-size:12.5px}
+  tr:nth-child(even) td{background:#FCFBF9}
+  .callout{border-left:4px solid var(--gold);background:var(--amber-u);border-radius:0 14px 14px 0;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-color:var(--danger);background:#FEF2F2}
+  .callout.ok{border-color:var(--well);background:var(--well-u)}
+  .callout b{color:var(--ink)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:14px 0}
+  .card{border:1px solid var(--ink10);border-radius:16px;padding:14px 16px;background:#fff}
+  .card .t{font-family:Kanit;font-weight:600;font-size:14.5px}
+  .card .d{font-size:13px;color:var(--ink60);margin-top:4px}
+  .tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;font-family:Kanit}
+  .t-rose{background:var(--rose-u);color:var(--rose)} .t-well{background:var(--well-u);color:var(--well)}
+  .t-amber{background:var(--amber-u);color:var(--amber)} .t-sci{background:var(--sci-u);color:var(--sci)}
+  footer{max-width:1080px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
+  @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+
+  pre.code{background:var(--surface);border:1px solid var(--ink10);border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.65;margin:14px 0}
+  pre.code code{background:none;border:0;padding:0;font-size:inherit}
+  h4{font-size:14.5px;margin-top:16px;color:var(--ink80)}
+  .genwarn{background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:10px;padding:8px 14px;font-size:12.5px;margin-top:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hero">
+    <div class="eyebrow">Feature Specification</div>
+    <h1>UP Labs External API — ให้ AI ข้างนอกถามข้อมูลได้</h1>
+    <p class="sub">API ที่ให้ระบบ AI ภายนอก (ChatGPT, n8n, Make, สคริปต์) ยิงเข้ามาถามและอัปเดตข้อมูลใน UP Labs ด้วย token ที่แอดมินกำหนดสิทธิ์ — ไม่มี LLM ฝั่งเรา ผู้เรียกเอาข้อมูลไปคิดเอง</p>
+    <div class="meta"><span class="chip">UP Labs External API — ให้ระบบ AI ภายนอกถาม/อัปเดตข้อมูลได้ด้วย token</span><span class="chip">1.0</span><span class="chip">spec → build</span><span class="chip">`https://upwellness-ops.vercel.app/api/v1`</span></div>
+    <div class="genwarn">ไฟล์นี้ถูกสร้างอัตโนมัติจาก <code>docs/SPEC-External-API.md</code> — แก้ที่ .md แล้วรัน <code>npm run docs</code> · <b>ห้ามแก้ .html ตรง ๆ</b> เพราะจะถูกทับ</div>
+  </div>
+</header>
+<nav class="toc"><div class="in"><a href="#s1-problem-statement">Problem Statement</a><a href="#s2-goals">Goals</a><a href="#s3-non-goals">Non-Goals</a><a href="#s4-user-stories">User Stories</a><a href="#s5-architecture-decision-ทำไมไม่ฝัง-llm-ฝั่งเรา">Architecture Decision — ทำไมไม่ฝัง LLM ฝั่งเรา</a><a href="#s6-authentication">Authentication</a><a href="#s7-authorization-model">Authorization Model</a><a href="#s8-endpoints">Endpoints</a><a href="#s9-response-error-contract">Response &amp; Error Contract</a><a href="#s10-data-model">Data Model</a><a href="#s11-admin-ui-v2-admin-api-tokens">Admin UI — `/v2/admin/api-tokens`</a><a href="#s12-acceptance-criteria">Acceptance Criteria</a><a href="#s13-rollout">Rollout</a><a href="#s14-open-questions">Open Questions</a></div></nav>
+<div class="wrap">
+<section id="s1-problem-statement"><h2><span class="num">1</span>Problem Statement</h2>
+<p>ทุกวันนี้ข้อมูลลูกค้าอยู่ครบใน UP Labs แล้ว แต่<b>เอาออกมาใช้ได้ทางเดียวคือเปิดเว็บ</b> — ต้นต้องล็อกอิน หาลูกค้า กดเข้าแท็บ อ่านเอง แล้วค่อยเอาไปคิด</p>
+<p>สิ่งที่ต้องการคือ: เปิด ChatGPT (หรือ n8n / Make / สคริปต์อะไรก็ได้) แล้วพิมพ์</p>
+<div class="callout"><i>"ช่วยเทียบผลแล็บย้อนหลัง 3 รอบของคนนี้หน่อย"</i> <i>"ช่วยวิเคราะห์ภาพรวมทุก factor ของคนนี้"</i> <i>"ขอลิงก์สมัครให้ที"</i></div>
+<p>แล้ว<b>ได้ข้อมูลจริงกลับมาทันที</b> โดยไม่ต้องเปิดเว็บ</p>
+<p><b>ใครเจ็บ:</b> ต้น (ทุกวัน) + โค้ชในสายงานที่อยากให้ผู้ช่วย AI ของตัวเองเห็นข้อมูลลูกค้า <b>ต้นทุนของการไม่ทำ:</b> ข้อมูลที่ลงทุนเก็บมา 2 ปีถูกใช้แค่ตอนเปิดหน้าจอ · งานวิเคราะห์ซ้ำ ๆ ยังต้องทำมือทุกครั้ง</p>
+</section>
+<section id="s2-goals"><h2><span class="num">2</span>Goals</h2>
+<ol>
+<li><b>ระบบภายนอกดึงข้อมูลลูกค้าได้ด้วย HTTP + token เดียว</b> — ไม่ต้องมี session, ไม่ต้อง OAuth
+</li>
+<li><b>รับคำสั่งภาษาคน (ไทย/อังกฤษ) แล้วคืนข้อมูลที่ตรงคำถาม</b> โดย<b>ไม่ใช้ LLM ฝั่งเรา</b>
+</li>
+<li><b>แอดมินคุมได้ละเอียด</b> — token ไหนอ่านอะไรได้ เขียนอะไรได้ แตะลูกค้าคนไหนได้ หมดอายุเมื่อไหร่
+</li>
+<li><b>ตรวจสอบย้อนหลังได้ 100%</b> — ทุกการเรียกรู้ว่า token ไหน ถามอะไร ได้อะไรกลับไป
+</li>
+<li><b>ต่อกับ ChatGPT Actions ได้โดยไม่ต้องเขียนโค้ด</b> — มี OpenAPI schema ให้ import
+</li>
+</ol>
+</section>
+<section id="s3-non-goals"><h2><span class="num">3</span>Non-Goals</h2>
+<ol>
+<li><b>ไม่ฝัง LLM ฝั่งเรา</b> — เราส่งข้อมูล ผู้เรียกคิดเอง (เหตุผลใน §5)
+</li>
+<li><b>ไม่ให้เขียนข้อสรุปทางคลินิก</b> — เขียนได้เฉพาะ <i>ค่าที่วัดได้</i> กับ <i>โน้ต</i> · ห้าม API เขียนคำวินิจฉัย
+</li>
+<li><b>ไม่เปิดให้ลูกค้าปลายทางเรียกเอง</b> — token ออกให้ระบบ/โค้ช ไม่ใช่ลูกค้า
+</li>
+<li><b>ไม่ทำ streaming / websocket</b> — request-response ธรรมดาพอ
+</li>
+<li><b>ไม่ทำ GraphQL</b> — REST + intent endpoint ครอบคลุมพอสำหรับ use case จริง
+</li>
+<li><b>v1 ยังไม่ทำ MCP server</b> — อยู่ใน roadmap แต่ REST + OpenAPI ใช้ได้กับ ChatGPT Actions แล้ว
+</li>
+</ol>
+</section>
+<section id="s4-user-stories"><h2><span class="num">4</span>User Stories</h2>
+<table><thead><tr><th>#</th><th>ในฐานะ</th><th>ฉันอยาก</th><th>เพื่อ</th></tr></thead><tbody><tr><td>1</td><td>ต้น (admin)</td><td>เปิด ChatGPT แล้วถาม "เทียบแล็บ 3 รอบล่าสุดของ คุณสมหญิง"</td><td>เตรียมคุยกับลูกค้าโดยไม่ต้องเปิดเว็บ</td></tr><tr><td>2</td><td>ต้น (admin)</td><td>ถาม "ค่าผิดปกติของคนนี้มีอะไรบ้าง"</td><td>จับประเด็นก่อนเข้าประชุม</td></tr><tr><td>3</td><td>ต้น (admin)</td><td>สร้าง token ให้ผู้ช่วย AI ตัวหนึ่ง <b>อ่านได้อย่างเดียว</b></td><td>ไม่ต้องกลัวว่าจะเผลอแก้ข้อมูล</td></tr><tr><td>4</td><td>ต้น (admin)</td><td>จำกัด token ให้เห็นเฉพาะลูกค้าของโค้ชคนหนึ่ง</td><td>ให้โค้ชใช้ AI ของตัวเองได้โดยไม่เห็นข้อมูลคนอื่น</td></tr><tr><td>5</td><td>ต้น (admin)</td><td>เพิกถอน token ทันทีเมื่อสงสัยว่าหลุด</td><td>จำกัดความเสียหาย</td></tr><tr><td>6</td><td>ต้น (admin)</td><td>ดูว่า token ไหนถามอะไรไปบ้าง</td><td>ตรวจสอบย้อนหลังได้</td></tr><tr><td>7</td><td>โค้ช</td><td>ขอลิงก์สมัครผ่านผู้ช่วย AI</td><td>ส่งให้ผู้สนใจได้ทันทีระหว่างคุย</td></tr><tr><td>8</td><td>ระบบ automation</td><td>ยิงผลแล็บใหม่เข้าไปอัตโนมัติ</td><td>ไม่ต้องคีย์มือ</td></tr></tbody></table>
+</section>
+<section id="s5-architecture-decision-ทำไมไม่ฝัง-llm-ฝั่งเรา"><h2><span class="num">5</span>Architecture Decision — ทำไมไม่ฝัง LLM ฝั่งเรา</h2>
+<p>ต้นสั่งไว้ชัด: <i>"เราจะไม่ฝัง LLM ไว้ฝั่งเรา ให้คนเรียก API ได้ข้อมูลกลับไป แล้วไปทำการคิดเอง"</i></p>
+<p>เหตุผลที่การตัดสินใจนี้ถูก และมีผลต่อสถาปัตยกรรมทั้งหมด:</p>
+<table><thead><tr><th>ถ้าฝัง LLM ฝั่งเรา</th><th>แบบที่เลือก (ส่งข้อมูลดิบ)</th></tr></thead><tbody><tr><td>เราจ่ายค่าโทเคนทุกครั้งที่มีคนถาม</td><td>ผู้เรียกจ่ายเอง เรา scale ได้ฟรี</td></tr><tr><td>คุณภาพคำตอบกลายเป็นความรับผิดชอบเรา</td><td>ผู้เรียกรับผิดชอบการตีความของตัวเอง</td></tr><tr><td><b>โมเดลอาจแต่งค่าสุขภาพที่ไม่มีจริง</b></td><td>ข้อมูลที่ส่งออกมาจากฐานข้อมูลตรง ๆ ตรวจสอบได้ทุกตัวเลข</td></tr><tr><td>ต้องเลือกโมเดล ดูแลเวอร์ชัน โดนปลดรุ่น</td><td>ไม่มีโมเดลให้ดูแล</td></tr><tr><td>แต่ละคนอยากได้สไตล์คำตอบต่างกัน</td><td>ผู้เรียกจัดรูปแบบเอง</td></tr></tbody></table>
+<p>ข้อ 3 คือข้อที่สำคัญที่สุดสำหรับข้อมูลสุขภาพ — <b>ถ้าตัวเลขในคำตอบไม่ได้มาจาก DB โดยตรง เราจะพิสูจน์ไม่ได้ว่ามันจริง</b></p>
+<h3>5.1 แล้วรับ "คำสั่งแบบ Vibe" ยังไงถ้าไม่มี LLM</h3>
+<p>ใช้ <b>intent resolver แบบกฎ (deterministic)</b> — ไม่เดา ไม่สุ่ม รันแล้วได้ผลเดิมทุกครั้ง</p>
+<pre class="code" data-lang=""><code>คำสั่ง → normalize → ให้คะแนน intent ตามคีย์เวิร์ด → สกัด entity → 
+   ถ้ามั่นใจ  → เรียก handler เดียวกับ REST endpoint → คืนข้อมูล
+   ถ้าไม่มั่นใจ → คืน "needs_disambiguation" + ตัวเลือก ไม่เดามั่ว</code></pre>
+<p><b>จุดตายที่ออกแบบมากันไว้:</b> ถ้าเดาผิดว่าเป็นลูกค้าคนไหน = ส่งข้อมูลสุขภาพของคนอื่นออกไป เคสแบบนี้เกิดขึ้นจริงในระบบแล้ว — มีลูกค้าสองคนที่<b>ชื่อเล่นเหมือนกัน ต่างกันแค่คำนำหน้าและปีเกิด</b> (ตัวอย่างสมมติ: "คุณมาลี ก." กับ "คุณมาลี ข.") · คำสั่งที่ระบุแค่ "มาลี" ต้อง<b>ไม่เดา</b> แต่ต้องคืนรายชื่อผู้สมัครให้ผู้เรียกเลือก</p>
+<div class="callout warn">🚫 ตัวอย่างทั้งหมดในเอกสารนี้ใช้<b>ชื่อสมมติ</b> — repo นี้เป็น public จึงห้ามมีชื่อลูกค้าจริง</div>
+<div class="callout warn">⚠️ <b>กฎเหล็กของ resolver:</b> ชื่อกำกวม = ไม่ตอบข้อมูล · คืนตัวเลือกเสมอ · ยอมให้ผู้เรียกถามซ้ำอีกรอบดีกว่าส่งข้อมูลผิดคน</div>
+<h3>5.2 ทางที่แนะนำสำหรับ ChatGPT</h3>
+<p>มี 2 ทาง ใช้คู่กันได้:</p>
+<ol>
+<li><b>ทางหลัก — ChatGPT Actions อ่าน OpenAPI ของเรา</b> (<code>/api/v1/openapi.json</code>) แล้ว ChatGPT เลือก endpoint เอง · แม่นที่สุด เพราะ LLM ฝั่งผู้เรียกทำหน้าที่ตีความอยู่แล้ว
+</li>
+<li><b>ทางสำรอง — <code>POST /api/v1/query</code></b> ส่งข้อความดิบเข้ามา · สำหรับ client ที่ไม่มี LLM (n8n, สคริปต์, ปุ่มใน LINE)
+</li>
+</ol>
+</section>
+<section id="s6-authentication"><h2><span class="num">6</span>Authentication</h2>
+<h3>6.1 รูปแบบ token</h3>
+<pre class="code" data-lang=""><code>uplab_&lt;env&gt;_&lt;prefix8&gt;_&lt;secret32&gt;
+ตัวอย่าง: uplab_live_a3f9c210_7Kd2mQx9RtVb4NpLzE6WsYcH1JgFuA8T</code></pre>
+<ul>
+<li><code>prefix8</code> = ใช้ค้นในตาราง (index) · เก็บเป็น plaintext
+</li>
+<li><code>secret32</code> = <b>เก็บเป็น SHA-256 hash เท่านั้น</b> · โชว์ค่าเต็มครั้งเดียวตอนสร้าง ปิดแล้วดูไม่ได้อีก
+</li>
+<li>ส่งมาทาง header: <code>Authorization: Bearer uplab_live_...</code>
+ รองรับ <code>x-api-key: uplab_live_...</code> ด้วย (n8n/Make บางตัวใส่ header เองไม่สะดวก)
+</li>
+</ul>
+<h3>6.2 ตรวจอะไรบ้างในทุก request</h3>
+<table><thead><tr><th>ลำดับ</th><th>ตรวจ</th><th>ไม่ผ่าน →</th></tr></thead><tbody><tr><td>1</td><td>มี token ไหม</td><td><code>401 missing_token</code></td></tr><tr><td>2</td><td>รูปแบบถูกไหม</td><td><code>401 malformed_token</code></td></tr><tr><td>3</td><td>หา prefix เจอไหม + hash ตรงไหม (compare แบบ timing-safe)</td><td><code>401 invalid_token</code></td></tr><tr><td>4</td><td>ถูกเพิกถอนหรือยัง (<code>revoked_at</code>)</td><td><code>401 token_revoked</code></td></tr><tr><td>5</td><td>หมดอายุหรือยัง (<code>expires_at</code>)</td><td><code>401 token_expired</code></td></tr><tr><td>6</td><td>เกิน rate limit ไหม</td><td><code>429 rate_limited</code> + <code>Retry-After</code></td></tr><tr><td>7</td><td>scope พอไหมสำหรับ endpoint นี้</td><td><code>403 insufficient_scope</code> (บอกว่าต้องการ scope อะไร)</td></tr><tr><td>8</td><td>ลูกค้าคนนี้อยู่ในขอบเขตของ token ไหม</td><td><code>403 customer_out_of_scope</code></td></tr></tbody></table>
+<p>ทุกกรณี <b>บันทึกลง <code>api_token_logs</code></b> ไม่ว่าจะผ่านหรือไม่ผ่าน</p>
+</section>
+<section id="s7-authorization-model"><h2><span class="num">7</span>Authorization Model</h2>
+<h3>7.1 Scopes</h3>
+<table><thead><tr><th>Scope</th><th>ให้ทำอะไร</th></tr></thead><tbody><tr><td><code>customers:read</code></td><td>ค้นหา/อ่านโปรไฟล์ลูกค้า (ชื่อ เพศ วันเกิด ส่วนสูง)</td></tr><tr><td><code>customers:write</code></td><td>สร้าง/แก้โปรไฟล์</td></tr><tr><td><code>labs:read</code></td><td>อ่านผลแล็บ · เทียบย้อนหลัง · ภาพรวม · ค่าผิดปกติ</td></tr><tr><td><code>labs:write</code></td><td>เพิ่มใบตรวจ + ค่าแล็บ</td></tr><tr><td><code>measurements:read</code> / <code>measurements:write</code></td><td>BCA</td></tr><tr><td><code>supplements:read</code></td><td>อาหารเสริม + ความปลอดภัยคู่ยา</td></tr><tr><td><code>notes:read</code> / <code>notes:write</code></td><td>โน้ตโค้ช</td></tr><tr><td><code>links:write</code></td><td>ขอลิงก์สมัคร</td></tr></tbody></table>
+<p><b>หลักการ:</b> scope เป็น <b>allow-list</b> — ไม่ระบุ = ไม่ได้ · ไม่มี scope แบบ <code>*</code></p>
+<h3>7.2 ขอบเขตลูกค้า (customer scope)</h3>
+<p><code>api_tokens.customer_scope</code> เลือกได้ 3 แบบ:</p>
+<table><thead><tr><th>แบบ</th><th>ความหมาย</th></tr></thead><tbody><tr><td><code>all</code></td><td>ทุกคนในระบบ (ให้เฉพาะ token ของ admin)</td></tr><tr><td><code>coach:&lt;user_id&gt;</code></td><td>เฉพาะลูกค้าของโค้ชคนนั้น <b>+ สายงานลงไปทั้งหมด</b> (ใช้ <code>canManageCustomer</code> ตัวเดียวกับเว็บ)</td></tr><tr><td><code>list:&lt;uuid,uuid,…&gt;</code></td><td>เฉพาะลูกค้าที่ระบุ (เหมาะกับงานเฉพาะเคส)</td></tr></tbody></table>
+<div class="callout ok">✅ <b>เหตุผลที่ยืมตรรกะจากเว็บมาใช้ทั้งดุ้น</b> — ถ้า API มีตรรกะสิทธิ์ของตัวเอง วันหนึ่งมันจะไม่ตรงกับเว็บ แล้วช่องโหว่จะโผล่ในฝั่งที่ไม่มีคนดู · ใช้ <code>lib/customers/access.ts</code> ที่เดียว</div>
+<h3>7.3 Rate limit</h3>
+<p>ค่าเริ่มต้น <b>60 ครั้ง/นาที ต่อ token</b> (ตั้งรายตัวได้) · นับจาก <code>api_token_logs</code> ใน 60 วินาทีที่ผ่านมา ไม่ใช้ Redis — ที่สเกลนี้ query ตาราง log พอ และแลกกับความง่ายในการดูแลคุ้มกว่า</p>
+</section>
+<section id="s8-endpoints"><h2><span class="num">8</span>Endpoints</h2>
+<p>Base: <code>https://upwellness-ops.vercel.app/api/v1</code></p>
+<h3>8.1 Discovery</h3>
+<table><thead><tr><th>Endpoint</th><th>Scope</th><th>คืนอะไร</th></tr></thead><tbody><tr><td><code>GET /meta</code></td><td>any</td><td>ชื่อ token · scope ที่มี · ขอบเขตลูกค้า · จำนวนลูกค้าที่เห็น · rate limit ที่เหลือ · รายการ intent ทั้งหมด</td></tr><tr><td><code>GET /openapi.json</code></td><td>public</td><td>OpenAPI 3.1 สำหรับ import เข้า ChatGPT Actions</td></tr></tbody></table>
+<p><code>GET /meta</code> คือ endpoint แรกที่ควรเรียก — บอกว่า token นี้ทำอะไรได้บ้างโดยไม่ต้องเดา</p>
+<h3>8.2 Customers</h3>
+<table><thead><tr><th>Endpoint</th><th>Scope</th><th>หมายเหตุ</th></tr></thead><tbody><tr><td><code>GET /customers?q=&amp;limit=</code></td><td><code>customers:read</code></td><td>ค้นด้วยชื่อบางส่วน · คืนเฉพาะที่อยู่ในขอบเขต token</td></tr><tr><td><code>POST /customers</code></td><td><code>customers:write</code></td><td><code>{name, gender, birth_date, height}</code></td></tr><tr><td><code>GET /customers/{id}</code></td><td><code>customers:read</code></td><td>โปรไฟล์ + สรุปว่ามีข้อมูลอะไรบ้าง (กี่ใบตรวจ ล่าสุดเมื่อไหร่)</td></tr><tr><td><code>PATCH /customers/{id}</code></td><td><code>customers:write</code></td><td>แก้ field ที่ส่งมาเท่านั้น</td></tr></tbody></table>
+<h3>8.3 Labs</h3>
+<table><thead><tr><th>Endpoint</th><th>Scope</th><th>หมายเหตุ</th></tr></thead><tbody><tr><td><code>GET /customers/{id}/labs?rounds=3&amp;metric=hba1c</code></td><td><code>labs:read</code></td><td>ค่าแล็บ · <code>rounds</code> = จำนวนใบตรวจล่าสุด (ค่าเริ่มต้น 3, สูงสุด 20)</td></tr><tr><td><code>GET /customers/{id}/labs/compare?rounds=3</code></td><td><code>labs:read</code></td><td><b>ตารางเทียบพร้อมใช้</b> — แต่ละ metric เป็นแถว แต่ละรอบเป็นคอลัมน์ + delta ระหว่างรอบล่าสุดกับก่อนหน้า</td></tr><tr><td><code>POST /customers/{id}/labs</code></td><td><code>labs:write</code></td><td>สร้างใบตรวจ + ค่าในใบพร้อมกัน (atomic)</td></tr><tr><td><code>GET /customers/{id}/overview</code></td><td><code>labs:read</code></td><td><b>ภาพรวมทุก factor</b> — ค่าล่าสุดต่อหมวด + สิ่งที่ผิดปกติ + สิ่งที่ยังไม่เคยตรวจ + ความพร้อมของ Health Age</td></tr></tbody></table>
+<p><code>/labs/compare</code> คือ endpoint ที่ตอบ user story ข้อ 1 โดยตรง — ผู้เรียกไม่ต้องมาเรียงข้อมูลเอง</p>
+<h3>8.4 อื่น ๆ</h3>
+<table><thead><tr><th>Endpoint</th><th>Scope</th></tr></thead><tbody><tr><td><code>GET /customers/{id}/measurements?limit=</code> · <code>POST</code></td><td><code>measurements:read</code> / <code>:write</code></td></tr><tr><td><code>GET /customers/{id}/supplements</code></td><td><code>supplements:read</code></td></tr><tr><td><code>GET /customers/{id}/notes?limit=</code> · <code>POST</code></td><td><code>notes:read</code> / <code>:write</code></td></tr><tr><td><code>POST /links/invite</code></td><td><code>links:write</code></td></tr></tbody></table>
+<h3>8.5 <code>POST /query</code> — คำสั่งภาษาคน</h3>
+<pre class="code" data-lang="jsonc"><code>// request
+{
+  "q": "ช่วยเทียบผลแล็บย้อนหลัง 3 รอบของ คุณสมหญิง หน่อย",
+  "customer_id": "33333333-…",   // ไม่บังคับ — ถ้าใส่มาจะข้ามการเดาชื่อ (แนะนำ)
+  "intent": "labs.compare"       // ไม่บังคับ — ถ้าใส่มาจะข้ามการเดา intent
+}</code></pre>
+<pre class="code" data-lang="jsonc"><code>// response
+{
+  "ok": true,
+  "intent": "labs.compare",
+  "confidence": 0.92,
+  "understood_as": "เทียบผลแล็บ 3 รอบล่าสุดของ คุณสมหญิง",
+  "params": { "customer_id": "33333333-…", "rounds": 3 },
+  "data": { /* เหมือน GET /customers/{id}/labs/compare */ },
+  "alternatives": [{ "intent": "labs.latest", "confidence": 0.41 }],
+  "disclaimer": "ข้อมูลสุขภาพเพื่อการดูแลเชิงป้องกัน ไม่ใช่การวินิจฉัย…",
+  "meta": { "token": "ผู้ช่วยของต้น", "generated_at": "2026-08-29T…Z", "row_count": 42 }
+}</code></pre>
+<p><b>เมื่อไม่มั่นใจ</b> — ไม่เดา:</p>
+<pre class="code" data-lang="jsonc"><code>{
+  "ok": false,
+  "error": "needs_disambiguation",
+  "reason": "พบลูกค้าที่ชื่อใกล้เคียงมากกว่า 1 คน",
+  "candidates": [
+    { "id": "11111111-…", "name": "คุณมาลี ก.", "birth_date": "1975-01-01" },
+    { "id": "22222222-…", "name": "คุณมาลี ข.", "birth_date": "1991-01-01" }
+  ],
+  "next_step": "เรียกซ้ำโดยใส่ customer_id ที่ต้องการ"
+}</code></pre>
+<h3>8.6 Intent catalogue</h3>
+<table><thead><tr><th>Intent</th><th>ตัวอย่างคำสั่ง</th><th>Scope</th></tr></thead><tbody><tr><td><code>customer.find</code></td><td>"หาลูกค้าชื่อสมหญิง" · "find customer Malee"</td><td><code>customers:read</code></td></tr><tr><td><code>customer.profile</code></td><td>"โปรไฟล์ของ X" · "ข้อมูลทั่วไปของ X"</td><td><code>customers:read</code></td></tr><tr><td><code>labs.latest</code></td><td>"ผลแล็บล่าสุดของ X"</td><td><code>labs:read</code></td></tr><tr><td><code>labs.compare</code></td><td>"เทียบผลแล็บย้อนหลัง 3 รอบของ X"</td><td><code>labs:read</code></td></tr><tr><td><code>labs.metric</code></td><td>"ค่า HbA1c ของ X ย้อนหลัง"</td><td><code>labs:read</code></td></tr><tr><td><code>labs.abnormal</code></td><td>"ค่าผิดปกติของ X มีอะไรบ้าง"</td><td><code>labs:read</code></td></tr><tr><td><code>overview.longevity</code></td><td>"วิเคราะห์ภาพรวมทุก factor ของ X"</td><td><code>labs:read</code></td></tr><tr><td><code>measurements.list</code></td><td>"ค่า BCA / น้ำหนักของ X"</td><td><code>measurements:read</code></td></tr><tr><td><code>supplements.list</code></td><td>"X กินอาหารเสริมอะไรอยู่"</td><td><code>supplements:read</code></td></tr><tr><td><code>notes.list</code></td><td>"โน้ตของ X"</td><td><code>notes:read</code></td></tr><tr><td><code>notes.add</code></td><td>"จดโน้ตให้ X ว่า …"</td><td><code>notes:write</code></td></tr><tr><td><code>links.invite</code></td><td>"ขอลิงก์สมัครให้ที"</td><td><code>links:write</code></td></tr></tbody></table>
+</section>
+<section id="s9-response-error-contract"><h2><span class="num">9</span>Response &amp; Error Contract</h2>
+<p><b>สำเร็จ</b> — ทุก response มี <code>ok: true</code> · <code>data</code> · <code>meta</code> · และ <b><code>disclaimer</code> เมื่อมีข้อมูลคลินิก</b></p>
+<p><b>ผิดพลาด</b> — รูปแบบเดียวทั้งระบบ:</p>
+<pre class="code" data-lang="jsonc"><code>{ "ok": false, "error": "insufficient_scope", "message": "token นี้ไม่มีสิทธิ์อ่านผลแล็บ",
+  "required_scope": "labs:read", "your_scopes": ["customers:read"] }</code></pre>
+<table><thead><tr><th>HTTP</th><th>error</th><th>ความหมาย</th></tr></thead><tbody><tr><td>400</td><td><code>bad_request</code> / <code>needs_disambiguation</code> / <code>unknown_intent</code></td><td>คำสั่งไม่ครบหรือกำกวม</td></tr><tr><td>401</td><td><code>missing_token</code> / <code>invalid_token</code> / <code>token_expired</code> / <code>token_revoked</code></td><td>ปัญหา token</td></tr><tr><td>403</td><td><code>insufficient_scope</code> / <code>customer_out_of_scope</code></td><td>token ถูกแต่สิทธิ์ไม่พอ</td></tr><tr><td>404</td><td><code>not_found</code></td><td>ไม่มีข้อมูลนี้ (หรือไม่มีสิทธิ์เห็น — ตอบเหมือนกันเพื่อไม่รั่วว่ามีตัวตน)</td></tr><tr><td>429</td><td><code>rate_limited</code></td><td>เกินโควตา</td></tr><tr><td>500</td><td><code>internal_error</code></td><td>ฝั่งเรา (ไม่คืนรายละเอียดภายใน)</td></tr></tbody></table>
+<div class="callout warn">🚫 <b>ห้ามคืนข้อความ error ดิบจาก Postgres/Supabase</b> — รั่วโครงสร้างตาราง · แปลเป็น error code ของเราเสมอ</div>
+<h3>9.1 Compliance ที่ฝังใน response</h3>
+<p>ทุก payload ที่มีค่าสุขภาพจะมี field <code>disclaimer</code> ติดไปด้วยเสมอ และ <code>/overview</code> มี <code>caveats[]</code> บอกข้อจำกัดของข้อมูลชุดนั้น (เช่น <i>"ไม่ได้ระบุว่างดอาหารหรือไม่"</i>, <i>"ค่าหัวใจเป็นของ 45 วันก่อน ยังไม่ตรวจซ้ำ"</i>)</p>
+<p>เหตุผล: ปลายทางคือ LLM ที่จะเอาไปเรียบเรียงต่อ — ถ้าเราไม่ส่ง caveat ไปด้วย มันจะสรุปเกินข้อมูล</p>
+</section>
+<section id="s10-data-model"><h2><span class="num">10</span>Data Model</h2>
+<h3>10.1 <code>api_tokens</code></h3>
+<table><thead><tr><th>คอลัมน์</th><th>ชนิด</th><th>หมายเหตุ</th></tr></thead><tbody><tr><td><code>id</code></td><td>uuid PK</td><td></td></tr><tr><td><code>name</code></td><td>text</td><td>ชื่อที่คนอ่านรู้เรื่อง เช่น "ผู้ช่วย ChatGPT ของต้น"</td></tr><tr><td><code>token_prefix</code></td><td>text UNIQUE</td><td>8 ตัวสำหรับค้น</td></tr><tr><td><code>token_hash</code></td><td>text</td><td>SHA-256 ของ secret</td></tr><tr><td><code>scopes</code></td><td>text[]</td><td>allow-list</td></tr><tr><td><code>customer_scope</code></td><td>text</td><td><code>all</code> / <code>coach:&lt;uuid&gt;</code> / <code>list:&lt;uuid,…&gt;</code></td></tr><tr><td><code>rate_limit_per_min</code></td><td>int</td><td>ค่าเริ่มต้น 60</td></tr><tr><td><code>expires_at</code></td><td>timestamptz null</td><td>null = ไม่หมดอายุ</td></tr><tr><td><code>revoked_at</code></td><td>timestamptz null</td><td>เพิกถอน</td></tr><tr><td><code>last_used_at</code></td><td>timestamptz null</td><td></td></tr><tr><td><code>created_by</code></td><td>uuid → profiles</td><td></td></tr><tr><td><code>created_at</code></td><td>timestamptz</td><td></td></tr><tr><td><code>note</code></td><td>text null</td><td>บันทึกว่าให้ใครใช้</td></tr></tbody></table>
+<h3>10.2 <code>api_token_logs</code></h3>
+<table><thead><tr><th>คอลัมน์</th><th>ชนิด</th></tr></thead><tbody><tr><td><code>id</code></td><td>bigserial PK</td></tr><tr><td><code>token_id</code></td><td>uuid null → api_tokens (null = ยิงมาด้วย token ที่ไม่มีจริง)</td></tr><tr><td><code>token_prefix</code></td><td>text</td></tr><tr><td><code>ts</code></td><td>timestamptz</td></tr><tr><td><code>method</code> · <code>path</code></td><td>text</td></tr><tr><td><code>intent</code></td><td>text null</td></tr><tr><td><code>customer_id</code></td><td>uuid null</td></tr><tr><td><code>status</code></td><td>int</td></tr><tr><td><code>error</code></td><td>text null</td></tr><tr><td><code>duration_ms</code></td><td>int</td></tr><tr><td><code>row_count</code></td><td>int null</td></tr><tr><td><code>ip</code> · <code>user_agent</code></td><td>text null</td></tr></tbody></table>
+<p><b>เก็บ 90 วัน</b> แล้วลบ (ไม่เก็บ <code>q</code> ดิบเกิน 500 ตัวอักษร เพื่อไม่ให้ log กลายเป็นที่เก็บ PII อีกที่)</p>
+</section>
+<section id="s11-admin-ui-v2-admin-api-tokens"><h2><span class="num">11</span>Admin UI — <code>/v2/admin/api-tokens</code></h2>
+<table><thead><tr><th>ส่วน</th><th>มีอะไร</th></tr></thead><tbody><tr><td>ตาราง token</td><td>ชื่อ · prefix · scope (ชิป) · ขอบเขตลูกค้า · ใช้ล่าสุด · หมดอายุ · สถานะ</td></tr><tr><td>ปุ่มสร้าง</td><td>ชื่อ · เลือก scope (checkbox) · เลือกขอบเขตลูกค้า · วันหมดอายุ · rate limit</td></tr><tr><td>หลังสร้าง</td><td><b>โชว์ token เต็มครั้งเดียว</b> + ปุ่มคัดลอก + คำเตือนว่าปิดแล้วดูไม่ได้อีก</td></tr><tr><td>เพิกถอน</td><td>ปุ่มเดียว มีกล่องยืนยัน</td></tr><tr><td>Log</td><td>200 รายการล่าสุด กรองตาม token ได้</td></tr></tbody></table>
+</section>
+<section id="s12-acceptance-criteria"><h2><span class="num">12</span>Acceptance Criteria</h2>
+<p><b>Auth</b></p>
+<ul>
+<li>[ ] ไม่มี token → 401 · token ผิด → 401 · token ที่เพิกถอนแล้ว → 401
+</li>
+<li>[ ] token หมดอายุ → 401 แม้ scope ครบ
+</li>
+<li>[ ] เทียบ hash แบบ timing-safe (ไม่ใช่ <code>===</code>)
+</li>
+<li>[ ] token เต็มไม่เคยถูกเก็บลง DB และไม่โผล่ใน log
+</li>
+</ul>
+<p><b>Scope</b></p>
+<ul>
+<li>[ ] token ที่มีแค่ <code>customers:read</code> เรียก <code>/labs</code> → 403 พร้อมบอก scope ที่ต้องการ
+</li>
+<li>[ ] token <code>coach:X</code> เรียกลูกค้าของโค้ชอื่น → 403 <code>customer_out_of_scope</code>
+</li>
+<li>[ ] token <code>coach:X</code> เห็นลูกค้าของ downline ของ X ได้ (ตรงกับพฤติกรรมเว็บ)
+</li>
+<li>[ ] token <code>list:</code> เห็นเฉพาะ id ที่ระบุ
+</li>
+</ul>
+<p><b>Query resolver</b></p>
+<ul>
+<li>[ ] "เทียบผลแล็บย้อนหลัง 3 รอบของ …" → <code>labs.compare</code> + <code>rounds=3</code>
+</li>
+<li>[ ] "ขอลิงก์สมัคร" → <code>links.invite</code>
+</li>
+<li>[ ] ชื่อกำกวม (มาลี) → <code>needs_disambiguation</code> + candidates <b>ไม่เดา</b>
+</li>
+<li>[ ] คำสั่งที่ไม่เข้าอะไรเลย → <code>unknown_intent</code> + รายการ intent ที่มี
+</li>
+<li>[ ] resolver เป็นฟังก์ชันบริสุทธิ์ ทดสอบได้โดยไม่ต้องมี DB
+</li>
+<li>[ ] intent ที่ต้องการ scope ที่ token ไม่มี → 403 ไม่ใช่ 400
+</li>
+</ul>
+<p><b>Data</b></p>
+<ul>
+<li>[ ] <code>/labs/compare?rounds=3</code> คืน 3 คอลัมน์เรียงจากเก่า→ใหม่ + delta ของรอบล่าสุด
+</li>
+<li>[ ] ค่าที่ไม่ได้ตรวจในรอบนั้นคืน <code>null</code> ไม่ใช่ 0 หรือค่าของรอบก่อน
+</li>
+<li>[ ] <code>/overview</code> บอก "ยังไม่เคยตรวจ" แยกจาก "ตรวจแล้วปกติ"
+</li>
+<li>[ ] ทุก response ที่มีค่าสุขภาพมี <code>disclaimer</code>
+</li>
+</ul>
+<p><b>Ops</b></p>
+<ul>
+<li>[ ] ทุก request ลง <code>api_token_logs</code> ทั้งที่ผ่านและไม่ผ่าน
+</li>
+<li>[ ] เกิน rate limit → 429 + <code>Retry-After</code>
+</li>
+<li>[ ] <code>/openapi.json</code> import เข้า ChatGPT Actions ได้จริง
+</li>
+<li>[ ] error จาก Postgres ไม่รั่วออก response
+</li>
+</ul>
+</section>
+<section id="s13-rollout"><h2><span class="num">13</span>Rollout</h2>
+<table><thead><tr><th>ขั้น</th><th>ทำอะไร</th></tr></thead><tbody><tr><td>1</td><td>migration <code>api_tokens</code> + <code>api_token_logs</code> (RLS: admin เท่านั้น)</td></tr><tr><td>2</td><td><code>lib/api/</code> — auth · scope · resolver · serializer (ทดสอบได้แยกจาก HTTP)</td></tr><tr><td>3</td><td>routes <code>/api/v1/**</code> + เพิ่ม <code>/api/v1</code> ใน <code>PUBLIC_PATHS</code> (auth เป็นของตัวเอง ไม่ใช่ session)</td></tr><tr><td>4</td><td>หน้า <code>/v2/admin/api-tokens</code></td></tr><tr><td>5</td><td><code>npx tsc --noEmit &amp;&amp; npm run build</code> + ชุดทดสอบ resolver</td></tr><tr><td>6</td><td>push → Vercel deploy → สร้าง token ตัวจริง → ทดสอบด้วย ChatGPT</td></tr></tbody></table>
+<div class="callout warn">⚠️ <b>ขั้นที่ 3 มีกับดัก:</b> <code>/api/v1/*</code> ต้องอยู่ใน <code>PUBLIC_PATHS</code> ของ <code>middleware.ts</code> ไม่งั้น middleware จะเด้งไป <code>/login</code> ก่อนที่ route จะได้ตรวจ token · แต่ "public" ที่นี่หมายถึง "ไม่ใช้ session cookie" <b>ไม่ได้แปลว่าไม่ต้องยืนยันตัวตน</b></div>
+</section>
+<section id="s14-open-questions"><h2><span class="num">14</span>Open Questions</h2>
+<table><thead><tr><th>#</th><th>คำถาม</th><th>ต้องการคำตอบจาก</th><th>บล็อกงานไหม</th></tr></thead><tbody><tr><td>1</td><td>ให้ token เขียนผลแล็บได้เลย หรือให้ยิงเข้า "รอตรวจสอบ" ก่อน</td><td>ต้น</td><td>ไม่ — v1 ทำแบบเขียนตรง แต่ต้อง <code>labs:write</code> ซึ่งไม่ให้โดยค่าเริ่มต้น</td></tr><tr><td>2</td><td>ต้องมี token ที่คืนข้อมูลแบบไม่มีชื่อ (pseudonymous) ไหม</td><td>ต้น</td><td>ไม่ — เพิ่มทีหลังเป็น scope ใหม่ได้</td></tr><tr><td>3</td><td>จะทำ MCP server ต่อไหม (Claude ต่อตรงได้)</td><td>ต้น</td><td>ไม่ — roadmap</td></tr></tbody></table>
+</section>
+</div>
+<footer>UP Labs · UP Labs External API — ให้ AI ข้างนอกถามข้อมูลได้ · คู่กับ <a href="./PRD-UPLabs.html">PRD-UPLabs.html</a> — generate จาก <code>SPEC-External-API.md</code> ห้ามแก้ .html ตรง ๆ</footer>
+</body>
+</html>

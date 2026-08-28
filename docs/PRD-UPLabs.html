@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PRD — UP Labs (upwellness-ops)</title>
+<title>UP Labs — Health Intelligence Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
@@ -56,6 +56,11 @@
   .t-amber{background:var(--amber-u);color:var(--amber)} .t-sci{background:var(--sci-u);color:var(--sci)}
   footer{max-width:1080px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
   @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+
+  pre.code{background:var(--surface);border:1px solid var(--ink10);border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.65;margin:14px 0}
+  pre.code code{background:none;border:0;padding:0;font-size:inherit}
+  h4{font-size:14.5px;margin-top:16px;color:var(--ink80)}
+  .genwarn{background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:10px;padding:8px 14px;font-size:12.5px;margin-top:14px}
 </style>
 </head>
 <body>
@@ -64,207 +69,226 @@
     <div class="eyebrow">Product Requirements Document</div>
     <h1>UP Labs — Health Intelligence Platform</h1>
     <p class="sub">แพลตฟอร์มภายในของ UP Wellness ที่รวมข้อมูลสุขภาพลูกค้าทุกช่องทางไว้ที่เดียว แล้วเปลี่ยนเป็นคำแนะนำที่ลงมือได้สำหรับโค้ช — ไม่ใช่เครื่องมือขายของ แต่เป็นเครื่องมือดูแลคน</p>
-    <div class="meta">
-      <span class="chip">v1.0 · 16 ก.ค. 2026</span>
-      <span class="chip">upwellness-ops.vercel.app</span>
-      <span class="chip">repo upwellness/uplabs</span>
-      <span class="chip">Next.js 16 + Supabase</span>
-      <span class="chip">Owner: ต้น</span>
-    </div>
+    <div class="meta"><span class="chip">UP Labs</span><span class="chip">`https://upwellness-ops.vercel.app`</span><span class="chip">Next.js 14 (App Router) + Supabase (Postgres + Auth + Storage) + Vercel</span><span class="chip">2.0</span><span class="chip">production</span></div>
+    <div class="genwarn">ไฟล์นี้ถูกสร้างอัตโนมัติจาก <code>docs/PRD-UPLabs.md</code> — แก้ที่ .md แล้วรัน <code>npm run docs</code> · <b>ห้ามแก้ .html ตรง ๆ</b> เพราะจะถูกทับ</div>
   </div>
 </header>
-
-<nav class="toc"><div class="in">
-  <a href="#s1">1 ภาพรวม</a><a href="#s2">2 ผู้ใช้</a><a href="#s3">3 หน้าจอ</a><a href="#s4">4 ฟีเจอร์</a>
-  <a href="#s5">5 กฎร่วม</a><a href="#s6">6 Non-Goals</a><a href="#s7">7 ตัวชี้วัด</a><a href="#s8">8 Data</a>
-  <a href="#s9">9 ปัญหาค้าง</a><a href="#s10">10 Roadmap</a><a href="#s11">11 Changelog</a>
-</div></nav>
-
+<nav class="toc"><div class="in"><a href="#s1-product-overview">Product Overview</a><a href="#s2-users-roles">Users &amp; Roles</a><a href="#s3-surface-map-ทุกหน้าในระบบ">Surface Map — ทุกหน้าในระบบ</a><a href="#s4-api-inventory-ทุก-endpoint">API Inventory — ทุก endpoint</a><a href="#s5-feature-inventory-โมดูลต่อโมดูล">Feature Inventory — โมดูลต่อโมดูล</a><a href="#s6-cross-cutting-rules">Cross-cutting Rules</a><a href="#s7-data-model">Data Model</a><a href="#s8-environment-variables">Environment Variables</a><a href="#s9-security-model">Security Model</a><a href="#s10-external-api-v1-ให้-ai-ข้างนอกถามข้อมูลได้">External API (v1) — ให้ AI ข้างนอกถามข้อมูลได้</a><a href="#s11-non-goals-จงใจไม่ทำ">Non-Goals (จงใจไม่ทำ)</a><a href="#s12-known-issues-open-items">Known Issues / Open Items</a><a href="#s13-roadmap">Roadmap</a><a href="#s14-changelog">Changelog</a></div></nav>
 <div class="wrap">
-
-<div class="callout warn">
-  <b>⚠️ LIVING DOCUMENT — กติกา:</b> ทุกครั้งที่แก้โค้ดแล้ว <b>ฟีเจอร์เปลี่ยน / เพิ่ม route / เพิ่มตาราง / เปลี่ยน data model</b>
-  ต้องอัปเดต <code>PRD-UPLabs.md</code> + ไฟล์นี้ + <code>ARCHITECTURE.md/.html</code> <b>ในคอมมิตเดียวกัน</b> แล้วเติม 1 บรรทัดใน Changelog เสมอ
+<div class="callout warn">⚠️ <b>LIVING DOCUMENT — กฎเหล็ก:</b> ทุกครั้งที่แก้โค้ดแล้ว <b>ฟีเจอร์เปลี่ยน / เพิ่ม route / เพิ่มตาราง / เปลี่ยน data model</b> ต้องอัปเดต <code>.md</code> นี้ แล้วรัน <code>npm run docs</code> เพื่อ regenerate <code>.html</code> <b>ในคอมมิตเดียวกัน</b> แล้วเติม 1 บรรทัดใน §14 Changelog เสมอ · ไฟล์ <code>.html</code> เป็นผลลัพธ์จากตัว generate <b>ห้ามแก้มือ</b></div>
+<section id="s1-product-overview"><h2><span class="num">1</span>Product Overview</h2>
+<p>UP Labs คือ <b>แพลตฟอร์มภายในของ UP Wellness</b> ที่รวบรวมข้อมูลสุขภาพของลูกค้าทุกช่องทางไว้ที่เดียว แล้วเปลี่ยนเป็น <i>คำแนะนำที่ลงมือได้</i> สำหรับโค้ช/ที่ปรึกษา (ABO) — ไม่ใช่เครื่องมือขายของ แต่เป็น <b>เครื่องมือดูแลคน</b></p>
+<p><b>Problem:</b> ข้อมูลลูกค้ากระจัดกระจาย (ใบแล็บกระดาษ · เครื่องชั่ง BCA · นาฬิกา · CGM · แชท LINE) โค้ชต้องจำเอง → คำแนะนำไม่ต่อเนื่อง พิสูจน์ผลไม่ได้</p>
+<p><b>Solution:</b> ศูนย์กลางเดียว = <b>Customer Profile</b> ที่ทุกโมดูลเขียนเข้า/อ่านออก + ชั้น AI ช่วยแปลผล + ลิงก์สาธารณะให้ลูกค้ากรอก/เชื่อมข้อมูลเองได้ + <b>External API</b> ให้ AI ข้างนอกถามข้อมูลได้ (§10)</p>
+<p><b>Principles</b></p>
+<ol>
+<li><b>Customer profile เป็นแกนกลาง</b> — ทุกฟีเจอร์ต้องผูกกับ <code>customers.id</code> (ดู <a href="./ARCHITECTURE.md">ARCHITECTURE.md</a>)
+</li>
+<li><b>Evidence over vibes</b> — ตัวเลขจริงจากใบตรวจ/อุปกรณ์ ห้ามเดา
+</li>
+<li><b>Wellness ≠ diagnosis</b> — ผิดปกติ → "ปรึกษาแพทย์" เสมอ ห้ามเคลมรักษา
+</li>
+<li><b>โค้ชเร็วขึ้น ไม่ใช่โค้ชถูกแทนที่</b> — AI สรุป/จัดลำดับ คนตัดสินใจ
+</li>
+<li><b>ตรรกะคลินิกอยู่ใน <code>lib/</code> ที่เดียว</b> — หน้าเว็บและ API ห้ามตัดสินเกณฑ์เอง
+</li>
+</ol>
+</section>
+<section id="s2-users-roles"><h2><span class="num">2</span>Users &amp; Roles</h2>
+<table><thead><tr><th>Role</th><th>ใคร</th><th>เห็นอะไร</th></tr></thead><tbody><tr><td><code>admin</code></td><td>ต้น / ผู้ดูแลระบบ</td><td>ทุกอย่าง + จัดการผู้ใช้ + backup/restore + view-as + จัดการ API token</td></tr><tr><td><code>abo</code></td><td>นักธุรกิจ/โค้ช UP Wellness</td><td>ลูกค้าของตัวเอง + ลูกค้าของสายงานทุกระดับชั้นลงไป (อ่าน+เขียน) + แอปที่ได้รับสิทธิ์</td></tr><tr><td><code>member</code></td><td>สมาชิกทั่วไป</td><td>เนื้อหาที่เปิดให้ (ยังใช้งานน้อย)</td></tr><tr><td><code>other</code></td><td>ค่าตั้งต้นเมื่อยังไม่กำหนด role</td><td>เกือบไม่มีสิทธิ์</td></tr><tr><td><i>(public link)</i></td><td>ลูกค้า / ผู้สนใจ</td><td>เฉพาะหน้า token-gated ที่ถูกส่งลิงก์ให้ (ไม่ต้องล็อกอิน)</td></tr><tr><td><i>(API token)</i></td><td>ระบบ AI / automation ภายนอก</td><td>ตาม scope ที่แอดมินกำหนดต่อ token (§10)</td></tr></tbody></table>
+<h3>2.1 กลไกสิทธิ์ 4 ชั้น</h3>
+<ol>
+<li><b>Role</b> (<code>profiles.role</code>) — ชั้นหยาบสุด · helper <code>lib/auth/roles.ts</code> → <code>hasRole()</code>, <code>canAccessApp()</code>
+</li>
+<li><b>App grant</b> (<code>user_app_grants</code>) — เปิด/ปิดแอปรายคน แม้ role ไม่ถึงก็เปิดให้เฉพาะคนได้
+</li>
+<li><b>Customer access</b> — ใครแตะลูกค้าคนไหนได้ · <b>helper เดียวเท่านั้น</b> <code>lib/customers/access.ts</code>
+<ul>
+<li><code>canManageCustomer(userId, customerId)</code> = co-coach <b>หรือ</b> upline ของเจ้าของ (ทุกระดับชั้น)</li>
+<li><code>isAssignedToCustomer()</code> — co-coach จากตาราง <code>customer_assignments</code></li>
+<li><code>isDownlineCustomer()</code> / <code>downlineUserIds()</code> — เดินต้นไม้ <code>profiles.parent_id</code> ผ่าน RPC <code>profile_descendant_ids</code></li>
+<li>รูปแบบที่ route ต้องใช้: <code>if (!isAdmin &amp;&amp; c.coach_id !== uid &amp;&amp; !(await canManageCustomer(uid, cid))) → 403</code></li>
+<li>⛔ <b>ห้ามเขียนเช็คสิทธิ์เอง</b> ในแต่ละ route — เคยทำให้ read/write หลุดจากกัน (<code>POST /api/customers/[id]/measurements</code> เคยไม่มีเช็คเลย)</li>
+</ul>
+</li>
+<li><b>Scope ของ API token</b> (§10) — สำหรับผู้เรียกที่ไม่ใช่คน
+</li>
+</ol>
+<h3>2.2 Downline (MLM)</h3>
+<p><code>profiles.parent_id</code> → ผู้ถูกเชิญกลายเป็น downline ของผู้เชิญอัตโนมัติตอนสมัครผ่าน <code>/join/[token]</code> · <b>upline ดูแลลูกค้าของสายงานได้ทุกระดับชั้นลงไป ทั้งอ่านและเขียน</b> (เปลี่ยนจาก read-only เมื่อ 24 ก.ค. 2026 ตามที่ต้นเคาะ)</p>
+<h3>2.3 View-as</h3>
+<p>admin สวมมุมมองผู้ใช้อื่นเพื่อ support · <code>lib/auth/view-as.ts</code> + cookie <code>VIEW_AS_COOKIE</code> · ทุกครั้งลง <code>admin_view_as_log</code></p>
+<ul>
+<li><code>getSession()</code> = มุมมองที่ใช้ <b>แสดงผล</b> (สวมร่างแล้ว)
+</li>
+<li><code>getRealSession()</code> = ตัวตนจริง — <b>ใช้ตรวจสิทธิ์เสมอ</b>
+</li>
+<li><code>requireAdmin()</code> ตรวจจากตัวตนจริง ไม่ยอมให้ view-as ผ่าน
+</li>
+<li>การ <b>เขียน</b> ถูกบล็อกที่ middleware ระหว่าง view-as (สวมร่างเพื่อ <i>ดู</i> เท่านั้น)
+</li>
+</ul>
+</section>
+<section id="s3-surface-map-ทุกหน้าในระบบ"><h2><span class="num">3</span>Surface Map — ทุกหน้าในระบบ</h2>
+<p><b>v2 = surface หลัก</b> (<code>/v2/*</code> ใช้ <code>app/v2/_components/Shell.tsx</code> — top bar + app switcher + breadcrumb + user menu) · v1 ยังเปิดสำหรับหน้าที่ยังไม่ย้าย</p>
+<h3>3.1 หน้าที่ต้องล็อกอิน</h3>
+<table><thead><tr><th>โมดูล</th><th>v1</th><th>v2</th><th>สถานะ</th></tr></thead><tbody><tr><td>หน้าแรก / app hub</td><td><code>/</code></td><td><code>/v2</code></td><td>✅ ทั้งคู่</td></tr><tr><td>Customer 360</td><td><code>/customers</code> · <code>/customers/[id]</code></td><td><code>/v2/customers</code> · <code>/v2/customers/[id]</code></td><td>✅ v2 หลัก</td></tr><tr><td>↳ ผลตรวจ (records)</td><td><code>/customers/[id]/records</code> · <code>/records/new</code> · <code>/records/[recordId]</code></td><td>(รวมในแท็บ)</td><td>✅</td></tr><tr><td>↳ ภูมิแพ้</td><td><code>/customers/[id]/allergies/new</code></td><td>(รวมในแท็บ)</td><td>✅</td></tr><tr><td>BCA Tracker</td><td><code>/bca</code></td><td><code>/v2/bca</code></td><td>✅</td></tr><tr><td>Health Age (PhenoAge)</td><td>—</td><td><code>/v2/bio-age</code></td><td>✅ v2 only</td></tr><tr><td>UP Pulse</td><td><code>/pulse</code> · <code>/pulse/master/[id]</code> · <code>/pulse/report/[id]</code> · <code>/pulse/assessments/[id]</code></td><td>ครบใน <code>/v2/pulse/*</code></td><td>✅</td></tr><tr><td>Check FORM</td><td><code>/checkform</code></td><td><code>/v2/checkform</code></td><td>✅</td></tr><tr><td>Prospect List</td><td><code>/prospects</code></td><td><code>/v2/prospects</code></td><td>✅</td></tr><tr><td>Health Check (leads)</td><td><code>/healthcheck</code></td><td><code>/v2/healthcheck</code></td><td>✅</td></tr><tr><td>NutriScan + Food Log</td><td><code>/nutriscan</code> · <code>/nutriscan/log</code></td><td><code>/v2/nutriscan</code> · <code>/v2/nutriscan/log</code></td><td>✅</td></tr><tr><td>Plate Planner</td><td><code>/plate-planner</code></td><td><code>/v2/plate-planner</code> · <code>/v2/plate-planner/guide</code></td><td>✅</td></tr><tr><td>LINE Bot (น้องจาน)</td><td><code>/line-bot</code> · <code>/line-bot/[customerId]</code></td><td><code>/v2/line-bot/*</code></td><td>✅</td></tr><tr><td>Program Designer</td><td><code>/designer</code></td><td><code>/v2/designer</code></td><td>✅</td></tr><tr><td>CGM Analyzer</td><td><code>/cgm</code></td><td>—</td><td>v1 only</td></tr><tr><td>Admin · ผู้ใช้ / backup</td><td><code>/admin/users</code> · <code>/admin/backup</code></td><td><code>/v2/admin/users</code> · <code>/v2/admin/backup</code></td><td>✅</td></tr><tr><td>Admin · API token</td><td>—</td><td><code>/v2/admin/api-tokens</code></td><td>✅ ใหม่ (§10)</td></tr><tr><td>ชวนสมาชิก (invite)</td><td>—</td><td><code>/v2/invite</code></td><td>✅ v2 only</td></tr><tr><td>SAB slides</td><td><code>/sab</code></td><td>—</td><td>v1 only</td></tr><tr><td>Setup / diagnostics</td><td><code>/setup</code></td><td>—</td><td>internal</td></tr></tbody></table>
+<h3>3.2 หน้าสาธารณะ (token-gated · ไม่ต้องล็อกอิน)</h3>
+<table><thead><tr><th>หน้า</th><th>ใช้ทำอะไร</th><th>ใครเปิด</th></tr></thead><tbody><tr><td><code>/login</code> · <code>/forgot-password</code> · <code>/reset-password</code></td><td>เข้าระบบ / กู้รหัส</td><td>ผู้ใช้</td></tr><tr><td><code>/join/[token]</code></td><td>สมัครจากคำเชิญ → ผูกเป็น downline ของผู้เชิญ</td><td>ผู้ถูกเชิญ</td></tr><tr><td><code>/connect/[token]</code> · <code>/connect/[token]/success</code> · <code>/connect/error</code></td><td>ลูกค้าเชื่อมนาฬิกา (Whoop / Google Fit)</td><td>ลูกค้า</td></tr><tr><td><code>/intake/[token]</code></td><td>แบบสอบถาม UP Pulse</td><td>ลูกค้า</td></tr><tr><td><code>/check/[coachId]</code></td><td>แบบประเมินสุขภาพสาธารณะ (lead capture)</td><td>คนทั่วไป</td></tr><tr><td><code>/metaflex/[coachId]</code></td><td>MetaFlex Quiz (lead capture)</td><td>คนทั่วไป</td></tr><tr><td><code>/r/[token]</code></td><td>แชร์รายงาน Pulse แบบอ่านอย่างเดียว</td><td>ใครก็ได้ที่มีลิงก์</td></tr></tbody></table>
+</section>
+<section id="s4-api-inventory-ทุก-endpoint"><h2><span class="num">4</span>API Inventory — ทุก endpoint</h2>
+<p><b>กติกา:</b> API route = <b>ด่านตรวจสิทธิ์</b> และเป็นที่เดียวที่คุยกับบริการภายนอก · คอลัมน์ "สิทธิ์" บอกว่าใครเรียกได้</p>
+<h3>4.1 Customers</h3>
+<table><thead><tr><th>Route</th><th>Method</th><th>สิทธิ์</th><th>ทำอะไร</th></tr></thead><tbody><tr><td><code>/api/customers</code></td><td>GET · POST</td><td>session</td><td>รายการ / สร้างลูกค้า</td></tr><tr><td><code>/api/customers/list</code></td><td>GET</td><td>session</td><td>รายการแบบเบา (dropdown)</td></tr><tr><td><code>/api/customers/[id]</code></td><td>GET · PATCH · DELETE</td><td>owner/admin/<code>canManageCustomer</code></td><td>อ่าน/แก้/ลบโปรไฟล์ (ลบ = เจ้าของ+admin)</td></tr><tr><td><code>/api/customers/[id]/360</code></td><td>GET</td><td>เหมือนบน</td><td>ข้อมูลรวมหน้า Customer 360 (identity + vital + insight + timeline + meta)</td></tr><tr><td><code>/api/customers/[id]/lab-values/latest</code></td><td>GET</td><td>เหมือนบน</td><td>ค่าล่าสุดต่อ metric</td></tr><tr><td><code>/api/customers/[id]/lab-values/series</code></td><td>GET</td><td>session</td><td>time-series ทุกค่า (เรียงตามวันที่) สำหรับกราฟ</td></tr><tr><td><code>/api/customers/[id]/records</code></td><td>GET · POST</td><td>เหมือนบน</td><td>รายการ/เพิ่มใบตรวจ</td></tr><tr><td><code>/api/customers/[id]/records/[recordId]</code></td><td>GET · PATCH · DELETE</td><td>เหมือนบน</td><td>ใบตรวจรายใบ + ค่าในใบ</td></tr><tr><td><code>/api/customers/[id]/measurements</code></td><td>GET · POST</td><td>เหมือนบน</td><td>BCA (เคยไม่มีเช็คสิทธิ์ — อุดแล้ว 24 ก.ค. 2026)</td></tr><tr><td><code>/api/measurements/[id]</code></td><td>PATCH · DELETE</td><td>เหมือนบน</td><td>แก้/ลบ BCA รายรายการ</td></tr><tr><td><code>/api/customers/[id]/allergies</code></td><td>GET</td><td>เหมือนบน</td><td>ผลภูมิแพ้อาหาร</td></tr><tr><td><code>/api/customers/[id]/allergies/tests</code></td><td>GET · POST</td><td>เหมือนบน</td><td>ชุดทดสอบภูมิแพ้</td></tr><tr><td><code>/api/customers/[id]/allergies/tests/[testId]</code></td><td>GET · PATCH · DELETE</td><td>เหมือนบน</td><td>รายชุด</td></tr><tr><td><code>/api/customers/[id]/notes</code></td><td>GET · POST</td><td>เหมือนบน</td><td>โน้ตโค้ช (ปักหมุดได้)</td></tr><tr><td><code>/api/customers/[id]/bio-age</code></td><td>GET</td><td>เหมือนบน</td><td>Health Age (PhenoAge)</td></tr><tr><td><code>/api/customers/[id]/lab-report</code></td><td>GET · POST</td><td>เหมือนบน</td><td>รายงาน HTML ส่วนตัวของลูกค้า</td></tr><tr><td><code>/api/customers/[id]/med-map</code></td><td>GET</td><td>เหมือนบน</td><td>Med-Map report (HTML)</td></tr></tbody></table>
+<h3>4.2 โมดูลอื่น</h3>
+<table><thead><tr><th>Route</th><th>Method</th><th>สิทธิ์</th><th>ทำอะไร</th></tr></thead><tbody><tr><td><code>/api/bca/classify</code></td><td>POST</td><td>session</td><td>จัดระดับค่า BCA ตาม <code>lib/medical-status.ts</code></td></tr><tr><td><code>/api/cgm/passcode</code></td><td>POST</td><td>passcode ต่อ profile</td><td>ปลดล็อก CGM profile (RLS + SECURITY DEFINER RPC)</td></tr><tr><td><code>/api/checkform/analyze</code></td><td>POST</td><td>session + BYO key</td><td>วิเคราะห์ prospect ด้วย Gemini</td></tr><tr><td><code>/api/checkform/recommend-clips</code></td><td>POST</td><td>session + BYO key</td><td>จับคู่คลิป STP</td></tr><tr><td><code>/api/checkform/records</code> · <code>/records/[id]</code></td><td>GET · POST · PATCH · DELETE</td><td>session</td><td>เก็บ/อ่านผลวิเคราะห์</td></tr><tr><td><code>/api/nutriscan</code> · <code>/api/nutriscan/[id]</code></td><td>GET · POST · DELETE</td><td>session (+เช็คลูกค้าเมื่อจะบันทึก)</td><td>วิเคราะห์อาหารจากรูป + food log</td></tr><tr><td><code>/api/plate-image</code></td><td>POST</td><td>session</td><td>สร้างภาพจานด้วย AI + แคชใน Storage</td></tr><tr><td><code>/api/prospects</code> · <code>/[id]</code> · <code>/[id]/convert</code></td><td>GET · POST · PATCH · DELETE</td><td>session</td><td>Prospect pipeline + แปลงเป็น Check FORM</td></tr><tr><td><code>/api/healthcheck/leads</code> · <code>/[id]</code></td><td>GET · PATCH · DELETE</td><td>session</td><td>Lead จากแบบประเมิน</td></tr><tr><td><code>/api/check/submit</code></td><td>POST</td><td><b>public</b></td><td>รับแบบประเมินสาธารณะ</td></tr><tr><td><code>/api/join</code></td><td>POST</td><td><b>token</b></td><td>สมัครจากคำเชิญ</td></tr><tr><td><code>/api/line/webhook</code></td><td>POST</td><td><b>x-line-signature (HMAC)</b></td><td>LINE bot รับ event</td></tr><tr><td><code>/api/line/push-tomorrow</code></td><td>GET · POST</td><td><b>CRON_SECRET</b></td><td>ส่งเมนูพรุ่งนี้ (Vercel Cron 18:00)</td></tr><tr><td><code>/api/line-bot/config/[customerId]</code></td><td>GET · PUT</td><td>session</td><td>ตั้งค่าบอทต่อลูกค้า</td></tr><tr><td><code>/api/line-bot/groups</code> · <code>/[id]</code></td><td>GET · POST · PATCH · DELETE</td><td>session</td><td>ผูกกลุ่ม LINE ↔ ลูกค้า</td></tr><tr><td><code>/api/line-bot/supplements/[customerId]</code></td><td>GET · PUT</td><td>session</td><td>ตารางอาหารเสริมที่บอทจะส่ง</td></tr><tr><td><code>/api/admin/backup</code> · <code>/api/admin/restore</code></td><td>GET · POST</td><td><b>admin เท่านั้น</b></td><td>สำรอง/กู้คืนข้อมูล</td></tr><tr><td><code>/api/debug/me</code> · <code>/api/debug/customers</code></td><td>GET</td><td>session</td><td>วินิจฉัยสิทธิ์ (internal)</td></tr></tbody></table>
+<h3>4.3 UP Pulse</h3>
+<table><thead><tr><th>Route</th><th>Method</th><th>สิทธิ์</th><th>ทำอะไร</th></tr></thead><tbody><tr><td><code>/api/pulse/invites</code></td><td>GET · POST</td><td>session</td><td>สร้างลิงก์เชิญเชื่อมอุปกรณ์</td></tr><tr><td><code>/api/pulse/intakes</code></td><td>POST</td><td><b>public (token)</b></td><td>ลูกค้าส่งแบบสอบถาม</td></tr><tr><td><code>/api/pulse/intakes/[token]</code></td><td>GET</td><td><b>public (token)</b></td><td>ดึงแบบฟอร์มตาม token</td></tr><tr><td><code>/api/pulse/oauth/start</code> · <code>/callback</code></td><td>GET</td><td><b>public (state)</b></td><td>OAuth Google Fit</td></tr><tr><td><code>/api/pulse/whoop/oauth/start</code> · <code>/callback</code></td><td>GET</td><td><b>public (state)</b></td><td>OAuth Whoop</td></tr><tr><td><code>/api/pulse/whoop/import</code></td><td>POST</td><td>session</td><td>นำเข้า CSV Whoop</td></tr><tr><td><code>/api/pulse/apple/import</code></td><td>POST</td><td>session</td><td>นำเข้า Apple Health export.xml</td></tr><tr><td><code>/api/pulse/customers/[id]</code></td><td>GET</td><td>เหมือน customers</td><td>ข้อมูล Pulse ของลูกค้า</td></tr><tr><td><code>/api/pulse/customers/[id]/sync</code></td><td>POST</td><td>เหมือน customers</td><td>ดึงข้อมูลจาก provider</td></tr><tr><td><code>/api/pulse/customers/[id]/assess</code></td><td>POST</td><td>เหมือน customers</td><td>ประเมิน (<code>lib/pulse/assess.ts</code>)</td></tr><tr><td><code>/api/pulse/customers/[id]/cgm-link</code></td><td>POST</td><td>เหมือน customers</td><td>ผูก CGM profile</td></tr><tr><td><code>/api/pulse/customers/[id]/debug</code></td><td>GET</td><td>เหมือน customers</td><td>วินิจฉัยการเชื่อมต่อ</td></tr><tr><td><code>/api/pulse/assessments/[id]</code></td><td>GET · DELETE</td><td>session</td><td>ผลประเมิน</td></tr><tr><td><code>/api/pulse/share/[token]</code></td><td>GET</td><td><b>public (token)</b></td><td>ดึงรายงานที่แชร์</td></tr></tbody></table>
+<h3>4.4 External API (v1) — §10</h3>
+<table><thead><tr><th>Route</th><th>Method</th><th>สิทธิ์</th><th>ทำอะไร</th></tr></thead><tbody><tr><td><code>/api/v1/meta</code></td><td>GET</td><td>API token</td><td>ตัวตน token + scope + intent ที่ใช้ได้</td></tr><tr><td><code>/api/v1/openapi.json</code></td><td>GET</td><td><b>public</b></td><td>สคีมาสำหรับ ChatGPT Actions / n8n</td></tr><tr><td><code>/api/v1/query</code></td><td>POST</td><td>API token</td><td>คำสั่งภาษาคน → ข้อมูลตรง ๆ (ไม่มี LLM ฝั่งเรา)</td></tr><tr><td><code>/api/v1/customers</code></td><td>GET · POST</td><td><code>customers:read</code> / <code>customers:write</code></td><td>ค้นหา/สร้างลูกค้า</td></tr><tr><td><code>/api/v1/customers/{id}</code></td><td>GET · PATCH</td><td><code>customers:read</code> / <code>customers:write</code></td><td>โปรไฟล์</td></tr><tr><td><code>/api/v1/customers/{id}/labs</code></td><td>GET · POST</td><td><code>labs:read</code> / <code>labs:write</code></td><td>ผลแล็บ (รองรับ <code>rounds=N</code>)</td></tr><tr><td><code>/api/v1/customers/{id}/labs/compare</code></td><td>GET</td><td><code>labs:read</code></td><td>ตารางเทียบ N รอบล่าสุด</td></tr><tr><td><code>/api/v1/customers/{id}/overview</code></td><td>GET</td><td><code>labs:read</code></td><td>ภาพรวมทุก factor (longevity snapshot)</td></tr><tr><td><code>/api/v1/customers/{id}/measurements</code></td><td>GET · POST</td><td><code>measurements:*</code></td><td>BCA</td></tr><tr><td><code>/api/v1/customers/{id}/supplements</code></td><td>GET</td><td><code>supplements:read</code></td><td>อาหารเสริม + ความปลอดภัยคู่ยา</td></tr><tr><td><code>/api/v1/customers/{id}/notes</code></td><td>GET · POST</td><td><code>notes:*</code></td><td>โน้ตโค้ช</td></tr><tr><td><code>/api/v1/links/invite</code></td><td>POST</td><td><code>links:write</code></td><td>ขอลิงก์สมัคร</td></tr></tbody></table>
+</section>
+<section id="s5-feature-inventory-โมดูลต่อโมดูล"><h2><span class="num">5</span>Feature Inventory — โมดูลต่อโมดูล</h2>
+<h3>5.1 Customer 360 — หัวใจของระบบ</h3>
+<p><b>หน้า:</b> <code>/v2/customers</code>, <code>/v2/customers/[id]</code> · <b>API:</b> §4.1</p>
+<p>รวมทุกอย่างของลูกค้า 1 คนไว้หน้าเดียว — identity + สถานะสุขภาพ + insight + timeline + 8 แท็บ:</p>
+<table><thead><tr><th>แท็บ</th><th>เนื้อหา</th><th>ตาราง</th></tr></thead><tbody><tr><td>Labs / Trends</td><td>ผลเลือดทุกครั้ง + กราฟแนวโน้ม + สถานะ (ปกติ/สูง/ต่ำ/ก้ำกึ่ง)</td><td><code>customer_records</code>, <code>customer_lab_values</code></td></tr><tr><td>Body Map</td><td>จุดผิดปกติบนภาพร่างกาย (<code>lib/records/body-map.ts</code> map metric→อวัยวะ)</td><td><code>customer_lab_values</code></td></tr><tr><td>BCA</td><td>น้ำหนัก/ไขมัน/กล้ามเนื้อ/visceral/body-age</td><td><code>measurements</code></td></tr><tr><td>Allergy</td><td>ผลทดสอบภูมิแพ้อาหาร</td><td><code>customer_allergy_tests</code>, <code>customer_food_allergens</code></td></tr><tr><td>CGM</td><td>น้ำตาลต่อเนื่อง + มื้ออาหาร</td><td><code>cgm_profiles</code>, <code>cgm_readings</code>, <code>cgm_meals</code></td></tr><tr><td>Supplements</td><td>ตารางอาหารเสริม + ความปลอดภัยคู่ยา</td><td><code>supplement_schedule</code>, <code>customer_supplement_safety</code></td></tr><tr><td>Pulse</td><td>ข้อมูลนาฬิกา + assessment</td><td><code>pulse_*</code>, <code>whoop_*</code>, <code>biomarker_readings</code></td></tr><tr><td>Notes</td><td>โน้ตโค้ช (ปักหมุดได้)</td><td><code>coach_notes</code></td></tr></tbody></table>
+<p><b>ตรรกะที่อยู่ใน lib:</b> <code>lib/customers/health-score.ts</code> · <code>insight-rules.ts</code> · <code>status-classifier.ts</code> · <code>access.ts</code> <b>ฟีเจอร์ย่อย:</b> Med-Map report · เก็บรายงาน HTML ส่วนตัว (<code>customer_report_html</code>) · view log (<code>customer_view_log</code>)</p>
+<h3>5.2 BCA Tracker + Health Age</h3>
+<ul>
+<li><b>BCA:</b> บันทึกผลเครื่องชั่ง → เกจสถานะ + กราฟย้อนหลัง + แก้/ลบ + ออกรายงาน
+</li>
+<li><b>เกณฑ์เดียวทั้งระบบ:</b> <code>lib/medical-status.ts</code> = single source of truth (5 ระดับ traffic-light + ป้ายไทยตามเกณฑ์คลินิก) ใช้ทั้งเกจ v2, BCA Scan Reveal และ labs
+</li>
+<li><b>Health Age (PhenoAge · Levine 2018):</b> <code>lib/bio-age.ts</code> — คำนวณจาก 9 marker (albumin · creatinine · glucose · hs-CRP · lymphocyte% · MCV · RDW · ALP · WBC)
+<ul>
+<li>โหมด hybrid: เติมค่าที่ขาดด้วยค่าประชากรตามอายุ + ติดป้าย "ประมาณ"</li>
+<li><b>Customer 360 จะโชว์เลขก็ต่อเมื่อมี CRP + RDW จริง</b> (ไม่งั้นตัวเลขหลอก)</li>
+<li>⚠️ ในทางปฏิบัติ <b>hs-CRP คือค่าที่ขาดบ่อยที่สุด</b> — หลายเคสมี 8/9 แล้ว</li>
+</ul>
+</li>
+</ul>
+<h3>5.3 UP Pulse — Wearables &amp; Assessment</h3>
+<ul>
+<li><b>เชื่อมอุปกรณ์:</b> Whoop (OAuth + CSV import) · Apple Health (อัปโหลด export.xml) · Google Fit (OAuth — ⚠️ กำลังตาย ดู §12)
+</li>
+<li><b>Flow ลูกค้า:</b> โค้ชสร้าง invite → ลูกค้าเปิด <code>/connect/[token]</code> บนมือถือ → ยินยอม → ระบบดึงข้อมูล
+</li>
+<li><b>แบบสอบถาม:</b> <code>/intake/[token]</code> → <code>pulse_intakes</code> → ประเมิน (<code>lib/pulse/assess.ts</code>) → <code>pulse_assessments</code>
+</li>
+<li><b>รายงาน:</b> <code>/pulse/report/[id]</code> (<code>lib/pulse/wearable-report.ts</code> รวมทุก provider เป็น report เดียว) + แชร์ผ่าน <code>/r/[token]</code>
+</li>
+<li>⚠️ <code>lib/pulse/gemini.ts</code> เป็น <b>ข้อยกเว้นเดียว</b> ที่ใช้ <code>GEMINI_API_KEY</code> ฝั่ง server (ที่เหลือเป็น BYO key)
+</li>
+</ul>
+<h3>5.4 CGM Analyzer</h3>
+<p><code>/cgm</code> + <code>/api/cgm/passcode</code> — น้ำตาลต่อเนื่อง + มื้ออาหาร · เข้าถึงผ่าน <b>passcode ต่อ profile</b> (RLS + SECURITY DEFINER RPC) · <code>cgm_readings</code> เป็นตารางใหญ่สุดในระบบ (~34k แถว)</p>
+<h3>5.5 NutriScan AI + Food Log</h3>
+<p><code>lib/nutriscan/gemini-vision.ts</code> + <code>macros.ts</code> — ถ่ายรูปอาหาร → Gemini Vision → มาโคร + ผลต่อน้ำตาล + คะแนนสุขภาพ + คำแนะนำ → <code>nutriscan_scans</code> <b>สิทธิ์:</b> วิเคราะห์เฉย ๆ ไม่ต้องมี <code>customer_id</code> จึงไม่เช็ค · เช็คความเป็นเจ้าของ <b>เฉพาะตอนบันทึกผูกลูกค้า</b></p>
+<h3>5.6 Plate Planner + LINE Bot (น้องจาน)</h3>
+<ul>
+<li><b>Plate Planner:</b> <code>lib/plate-planner/engine.ts</code> — จัดจานแบบ Muscle-Centric (Dr. Gabrielle Lyon) · 3 เป้าหมายคำนวณแยก (ลดน้ำหนัก / longevity / สร้างกล้าม) · อาหารไทยไม่ซ้ำ · สร้างภาพจานด้วย AI (แคชใน Supabase Storage) · ตั้งค่าต่อลูกค้าใน <code>plate_plan_config</code>
+</li>
+<li><b>LINE Bot:</b> ผูกกลุ่ม LINE กับลูกค้า (<code>line_bot_groups</code>) → ส่งเมนู+วิตามินอัตโนมัติ 18:00 ผ่าน Vercel Cron · log ที่ <code>line_bot_logs</code>
+</li>
+</ul>
+<h3>5.7 Check FORM — AI Prospect Analysis</h3>
+<p><code>lib/checkform/{ai-analyze,clip-matcher}.ts</code> — กรอกโปรไฟล์ผู้มุ่งหวัง + DISC → Gemini วิเคราะห์: แนวทางเข้าหา · สัดส่วน product/business · บทสนทนาตัวอย่าง · roleplay · red flags → <b>จับคู่คลิป STP</b> ที่ควรให้ฟัง (reasoning-based ไม่ใช่สูตร) · cache ผลใน <code>checkform_records</code></p>
+<h3>5.8 Prospect / Lead Pipeline</h3>
+<ul>
+<li><b>Prospect List</b> <code>/v2/prospects</code> → memory-dump 100 ชื่อ · tier A/B/C · convert → Check FORM คลิกเดียว (<code>prospect_list</code>)
+</li>
+<li><b>Health Check (leads)</b> — แบบประเมินสาธารณะ <code>/check/[coachId]</code>, <code>/metaflex/[coachId]</code> → <code>healthcheck_leads</code> (ผูกเป็นลูกค้าได้)
+</li>
+<li>ตารางเสริม: <code>leads</code>, <code>metabolic_leads</code>, <code>aw_prospects</code>, <code>warm_leads*</code> (5 ตาราง)
+</li>
+</ul>
+<h3>5.9 Program Designer</h3>
+<p><code>/v2/designer</code> — wizard 5 ขั้น ออกแบบ Full Course เฉพาะบุคคล · คำนวณ unit + PV + cashback · บันทึกเป็นภาพ HD</p>
+<h3>5.10 Admin &amp; Platform</h3>
+<ul>
+<li><b>ผู้ใช้:</b> <code>/v2/admin/users</code> — สร้าง/แก้ role/ผูก downline/รีเซ็ตรหัส/มอบหมายลูกค้า
+</li>
+<li><b>Backup/Restore:</b> <code>/admin/backup</code> + <code>lib/backup/tables.ts</code> + <code>npm run backup</code>
+</li>
+<li><b>API tokens:</b> <code>/v2/admin/api-tokens</code> (§10)
+</li>
+<li><b>Auth:</b> <code>/login</code>, <code>/join/[token]</code>, <code>/forgot-password</code>, <code>/reset-password</code> · invite = <code>user_invites</code> + <code>lib/invites/actions.ts</code>
+</li>
+<li><b>App registry:</b> <code>lib/apps-registry.ts</code> — เพิ่มแอปใหม่ต้องลงทะเบียนที่นี่ + เพิ่มลิงก์ใน <code>app/v2/_components/Shell.tsx</code>
+</li>
+</ul>
+</section>
+<section id="s6-cross-cutting-rules"><h2><span class="num">6</span>Cross-cutting Rules</h2>
+<table><thead><tr><th>เรื่อง</th><th>กติกา</th></tr></thead><tbody><tr><td><b>AI model</b></td><td>ประกาศที่ <code>lib/gemini-config.ts</code> ที่เดียว · default = alias <b><code>gemini-flash-latest</code></b> (ห้าม hardcode เลขรุ่น — Google ปลดรุ่นเป็นระยะ เคยทำระบบล่มมาแล้ว) · ภาพใช้ fallback list + ข้าม 404 อัตโนมัติ · override ด้วย env <code>GEMINI_MODEL</code> / <code>GEMINI_IMAGE_MODEL</code></td></tr><tr><td><b>AI call</b></td><td>ทุกการเรียกผ่าน <code>lib/gemini-call.ts</code> ที่เดียว (ส่ง <code>thinkingLevel: "minimal"</code> + retry ตัด thinking ถ้าโมเดลไม่รับ)</td></tr><tr><td><b>AI key</b></td><td><b>BYO Gemini key</b> — เก็บใน browser <code>localStorage['uplabs_gemini_key']</code> ผ่าน <code>components/GeminiKeyField</code> · <b>ไม่มี fallback ฝั่ง server</b> · error เรื่อง key ต้องโชว์ <code>GeminiKeyErrorNotice</code> ห้ามโชว์ error ดิบ · ใช้ <code>lib/gemini-error.ts</code> เสมอ · แยก 400 (คีย์ผิด) จาก 403 (คีย์ถูกแต่ไม่มีสิทธิ์)</td></tr><tr><td><b>เกณฑ์สุขภาพ</b></td><td><code>lib/medical-status.ts</code> ที่เดียว ห้าม hardcode สี/เกณฑ์ซ้ำ</td></tr><tr><td><b>Compliance</b></td><td>wellness ≠ diagnosis · ผลผิดปกติ → "ปรึกษาแพทย์" · อาหารเสริมต้องผ่านเภสัชกร (จิ้น) + แพทย์ · ห้ามคำว่า "รักษา/หาย/100%"</td></tr><tr><td><b>PII</b></td><td>repo เป็น <b>public</b> — ห้าม commit รายงานสุขภาพ/ชื่อลูกค้า/คีย์ · รายงานลูกค้าเก็บใน <code>customer_report_html</code> (private) แล้วอัปโหลดผ่านปุ่มในแอป</td></tr><tr><td><b>ลิงก์สาธารณะ</b></td><td>สร้างจาก <code>NEXT_PUBLIC_SITE_URL</code> = <code>https://upwellness-ops.vercel.app</code> (ห้ามมี <code>/</code> ท้าย · ห้ามใช้ <code>upwellness.vercel.app</code> ซึ่งเป็นเว็บคนละตัว)</td></tr><tr><td><b>A11y</b></td><td>WCAG 2.2 AA · สถานะห้ามสื่อด้วยสีอย่างเดียว · touch target ≥ 44px · รองรับ <code>prefers-reduced-motion</code></td></tr><tr><td><b>เอกสาร</b></td><td>แก้ <code>.md</code> → <code>npm run docs</code> → commit ทั้งคู่ · ห้ามแก้ <code>.html</code> มือ</td></tr></tbody></table>
+</section>
+<section id="s7-data-model"><h2><span class="num">7</span>Data Model</h2>
+<p><code>customers</code> = <b>hub</b> · ตารางลูกที่ FK ตรงเข้า <code>customers.id</code> ครอบคลุม lab · BCA · allergy · CGM · wearable · supplement · report · note · LINE · lead (ฉบับเต็มพร้อมคอลัมน์อยู่ใน <a href="./ARCHITECTURE.md">ARCHITECTURE.md</a>)</p>
+<table><thead><tr><th>กลุ่ม</th><th>ตาราง</th></tr></thead><tbody><tr><td><b>แกนกลาง</b></td><td><code>customers</code> · <code>profiles</code> · <code>user_invites</code> · <code>user_app_grants</code> · <code>customer_assignments</code></td></tr><tr><td><b>ผลตรวจ</b></td><td><code>customer_records</code> · <code>customer_lab_values</code> · <code>customer_report_html</code></td></tr><tr><td><b>ร่างกาย</b></td><td><code>measurements</code> · <code>biomarker_readings</code></td></tr><tr><td><b>ภูมิแพ้</b></td><td><code>customer_allergy_tests</code> · <code>customer_food_allergens</code></td></tr><tr><td><b>CGM</b></td><td><code>cgm_profiles</code> · <code>cgm_readings</code> · <code>cgm_meals</code></td></tr><tr><td><b>Wearable</b></td><td><code>pulse_connections</code> · <code>pulse_readings</code> · <code>pulse_invites</code> · <code>pulse_intakes</code> · <code>pulse_assessments</code> · <code>wearable_connections</code> · <code>wearable_invites</code> · <code>sync_jobs</code> · <code>whoop_daily</code> · <code>whoop_sleeps</code> · <code>whoop_workouts</code> · <code>whoop_journal</code></td></tr><tr><td><b>อาหาร/เสริม</b></td><td><code>nutriscan_scans</code> · <code>plate_plan_config</code> · <code>supplement_schedule</code> · <code>customer_supplement_safety</code></td></tr><tr><td><b>โค้ช</b></td><td><code>coach_notes</code> · <code>customer_view_log</code> · <code>admin_view_as_log</code></td></tr><tr><td><b>LINE</b></td><td><code>line_bot_groups</code> · <code>line_bot_logs</code></td></tr><tr><td><b>Lead / Prospect</b></td><td><code>prospect_list</code> · <code>checkform_records</code> · <code>healthcheck_leads</code> · <code>leads</code> · <code>metabolic_leads</code> · <code>aw_prospects</code> · <code>contacts</code> · <code>contact_status</code> · <code>call_logs</code> · <code>warm_leads</code> · <code>warm_lead_interactions</code> · <code>warm_lead_segments</code> · <code>warm_lead_tags</code> · <code>warm_lead_tasks</code> · <code>warm_content_touchpoints</code></td></tr><tr><td><b>External API</b></td><td><code>api_tokens</code> · <code>api_token_logs</code> (§10)</td></tr><tr><td><b>ไม่ใช่ของ UP Labs</b> (อยู่ใน DB เดียวกันจากโปรเจกต์อื่น)</td><td><code>budgets</code> · <code>categories</code> · <code>transactions</code> · <code>symbols</code> · <code>losmtd</code> · <code>driver_logs</code> · <code>link_hub</code> · <code>user_profiles</code></td></tr></tbody></table>
+</section>
+<section id="s8-environment-variables"><h2><span class="num">8</span>Environment Variables</h2>
+<table><thead><tr><th>ตัวแปร</th><th>ที่ใช้</th><th>จำเป็น</th></tr></thead><tbody><tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>browser + server</td><td>✅</td></tr><tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>browser + server (ตาม session ผู้ใช้)</td><td>✅</td></tr><tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>server เท่านั้น — bypass RLS · <b>ห้ามหลุดไป client</b></td><td>✅</td></tr><tr><td><code>NEXT_PUBLIC_SITE_URL</code></td><td>สร้างลิงก์เชิญ/รีเซ็ต · ต้องเป็น <code>https://upwellness-ops.vercel.app</code> <b>ไม่มี <code>/</code> ท้าย</b></td><td>✅</td></tr><tr><td><code>CRON_SECRET</code></td><td>ป้องกัน <code>/api/line/push-tomorrow</code> · ถ้าไม่ตั้ง route จะปฏิเสธ (ไม่เปิดกว้าง)</td><td>✅ (ถ้าใช้ LINE bot)</td></tr><tr><td><code>GEMINI_API_KEY</code></td><td>ข้อยกเว้นเดียว: <code>lib/pulse/gemini.ts</code></td><td>ตามการใช้งาน</td></tr><tr><td><code>GEMINI_MODEL</code> · <code>GEMINI_IMAGE_MODEL</code></td><td>override รุ่นโมเดล</td><td>ไม่</td></tr><tr><td><code>LINE_CHANNEL_SECRET</code> · <code>LINE_CHANNEL_ACCESS_TOKEN</code></td><td>LINE bot</td><td>ตามการใช้งาน</td></tr><tr><td><code>WHOOP_CLIENT_ID</code> · <code>WHOOP_CLIENT_SECRET</code></td><td>OAuth Whoop</td><td>ตามการใช้งาน</td></tr><tr><td><code>GOOGLE_CLIENT_ID</code> · <code>GOOGLE_CLIENT_SECRET</code></td><td>OAuth Google Fit</td><td>ตามการใช้งาน</td></tr></tbody></table>
+<div class="callout warn">⚠️ env มีผล <b>หลัง redeploy</b> เท่านั้น — แก้ค่าใน Vercel แล้วต้อง redeploy ไม่งั้นยังใช้ค่าเดิม</div>
+</section>
+<section id="s9-security-model"><h2><span class="num">9</span>Security Model</h2>
+<table><thead><tr><th>ชั้น</th><th>กลไก</th></tr></thead><tbody><tr><td><b>Edge</b></td><td><code>middleware.ts</code> — ทุก path ที่ไม่อยู่ใน <code>PUBLIC_PATHS</code> ต้องมี session · ระหว่าง view-as จะบล็อกการเขียน</td></tr><tr><td><b>Route</b></td><td>ทุก route handler ตรวจ session + <code>canManageCustomer()</code> เอง (middleware ไม่รู้ว่าลูกค้าคนไหนเป็นของใคร)</td></tr><tr><td><b>Database</b></td><td>RLS เปิดในตารางที่ลูกค้าแตะได้ · CGM ใช้ SECURITY DEFINER RPC + passcode ต่อ profile</td></tr><tr><td><b>Service role</b></td><td><code>createAdminClient()</code> bypass RLS — ใช้เฉพาะ server logic ที่ตรวจสิทธิ์มาแล้ว · <b>ห้าม import จาก Client Component</b></td></tr><tr><td><b>Public endpoint</b></td><td>อนุญาตเฉพาะที่ระบุใน <code>PUBLIC_PATHS</code> และต้องมี auth ของตัวเอง (token / HMAC / CRON_SECRET / OAuth state)</td></tr><tr><td><b>External API</b></td><td>token hash + scope + rate limit + audit log (§10)</td></tr></tbody></table>
+<div class="callout">🚩 <b>หนี้ค้างที่รู้ตัว:</b> passcode ของ CGM ทั้ง 8 profile ยังเป็นค่าเดียวกัน และ RPC ยังไม่มี rate limit — ดู §12</div>
+</section>
+<section id="s10-external-api-v1-ให้-ai-ข้างนอกถามข้อมูลได้"><h2><span class="num">10</span>External API (v1) — ให้ AI ข้างนอกถามข้อมูลได้</h2>
+<p><b>สเปกเต็ม:</b> <a href="./SPEC-External-API.md">SPEC-External-API.md</a></p>
+<p><b>ทำไมต้องมี:</b> ต้นอยากเปิด ChatGPT (หรือ n8n / Make / สคริปต์) แล้วพิมพ์ว่า <i>"ช่วยเทียบผลแล็บย้อนหลัง 3 รอบของคนนี้หน่อย"</i> แล้วได้ข้อมูลจริงจาก UP Labs กลับไปทันที โดย<b>ไม่ต้องเปิดเว็บ</b></p>
+<p><b>หลักการที่ตัดสินสถาปัตยกรรม:</b></p>
+<ol>
+<li><b>ไม่มี LLM ฝั่งเรา</b> — เราส่ง <i>ข้อมูลที่ถูกต้องและครบ</i> กลับไป ผู้เรียกเอาไปคิด/เรียบเรียงเอง · เราไม่จ่ายค่าโทเคน ไม่ต้องดูแลคุณภาพคำตอบ และไม่มีทางที่ระบบเราจะ "แต่งค่าสุขภาพ" ขึ้นมาเอง
+</li>
+<li><b>คำสั่งภาษาคนแปลด้วยกฎ ไม่ใช่โมเดล</b> — <code>POST /api/v1/query</code> ใช้ <b>intent resolver แบบ deterministic</b> (คีย์เวิร์ด + สกัด entity) · ถ้าไม่มั่นใจ <b>จะไม่เดา</b> แต่ตอบกลับว่ามี intent อะไรให้เลือกบ้าง เพื่อให้ LLM ฝั่งผู้เรียกตัดสินใจแล้วยิงซ้ำแบบระบุ intent ตรง ๆ
+</li>
+<li><b>Token = สิทธิ์ที่แอดมินกำหนด</b> — scope รายอย่าง + จำกัดขอบเขตลูกค้าได้ + วันหมดอายุ + rate limit + เพิกถอนได้ทันที
+</li>
+<li><b>ทุกการเรียกถูกบันทึก</b> — <code>api_token_logs</code> เก็บว่า token ไหน ถามอะไร ตอนไหน ได้กี่แถว
+</li>
+</ol>
+<p><b>Scopes:</b> <code>customers:read</code> · <code>customers:write</code> · <code>labs:read</code> · <code>labs:write</code> · <code>measurements:read</code> · <code>measurements:write</code> · <code>supplements:read</code> · <code>notes:read</code> · <code>notes:write</code> · <code>links:write</code></p>
+<p><b>หน้าจัดการ:</b> <code>/v2/admin/api-tokens</code> (admin เท่านั้น) — สร้าง token (โชว์ค่าเต็มครั้งเดียว) · เลือก scope · จำกัดลูกค้า · ตั้งวันหมดอายุ · ดู log · เพิกถอน</p>
+</section>
+<section id="s11-non-goals-จงใจไม่ทำ"><h2><span class="num">11</span>Non-Goals (จงใจไม่ทำ)</h2>
+<ol>
+<li>ไม่เป็นเวชระเบียนโรงพยาบาล (EMR) และไม่วินิจฉัยโรค
+</li>
+<li>ไม่ทำ e-commerce / ตะกร้าสินค้าในระบบนี้
+</li>
+<li>ไม่เก็บคีย์ AI ของผู้ใช้ไว้บนเซิร์ฟเวอร์ (BYO เท่านั้น)
+</li>
+<li>ไม่เปิดข้อมูลลูกค้าข้ามสายงานที่ไม่ใช่ downline ของตัวเอง
+</li>
+<li>ไม่ทำแอปมือถือ native (ยัง) — เป็นเว็บ responsive
+</li>
+<li><b>ไม่ฝัง LLM ไว้ใน External API</b> — เราส่งข้อมูล ผู้เรียกคิดเอง (§10)
+</li>
+<li>ไม่เปิด External API ให้เขียนข้อมูลคลินิกที่ตีความแล้ว (เช่น "สรุปว่าเป็นเบาหวาน") — เขียนได้เฉพาะ <b>ค่าที่วัดได้</b> กับ <b>โน้ต</b>
+</li>
+</ol>
+</section>
+<section id="s12-known-issues-open-items"><h2><span class="num">12</span>Known Issues / Open Items</h2>
+<table><thead><tr><th>#</th><th>เรื่อง</th><th>สถานะ</th></tr></thead><tbody><tr><td>1</td><td><b>Google Fit sync ตาย</b> — OAuth ยังเป็น Testing mode (refresh token อายุ 7 วัน) + Google ปิด Fit REST API สิ้นปี 2026</td><td>ต้องเลือกทาง: Google Health API หรือ upload ไฟล์</td></tr><tr><td>2</td><td><code>NEXT_PUBLIC_SITE_URL</code> เคยชี้โดเมนเว็บไซต์ ทำให้ลิงก์ invite/reset 404</td><td>✅ แก้แล้ว 24 ก.ค. 2026 · ⚠️ env มีผลหลัง redeploy</td></tr><tr><td>3</td><td>CGM ยังไม่มีหน้า v2</td><td>backlog</td></tr><tr><td>4</td><td>v1 ↔ v2 ยังอยู่คู่กัน</td><td>ทยอย cutover</td></tr><tr><td>5</td><td><b>CGM passcode ทั้ง 8 profile เป็นค่าเดียวกัน + RPC ไม่มี rate limit</b></td><td>🚩 ค้าง — ควรหมุนรหัสและใส่ rate limit</td></tr><tr><td>6</td><td>Longevity Report ยังสร้างนอกระบบแล้วอัปโหลด</td><td>backlog — อยากให้เป็นปุ่มเดียวในแอป</td></tr><tr><td>7</td><td>ตารางจากโปรเจกต์อื่นปนอยู่ใน DB เดียวกัน (<code>budgets</code>, <code>losmtd</code>, ฯลฯ)</td><td>ยอมรับได้ แต่ backup/restore ต้องระวัง</td></tr></tbody></table>
+</section>
+<section id="s13-roadmap"><h2><span class="num">13</span>Roadmap</h2>
+<ol>
+<li>ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1
+</li>
+<li>แก้เส้นทาง wearable (Google Health API หรือ upload) ให้ sync กลับมาได้
+</li>
+<li>Longevity Report ให้เป็นปุ่มเดียวในแอป (ตอนนี้สร้างนอกระบบแล้วอัปโหลด)
+</li>
+<li><b>External API v1</b> (§10) → ต่อยอดเป็น MCP server ให้ Claude/ChatGPT ต่อตรงได้
+</li>
+<li>หมุน CGM passcode + ใส่ rate limit
+</li>
+</ol>
+</section>
+<section id="s14-changelog"><h2><span class="num">14</span>Changelog</h2>
+<table><thead><tr><th>วันที่</th><th>เปลี่ยนอะไร</th><th>commit</th></tr></thead><tbody><tr><td>2026-08-29</td><td><b>External API v1</b> — ให้ระบบ AI ภายนอกดึง/อัปเดตข้อมูลด้วย token ที่แอดมินกำหนด scope · <code>POST /api/v1/query</code> แปลคำสั่งภาษาคนด้วย intent resolver แบบกฎ (ไม่มี LLM ฝั่งเรา) · เพิ่ม <code>api_tokens</code> + <code>api_token_logs</code> + หน้า <code>/v2/admin/api-tokens</code> · สเปกเต็มที่ <code>SPEC-External-API.md</code></td><td>(คอมมิตนี้)</td></tr><tr><td>2026-08-29</td><td><b>PRD v2.0 + เอกสารเป็นไฟล์ generate</b> — ขยาย PRD ให้ครบทุก route/ตาราง/env/security · เพิ่ม <code>scripts/build-docs.mjs</code> แปลง <code>.md</code> → <code>.html</code> (<code>npm run docs</code>) เพื่อเลิกดูแล HTML สองชุดด้วยมือ ซึ่งเป็นสาเหตุที่เอกสารเคยไม่ตรงโค้ด</td><td>(คอมมิตนี้)</td></tr><tr><td>2026-07-25</td><td><b>AI call รวมที่เดียว + error ไม่โทษคีย์มั่ว</b> — เพิ่ม <code>lib/gemini-call.ts</code> ส่ง <code>thinkingLevel: "minimal"</code> + retry ตัด thinking อัตโนมัติถ้าโมเดลไม่รับ · 400 = คีย์ผิดเฉพาะเมื่อ Google พูดถึง api key</td><td><code>19adc03</code>, <code>c7f21e3</code></td></tr><tr><td>2026-07-25</td><td><b>โมเดล AI: เลิก hardcode รุ่น</b> — Google หยุดให้บริการ <code>gemini-2.5-flash</code> กับคีย์ใหม่ ทุกฟีเจอร์ AI เลย 404 · ย้ายไป alias <code>gemini-flash-latest</code></td><td><code>ed3ab24</code></td></tr><tr><td>2026-07-25</td><td><b>RBAC: upline ดูแลได้ทุกระดับชั้นลงไป (อ่าน+เขียน)</b> — เพิ่ม <code>canManageCustomer()</code> แล้วสลับ 26 จุดใน 24 route · อุดช่องโหว่ <code>POST /api/customers/[id]/measurements</code> ที่ไม่มีเช็คสิทธิ์เลย</td><td><code>160d22a</code></td></tr><tr><td>2026-07-25</td><td>NutriScan: เช็คสิทธิ์เฉพาะตอนบันทึก + เปลี่ยน <code>forbidden</code> ดิบเป็นข้อความไทย</td><td><code>0fee046</code></td></tr><tr><td>2026-07-25</td><td>แยก error คีย์ AI 400 (คีย์ผิด) จาก 403 (คีย์ถูกแต่ไม่มีสิทธิ์) + สร้าง PRD/ARCHITECTURE ฉบับแรก</td><td><code>26471b2</code></td></tr><tr><td>2026-07-25</td><td>setup hint ชี้โดเมนของแอปเอง</td><td><code>32e09cd</code></td></tr><tr><td>2026-07-16</td><td>เพิ่ม user dropdown + logout ใน v2 Shell</td><td><code>077ea56</code></td></tr><tr><td>2026-07-16</td><td>strip trailing slash ทุก link builder (แก้ <code>//join</code> 404)</td><td><code>910590d</code></td></tr><tr><td>2026-07-16</td><td>ข้อความ "ขอคีย์ใหม่" แทน error ดิบ ทุกฟีเจอร์ BYO key + <code>lib/gemini-error.ts</code></td><td><code>710c7a7</code>, <code>ed597e4</code></td></tr></tbody></table>
+</section>
 </div>
-
-<section id="s1">
-  <h2><span class="num">1</span> ภาพรวมผลิตภัณฑ์</h2>
-  <p><b>ปัญหา:</b> ข้อมูลลูกค้ากระจัดกระจาย — ใบแล็บกระดาษ · เครื่องชั่ง BCA · นาฬิกา · CGM · แชท LINE โค้ชต้องจำเอง คำแนะนำเลยไม่ต่อเนื่องและพิสูจน์ผลไม่ได้</p>
-  <p><b>ทางแก้:</b> ศูนย์กลางเดียวคือ <b>Customer Profile</b> ที่ทุกโมดูลเขียนเข้า/อ่านออก + ชั้น AI ช่วยแปลผล + ลิงก์สาธารณะให้ลูกค้ากรอก/เชื่อมข้อมูลเองได้</p>
-  <div class="grid">
-    <div class="card"><div class="t">1 · Customer profile เป็นแกนกลาง</div><div class="d">ทุกฟีเจอร์ต้องผูกกับ <code>customers.id</code></div></div>
-    <div class="card"><div class="t">2 · Evidence over vibes</div><div class="d">ตัวเลขจริงจากใบตรวจ/อุปกรณ์ ห้ามเดา</div></div>
-    <div class="card"><div class="t">3 · Wellness ≠ diagnosis</div><div class="d">ผิดปกติ → "ปรึกษาแพทย์" ห้ามเคลมรักษา</div></div>
-    <div class="card"><div class="t">4 · โค้ชเร็วขึ้น ไม่ใช่ถูกแทนที่</div><div class="d">AI สรุป/จัดลำดับ · คนตัดสินใจ</div></div>
-  </div>
-</section>
-
-<section id="s2">
-  <h2><span class="num">2</span> ผู้ใช้ &amp; สิทธิ์</h2>
-  <table>
-    <tr><th>Role</th><th>ใคร</th><th>เห็นอะไร</th></tr>
-    <tr><td><span class="tag t-rose">admin</span></td><td>ต้น / ผู้ดูแล</td><td>ทุกอย่าง + จัดการผู้ใช้ + backup/restore + view-as</td></tr>
-    <tr><td><span class="tag t-well">abo</span></td><td>นักธุรกิจ/โค้ช</td><td>ลูกค้าของตัวเอง + <b>ลูกค้าของสายงานทุกระดับชั้นลงไป (ดูแลได้เต็มที่ อ่าน+เขียน)</b> + แอปที่ได้รับสิทธิ์</td></tr>
-    <tr><td><span class="tag t-amber">public link</span></td><td>ลูกค้า/ผู้สนใจ</td><td>เฉพาะหน้า token-gated ที่ได้รับลิงก์ (ไม่ต้องล็อกอิน)</td></tr>
-  </table>
-  <ul>
-    <li><b>Downline (MLM):</b> <code>profiles.parent_id</code> — ผู้ถูกเชิญกลายเป็น downline ของผู้เชิญอัตโนมัติ · <b>upline ดูแลลูกค้าของสายงานได้ทุกระดับชั้นลงไป ทั้งดูและแก้ไข</b> (24 ก.ค. 2026) · ใช้ helper เดียว <code>canManageCustomer()</code> ห้ามเขียนเช็คสิทธิ์เอง</li>
-    <li><b>App grants:</b> <code>user_app_grants</code> เปิด/ปิดแอปรายคน</li>
-    <li><b>View-as:</b> admin สวมมุมมองผู้ใช้อื่นเพื่อ support · ลง <code>admin_view_as_log</code> ทุกครั้ง</li>
-  </ul>
-</section>
-
-<section id="s3">
-  <h2><span class="num">3</span> แผนที่หน้าจอ (v1 / v2)</h2>
-  <div class="callout ok"><b>v2 = surface หลัก</b> (<code>/v2/*</code> ใช้ <code>Shell.tsx</code> — top bar + app switcher + breadcrumb + user menu พร้อม logout) · v1 ยังเปิดอยู่สำหรับหน้าที่ยังไม่ย้าย</div>
-  <table>
-    <tr><th>งาน</th><th>v1</th><th>v2</th></tr>
-    <tr><td>หน้าแรก / app hub</td><td><code>/</code></td><td><code>/v2</code></td></tr>
-    <tr><td>Customer 360</td><td><code>/customers/[id]</code></td><td><code>/v2/customers/[id]</code> ✅หลัก</td></tr>
-    <tr><td>BCA Tracker</td><td><code>/bca</code></td><td><code>/v2/bca</code></td></tr>
-    <tr><td>Health Age (PhenoAge)</td><td>—</td><td><code>/v2/bio-age</code></td></tr>
-    <tr><td>UP Pulse (wearables)</td><td><code>/pulse/*</code></td><td><code>/v2/pulse/*</code></td></tr>
-    <tr><td>Check FORM</td><td><code>/checkform</code></td><td><code>/v2/checkform</code></td></tr>
-    <tr><td>Prospects / Health Check</td><td><code>/prospects</code>, <code>/healthcheck</code></td><td><code>/v2/…</code></td></tr>
-    <tr><td>NutriScan / Food Log</td><td><code>/nutriscan</code></td><td><code>/v2/nutriscan</code></td></tr>
-    <tr><td>Plate Planner / LINE Bot</td><td><code>/plate-planner</code>, <code>/line-bot</code></td><td><code>/v2/…</code></td></tr>
-    <tr><td>Program Designer</td><td><code>/designer</code></td><td><code>/v2/designer</code></td></tr>
-    <tr><td>CGM Analyzer</td><td><code>/cgm</code></td><td>— (backlog)</td></tr>
-    <tr><td>Admin · users/backup</td><td><code>/admin/*</code></td><td><code>/v2/admin/*</code></td></tr>
-    <tr><td>ชวนสมาชิก</td><td>—</td><td><code>/v2/invite</code></td></tr>
-  </table>
-  <h3>หน้าสาธารณะ (token-gated · ไม่ต้องล็อกอิน)</h3>
-  <p><code>/join/[token]</code> สมัครจากคำเชิญ · <code>/connect/[token]</code> เชื่อมนาฬิกา · <code>/intake/[token]</code> แบบสอบถาม Pulse · <code>/check/[coachId]</code> + <code>/metaflex/[coachId]</code> แบบประเมิน · <code>/r/[token]</code> แชร์รายงาน · <code>/login</code> · <code>/forgot-password</code> · <code>/reset-password</code></p>
-</section>
-
-<section id="s4">
-  <h2><span class="num">4</span> ฟีเจอร์ (โมดูลต่อโมดูล)</h2>
-
-  <h3>4.1 Customer 360 — หัวใจของระบบ</h3>
-  <p>รวมทุกอย่างของลูกค้า 1 คนไว้หน้าเดียว: identity + สถานะสุขภาพ + insight + timeline + แท็บ</p>
-  <table>
-    <tr><th>แท็บ</th><th>เนื้อหา</th><th>ตาราง</th></tr>
-    <tr><td>Labs / Trends</td><td>ผลเลือดทุกครั้ง + กราฟ + สถานะ</td><td><code>customer_records</code>, <code>customer_lab_values</code></td></tr>
-    <tr><td>Body Map</td><td>จุดผิดปกติบนภาพร่างกาย</td><td><code>customer_lab_values</code></td></tr>
-    <tr><td>BCA</td><td>น้ำหนัก/ไขมัน/กล้ามเนื้อ/visceral/body-age</td><td><code>measurements</code></td></tr>
-    <tr><td>Allergy</td><td>ผลทดสอบภูมิแพ้อาหาร</td><td><code>customer_allergy_tests</code>, <code>customer_food_allergens</code></td></tr>
-    <tr><td>CGM</td><td>น้ำตาลต่อเนื่อง + มื้ออาหาร</td><td><code>cgm_profiles/readings/meals</code></td></tr>
-    <tr><td>Supplements</td><td>ตารางวิตามิน + ความปลอดภัยคู่ยา</td><td><code>supplement_schedule</code>, <code>customer_supplement_safety</code></td></tr>
-    <tr><td>Pulse</td><td>ข้อมูลนาฬิกา + assessment</td><td><code>pulse_*</code>, <code>whoop_*</code></td></tr>
-    <tr><td>Notes</td><td>โน้ตโค้ช (ปักหมุดได้)</td><td><code>coach_notes</code></td></tr>
-  </table>
-  <p><b>ย่อย:</b> health score + insight rules · Med-Map report · เก็บรายงาน HTML ส่วนตัว (<code>customer_report_html</code>) · access control (เจ้าของ/ผู้รับมอบหมาย/downline) · view log</p>
-
-  <h3>4.2 BCA Tracker + Health Age</h3>
-  <ul>
-    <li><b>BCA:</b> บันทึกผลเครื่องชั่ง → เกจ + กราฟย้อนหลัง + แก้/ลบ + ออกรายงาน</li>
-    <li><b>เกณฑ์เดียวทั้งระบบ:</b> <code>lib/medical-status.ts</code> (5 ระดับ traffic-light + ป้ายไทยตามเกณฑ์คลินิก) ใช้ทั้งเกจ v2 · BCA Scan Reveal · labs</li>
-    <li><b>Health Age (PhenoAge · Levine 2018):</b> <code>lib/bio-age.ts</code> — 9 marker · โหมด hybrid เติมค่าที่ขาดด้วยค่าประชากรตามอายุ + ป้าย "ประมาณ" · <b>Customer 360 โชว์เลขเฉพาะเมื่อมี CRP + RDW จริง</b></li>
-  </ul>
-
-  <h3>4.3 UP Pulse — Wearables &amp; Assessment</h3>
-  <p>Whoop (OAuth + CSV) · Apple Health (export.xml) · Google Fit (⚠️ deprecated) — โค้ชสร้าง invite → ลูกค้าเปิด <code>/connect/[token]</code> → ยินยอม → ดึงข้อมูล · แบบสอบถาม <code>/intake/[token]</code> → ประเมิน → รายงานรวมทุก provider + แชร์ผ่าน <code>/r/[token]</code></p>
-
-  <h3>4.4 CGM Analyzer</h3>
-  <p>น้ำตาลต่อเนื่อง + มื้ออาหาร · เข้าถึงด้วย <b>passcode ต่อ profile</b> (RLS + SECURITY DEFINER RPC) · <code>cgm_readings</code> ใหญ่สุดในระบบ (~34k แถว)</p>
-
-  <h3>4.5 NutriScan AI + Food Log</h3>
-  <p>ถ่ายรูปอาหาร → Gemini Vision → มาโคร + ผลต่อน้ำตาล + คะแนนสุขภาพ + คำแนะนำ → บันทึกเข้า <code>nutriscan_scans</code></p>
-
-  <h3>4.6 Plate Planner + LINE Bot (น้องจาน)</h3>
-  <p>จัดจาน Muscle-Centric (Dr. Gabrielle Lyon) · อาหารไทยไม่ซ้ำ · สร้างภาพจานด้วย AI (แคชใน Storage) · ตั้งค่าต่อลูกค้า · LINE bot ผูกกลุ่มกับลูกค้าแล้วส่งเมนู+วิตามินอัตโนมัติ 18:00</p>
-
-  <h3>4.7 Check FORM — AI Prospect Analysis</h3>
-  <p>โปรไฟล์ผู้มุ่งหวัง + DISC → Gemini วิเคราะห์: แนวทางเข้าหา · สัดส่วน product/business · บทสนทนาตัวอย่าง · roleplay · red flags → <b>จับคู่คลิป STP</b> (reasoning-based) · cache ใน <code>checkform_records</code></p>
-
-  <h3>4.8 Prospect / Lead Pipeline</h3>
-  <p>Prospect List → แปลงเป็น Check FORM record · Health Check สาธารณะ (<code>/check/[coachId]</code>) → <code>healthcheck_leads</code> → ผูกเป็นลูกค้าได้</p>
-
-  <h3>4.9–4.10 Program Designer · Admin &amp; Platform</h3>
-  <p>ออกแบบโปรแกรมรายบุคคล · จัดการผู้ใช้/role/downline · Backup–Restore · View-as · Auth (login/join/reset) + ระบบเชิญ</p>
-</section>
-
-<section id="s5">
-  <h2><span class="num">5</span> กฎร่วมทุกโมดูล</h2>
-  <table>
-    <tr><th>เรื่อง</th><th>กติกา</th></tr>
-    <tr><td><b>AI key</b></td><td><b>BYO Gemini key</b> — เก็บใน browser <code>localStorage['uplabs_gemini_key']</code> · <b>ไม่มี fallback ฝั่ง server</b> · error เรื่องคีย์ต้องโชว์ <code>GeminiKeyErrorNotice</code> (ชวนไปขอคีย์) ห้ามโชว์ error ดิบ · ยกเว้น <code>lib/pulse/gemini.ts</code> ใช้คีย์ server</td></tr>
-    <tr><td><b>เกณฑ์สุขภาพ</b></td><td>ใช้ <code>lib/medical-status.ts</code> ที่เดียว ห้าม hardcode สี/เกณฑ์ซ้ำ</td></tr>
-    <tr><td><b>Compliance</b></td><td>wellness ≠ diagnosis · ผิดปกติ → "ปรึกษาแพทย์" · อาหารเสริมผ่านเภสัชกร (จิ้น) + แพทย์ · ห้าม "รักษา/หาย/100%"</td></tr>
-    <tr><td><b>PII</b></td><td>repo <b>public</b> — ห้าม commit รายงานสุขภาพ/ชื่อลูกค้า/คีย์ · รายงานเก็บใน <code>customer_report_html</code> (private)</td></tr>
-    <tr><td><b>ลิงก์สาธารณะ</b></td><td><code>NEXT_PUBLIC_SITE_URL</code> = <code>https://upwellness-ops.vercel.app</code> (ห้ามมี <code>/</code> ท้าย) · builder strip trailing slash แล้ว</td></tr>
-    <tr><td><b>A11y</b></td><td>WCAG 2.2 AA · สถานะห้ามสื่อด้วยสีอย่างเดียว · touch ≥44px · รองรับ reduced-motion</td></tr>
-  </table>
-</section>
-
-<section id="s6">
-  <h2><span class="num">6</span> Non-Goals (จงใจไม่ทำ)</h2>
-  <ol>
-    <li>ไม่เป็นเวชระเบียนโรงพยาบาล (EMR) และไม่วินิจฉัยโรค</li>
-    <li>ไม่ทำ e-commerce / ตะกร้าสินค้าในระบบนี้</li>
-    <li>ไม่เก็บคีย์ AI ของผู้ใช้ไว้บนเซิร์ฟเวอร์ (BYO เท่านั้น)</li>
-    <li>ไม่เปิดข้อมูลลูกค้าข้ามสายที่ไม่ใช่ downline ของตัวเอง</li>
-    <li>ไม่ทำแอปมือถือ native (ยัง) — เว็บ responsive</li>
-  </ol>
-</section>
-
-<section id="s7">
-  <h2><span class="num">7</span> ตัวชี้วัดความสำเร็จ</h2>
-  <table>
-    <tr><th>ตัวชี้วัด</th><th>เป้า</th></tr>
-    <tr><td>ลูกค้าที่มีโปรไฟล์ครบ (lab + BCA อย่างน้อย 1 ชุด)</td><td>เพิ่มทุกเดือน</td></tr>
-    <tr><td>เวลาเตรียมตัวก่อนคุยกับลูกค้า 1 คน</td><td>&lt; 5 นาที</td></tr>
-    <tr><td>ลูกค้าที่เชื่อมอุปกรณ์/ส่งผลแล็บเอง</td><td>↑ ผ่านลิงก์ invite</td></tr>
-    <tr><td>Check FORM → นัดคุยจริง</td><td>ติดตามผ่าน prospect pipeline</td></tr>
-    <tr><td>Longevity Report ที่ส่งมอบ</td><td>ทุกเคสที่มีผลแล็บครบ</td></tr>
-  </table>
-</section>
-
-<section id="s8">
-  <h2><span class="num">8</span> Data Model (สรุป)</h2>
-  <div class="callout"><b><code>customers</code> = hub</b> — มี <b>28 ตารางที่ FK ตรงเข้า <code>customers.id</code></b> ครอบคลุม lab · BCA · allergy · CGM · wearable · supplement · report · note · LINE · lead<br>
-  ฉบับเต็ม + ไดอะแกรม + โอกาสต่อยอด → <a href="./ARCHITECTURE.html">ARCHITECTURE.html</a></div>
-</section>
-
-<section id="s9">
-  <h2><span class="num">9</span> ปัญหาค้าง / Open Items</h2>
-  <table>
-    <tr><th>#</th><th>เรื่อง</th><th>สถานะ</th></tr>
-    <tr><td>1</td><td><b>Google Fit sync ตาย</b> — OAuth ยัง Testing mode (refresh token 7 วัน) + Google ปิด Fit REST API สิ้นปี 2026</td><td>ต้องเลือก: Google Health API หรือ upload ไฟล์</td></tr>
-    <tr><td>2</td><td><code>NEXT_PUBLIC_SITE_URL</code> เคยชี้โดเมนเว็บไซต์ (ลิงก์ invite/reset 404)</td><td>✅ <b>แก้แล้ว 24 ก.ค. 2026</b> → <code>https://upwellness-ops.vercel.app</code> · ⚠️ มีผลหลัง <b>redeploy</b> · ตรวจโดยสร้างลิงก์เชิญที่ <code>/v2/invite</code></td></tr>
-    <tr><td>3</td><td><code>app/setup/page.tsx</code> แสดงตัวอย่างโดเมนผิด</td><td>✅ แก้แล้ว</td></tr>
-    <tr><td>4</td><td>CGM ยังไม่มีหน้า v2</td><td>backlog</td></tr>
-    <tr><td>5</td><td>v1 ↔ v2 อยู่คู่กัน (ลูกค้ามี 2 หน้า)</td><td>ทยอย cutover</td></tr>
-  </table>
-</section>
-
-<section id="s10">
-  <h2><span class="num">10</span> Roadmap</h2>
-  <ol>
-    <li>ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1</li>
-    <li>แก้เส้นทาง wearable (Google Health API หรือ upload) ให้ sync กลับมาได้</li>
-    <li>Longevity Report ให้เป็นปุ่มเดียวในแอป</li>
-    <li>ต่อยอด data model → ดู "โอกาสต่อยอด" ใน ARCHITECTURE</li>
-  </ol>
-</section>
-
-<section id="s11">
-  <h2><span class="num">11</span> Changelog</h2>
-  <table>
-    <tr><th>วันที่</th><th>เปลี่ยนอะไร</th><th>commit</th></tr>
-    <tr><td>2026-07-24</td><td><b>AI call รวมที่เดียว + error ไม่โทษคีย์มั่ว</b> — <code>thinkingBudget: 0</code> (ของรุ่น 2.5) รุ่นใหม่ไม่รับ → 400 แต่ระบบแปลเป็น "คีย์ผิด" · เพิ่ม <code>lib/gemini-call.ts</code> (<code>thinkingLevel: "minimal"</code> + retry ตัด thinking อัตโนมัติ) · 400 = คีย์ผิดเฉพาะเมื่อ Google พูดถึง api key · ✅ ต้นยืนยันใช้ได้</td><td><code>19adc03</code></td></tr>
-    <tr><td>2026-07-24</td><td><b>โมเดล AI: เลิก hardcode รุ่น</b> — Google หยุดให้บริการ <code>gemini-2.5-flash</code> กับคีย์ใหม่ (9 ก.ค. 2026) ทุกฟีเจอร์ AI เลย 404 · ย้ายไป <code>lib/gemini-config.ts</code> ใช้ alias <b><code>gemini-flash-latest</code></b> (ชี้รุ่นล่าสุดเสมอ) · โมเดลภาพมี fallback list ข้ามอัตโนมัติเมื่อ 404 · override ด้วย env <code>GEMINI_MODEL</code>/<code>GEMINI_IMAGE_MODEL</code></td><td>—</td></tr>
-    <tr><td>2026-07-24</td><td><b>RBAC: upline ดูแลได้ทุกระดับชั้นลงไป (อ่าน+เขียน)</b> — เพิ่ม <code>canManageCustomer()</code> เป็น helper เดียว สลับ 26 จุดใน 24 route · เดิม downline read-only ทำให้ upline เจอ <code>forbidden</code> เวลาบันทึก · <b>อุดช่องโหว่ <code>POST /api/customers/[id]/measurements</code> (บันทึก BCA) ที่ไม่มีเช็คสิทธิ์เลย</b> · ทุก 403 คืนข้อความไทยบอกเหตุผล</td><td>—</td></tr>
-    <tr><td>2026-07-16</td><td><b>NutriScan สิทธิ์:</b> เช็คเจ้าของลูกค้า <b>เฉพาะเมื่อจะบันทึก</b> (วิเคราะห์เฉย ๆ ไม่ใช้ <code>customer_id</code>) + เปลี่ยน <code>forbidden</code> ดิบเป็นข้อความไทยบอกสาเหตุ (ลูกค้าของ downline = ดูได้ บันทึกแทนไม่ได้)</td><td>—</td></tr>
-    <tr><td>2026-07-16</td><td>แยก error คีย์ AI 2 เคส: <b>400 = คีย์ผิด/หมดอายุ</b> (ขอคีย์ใหม่) vs <b>403 = คีย์ถูกแต่ไม่มีสิทธิ์</b> (โปรเจกต์ยังไม่เปิด Generative Language API / คีย์ถูกจำกัด → บอกวิธีแก้ที่ถูก)</td><td>—</td></tr>
-    <tr><td>2026-07-16</td><td>เพิ่ม user dropdown + logout ใน v2 Shell</td><td><code>077ea56</code></td></tr>
-    <tr><td>2026-07-16</td><td>strip trailing slash ทุก link builder (แก้ <code>//join</code> 404)</td><td><code>910590d</code></td></tr>
-    <tr><td>2026-07-16</td><td>ข้อความ "ขอคีย์ใหม่" แทน error ดิบ ทุกฟีเจอร์ BYO key</td><td><code>710c7a7</code>, <code>ed597e4</code></td></tr>
-    <tr><td>2026-07-16</td><td>สร้าง PRD + ARCHITECTURE ฉบับแรก</td><td>เอกสารนี้</td></tr>
-  </table>
-</section>
-
-</div>
-<footer>UP Labs · PRD v1.0 · คู่กับ <a href="./ARCHITECTURE.html">ARCHITECTURE.html</a> และ <code>PRD-UPLabs.md</code> — เอกสารนี้ต้องอัปเดตทุกครั้งที่ฟีเจอร์เปลี่ยน</footer>
+<footer>UP Labs · UP Labs — Health Intelligence Platform · คู่กับ <a href="./ARCHITECTURE.html">ARCHITECTURE.html</a> · <a href="./SPEC-External-API.html">SPEC-External-API.html</a> — เอกสารนี้ถูก generate จาก <code>PRD-UPLabs.md</code> ห้ามแก้ .html ตรง ๆ</footer>
 </body>
 </html>
