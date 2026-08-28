@@ -2,7 +2,7 @@ import { withApi, requireScope, assertCustomerInScope, visibleCustomerIds, type 
 import { apiError, apiOk, DISCLAIMER } from "@/lib/api/respond";
 import { resolveIntent, findIntent, intentCatalogue } from "@/lib/api/resolver";
 import {
-  getCustomer, searchCustomers, getLabRounds, buildCompare, getOverview,
+  getCustomer, searchCustomers, getLabRounds, getLabRoundsDetailed, buildCompare, getOverview,
   getMeasurements, getSupplements, getNotes, ageFrom,
 } from "@/lib/api/data";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -66,7 +66,13 @@ export async function POST(req: Request) {
       if (matches.length === 0) {
         return apiError("not_found", `ไม่พบลูกค้าที่ชื่อใกล้เคียง "${r.nameQuery}"`, { searched_for: r.nameQuery });
       }
-      if (matches.length > 1) {
+      // An exact full-name match beats a substring one. Without this, any customer
+      // whose name *contains* another customer's name makes the shorter name
+      // permanently unanswerable. Two identical names still disambiguate.
+      const exact = matches.filter((c) => c.name.trim().toLowerCase() === r.nameQuery!.trim().toLowerCase());
+      if (exact.length === 1) {
+        customerId = exact[0].id;
+      } else if (matches.length > 1) {
         return apiError("needs_disambiguation", "พบลูกค้าที่ชื่อใกล้เคียงมากกว่า 1 คน — ระบุ customer_id ให้ชัด", {
           searched_for: r.nameQuery,
           candidates: matches.map((c) => ({
@@ -74,8 +80,9 @@ export async function POST(req: Request) {
           })),
           next_step: "เรียกซ้ำโดยใส่ customer_id ที่ต้องการ",
         });
+      } else {
+        customerId = matches[0].id;
       }
-      customerId = matches[0].id;
     }
 
     if (customerId) {
@@ -121,10 +128,14 @@ export async function POST(req: Request) {
       }
 
       case "labs.compare": {
-        const rounds = await getLabRounds(customerId!, r.params.rounds ?? 3);
+        const { rounds, skipped, total_available } =
+          await getLabRoundsDetailed(customerId!, r.params.rounds ?? 3, { minValues: 2 });
         if (rounds.length === 0) return envelope({ customer, rounds: [], message: "ยังไม่มีผลแล็บในระบบ" }, 0);
         const cmp = buildCompare(rounds);
-        return envelope({ customer, ...cmp }, cmp.metrics.length);
+        return envelope({
+          customer, ...cmp, skipped_rounds: skipped, total_visits_on_record: total_available,
+          ...(skipped.length ? { skipped_note: "รอบที่มีค่าเดียว (มักเป็นค่าที่วัดเองที่บ้าน) ไม่ถูกนับเป็นรอบเทียบ" } : {}),
+        }, cmp.metrics.length);
       }
 
       case "labs.metric": {

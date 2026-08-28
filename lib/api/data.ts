@@ -52,13 +52,40 @@ export async function searchCustomers(
 /* ── labs ─────────────────────────────────────────────────────────────────── */
 
 export type { LabValue, LabRound, CompareMetric } from "./compare";
-export { buildCompare, ageFrom } from "./compare";
+export { buildCompare, ageFrom, selectRounds } from "./compare";
 import type { LabRound, LabValue } from "./compare";
+import { selectRounds } from "./compare";
+
+export interface RoundQuery {
+  /**
+   * Ignore visits with fewer than this many values. Defaults to 1 (keep everything).
+   *
+   * `/labs/compare` passes 2, and that is not cosmetic. Home-device readings land in
+   * the same table as hospital panels — a glucometer entry is one row on its own
+   * date. Counting those as "rounds" meant a request for the last 3 rounds returned
+   * two fingersticks and one blood draw, and the actual clinic-to-clinic comparison
+   * the caller wanted fell off the end. Caught testing against production data.
+   *
+   * Nothing is hidden: whatever gets skipped comes back in `skipped`.
+   */
+  minValues?: number;
+}
+
+export interface RoundResult {
+  rounds: LabRound[];
+  /** Visits left out by `minValues`, so the caller can see they exist. */
+  skipped: { recorded_at: string; value_count: number; source: string | null }[];
+  /** Distinct visit dates on record, however many were returned. */
+  total_available: number;
+}
 
 /** The most recent `rounds` visit dates, oldest → newest. */
-export async function getLabRounds(customerId: string, rounds = 3): Promise<LabRound[]> {
+export async function getLabRoundsDetailed(
+  customerId: string, rounds = 3, opts: RoundQuery = {},
+): Promise<RoundResult> {
   const admin = createAdminClient();
   const n = Math.min(20, Math.max(1, rounds));
+  const minValues = Math.max(1, opts.minValues ?? 1);
 
   const { data: dates } = await admin
     .from("customer_lab_values")
@@ -66,14 +93,16 @@ export async function getLabRounds(customerId: string, rounds = 3): Promise<LabR
     .eq("customer_id", customerId)
     .order("recorded_at", { ascending: false });
 
-  const unique: string[] = [];
+  // count values per visit date so thin visits can be filtered
+  const perDate = new Map<string, number>();
   for (const r of dates ?? []) {
     const d = (r as any).recorded_at as string;
-    if (d && !unique.includes(d)) unique.push(d);
-    if (unique.length >= n) break;
+    if (d) perDate.set(d, (perDate.get(d) ?? 0) + 1);
   }
-  if (unique.length === 0) return [];
-  const wanted = unique.slice().reverse(); // oldest → newest
+  const sel = selectRounds(perDate, n, minValues);
+  const skipped: RoundResult["skipped"] = sel.skipped.map((s) => ({ ...s, source: null }));
+  if (sel.chosen.length === 0) return { rounds: [], skipped, total_available: perDate.size };
+  const wanted = sel.chosen; // already oldest → newest
 
   const { data: values } = await admin
     .from("customer_lab_values")
@@ -88,7 +117,7 @@ export async function getLabRounds(customerId: string, rounds = 3): Promise<LabR
     .eq("customer_id", customerId)
     .in("recorded_at", wanted);
 
-  return wanted.map((d) => {
+  const built = wanted.map((d) => {
     const rec = (records ?? []).find((r: any) => r.recorded_at === d) as any;
     return {
       recorded_at: d,
@@ -99,6 +128,24 @@ export async function getLabRounds(customerId: string, rounds = 3): Promise<LabR
         .map((v) => ({ ...v, value_num: v.value_num == null ? null : Number(v.value_num) })),
     };
   });
+
+  // fill in the source for skipped visits so the caller can tell a home reading from
+  // a clinic draw without a second request
+  if (skipped.length) {
+    const { data: skipRecs } = await admin
+      .from("customer_records").select("recorded_at, source")
+      .eq("customer_id", customerId).in("recorded_at", skipped.map((s) => s.recorded_at));
+    for (const s of skipped) {
+      s.source = ((skipRecs ?? []).find((r: any) => r.recorded_at === s.recorded_at) as any)?.source ?? null;
+    }
+  }
+
+  return { rounds: built, skipped, total_available: perDate.size };
+}
+
+/** Convenience wrapper for callers that only want the rounds. */
+export async function getLabRounds(customerId: string, rounds = 3, opts: RoundQuery = {}): Promise<LabRound[]> {
+  return (await getLabRoundsDetailed(customerId, rounds, opts)).rounds;
 }
 
 /* ── overview ─────────────────────────────────────────────────────────────── */

@@ -4,7 +4,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCompare, ageFrom, type LabRound } from "../lib/api/compare.ts";
+import { buildCompare, ageFrom, selectRounds, type LabRound } from "../lib/api/compare.ts";
 
 const v = (key: string, num: number | null, status = "normal", unit = "mg/dL") => ({
   metric_key: key, metric_label_th: key, value: num == null ? "" : String(num),
@@ -102,4 +102,40 @@ test("age is computed from a birth date and tolerates junk", () => {
   assert.equal(ageFrom(`${y - 40}-01-01`), 40);
   assert.equal(ageFrom(null), null);
   assert.equal(ageFrom("not-a-date"), null);
+});
+
+test("round selection skips single-value visits when asked, and says which", () => {
+  // real shape: two home glucometer readings between two hospital panels
+  const perDate = new Map([
+    ["2026-06-20", 5],   // clinic
+    ["2026-07-01", 1],   // fingerstick
+    ["2026-07-03", 1],   // fingerstick
+    ["2026-08-28", 8],   // clinic
+  ]);
+
+  const loose = selectRounds(perDate, 3, 1);
+  assert.deepEqual(loose.chosen, ["2026-07-01", "2026-07-03", "2026-08-28"],
+    "with no floor, the two fingersticks crowd out the June panel");
+
+  const strict = selectRounds(perDate, 3, 2);
+  assert.deepEqual(strict.chosen, ["2026-06-20", "2026-08-28"],
+    "with a floor of 2, the comparison is clinic-to-clinic");
+  assert.deepEqual(strict.skipped.map((s) => s.recorded_at).sort(), ["2026-07-01", "2026-07-03"],
+    "and what was left out is reported, not silently dropped");
+});
+
+test("round selection returns oldest → newest so charts and tables read left to right", () => {
+  const perDate = new Map([["2026-01-01", 3], ["2026-05-01", 3], ["2026-08-01", 3]]);
+  assert.deepEqual(selectRounds(perDate, 3).chosen, ["2026-01-01", "2026-05-01", "2026-08-01"]);
+});
+
+test("round selection honours the requested count", () => {
+  const perDate = new Map([["2026-01-01", 3], ["2026-05-01", 3], ["2026-08-01", 3]]);
+  assert.deepEqual(selectRounds(perDate, 2).chosen, ["2026-05-01", "2026-08-01"], "the 2 most recent");
+});
+
+test("round selection copes with nothing meeting the floor", () => {
+  const out = selectRounds(new Map([["2026-08-01", 1]]), 3, 2);
+  assert.deepEqual(out.chosen, []);
+  assert.equal(out.skipped.length, 1);
 });

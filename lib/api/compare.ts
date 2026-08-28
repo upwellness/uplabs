@@ -124,3 +124,29 @@ function isWorse(m: CompareMetric, d: NonNullable<CompareMetric["delta"]>) {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Which visit dates count as a "round".
+ *
+ * Split out of the query so the rule is testable: home-device readings share the
+ * `customer_lab_values` table with hospital panels but arrive one value at a time,
+ * and counting them as rounds pushed the real clinic draws out of a 3-round compare.
+ *
+ * @param perDate  value count keyed by visit date
+ * @param n        how many rounds the caller asked for
+ * @param minValues visits below this are skipped (compare uses 2)
+ */
+export function selectRounds(
+  perDate: Map<string, number>, n: number, minValues = 1,
+): { chosen: string[]; skipped: { recorded_at: string; value_count: number }[] } {
+  const dates = [...perDate.keys()].sort().reverse();     // newest first
+  const chosen: string[] = [];
+  const skipped: { recorded_at: string; value_count: number }[] = [];
+  for (const d of dates) {
+    if (chosen.length >= n) break;
+    const count = perDate.get(d) ?? 0;
+    if (count < minValues) { skipped.push({ recorded_at: d, value_count: count }); continue; }
+    chosen.push(d);
+  }
+  return { chosen: chosen.reverse(), skipped };           // oldest → newest
+}
