@@ -26,6 +26,7 @@
 - **`NEXT_PUBLIC_SITE_URL` = `https://upwellness-ops.vercel.app`** (ห้ามมี `/` ท้าย · ห้ามใช้ `upwellness.vercel.app` ซึ่งเป็น**เว็บไซต์คนละตัว**) — เคยทำให้ลิงก์ invite/reset 404
 - **repo นี้ public** — ห้าม commit PII (รายงานสุขภาพ ชื่อลูกค้า ผลแล็บ) หรือคีย์ · รายงานลูกค้าเก็บใน `customer_report_html`
 - **ค่าสุขภาพต้องมาจากข้อมูลจริง** — อ่านจากไฟล์/ฐานข้อมูล ห้ามเดาหรือกะจากภาพ
+- **Next.js แคช `fetch` ใน GET handler** — supabase-js ยิงผ่าน fetch ตัวเดียวกัน จึงได้คำตอบเก่าจากฐานข้อมูล · `dynamic = "force-dynamic"` **ไม่ช่วย** (คุมแค่ render) · `createAdminClient()` บังคับ `cache: "no-store"` ไว้แล้ว **ห้ามถอดออก** — เคยทำให้ token ที่เพิกถอนแล้วยังเรียก API ได้
 - Compliance: wellness ≠ diagnosis · ผลผิดปกติ → "ปรึกษาแพทย์" · อาหารเสริมต้องผ่านเภสัชกร + แพทย์
 
 ## 3. ก่อน push

@@ -51,6 +51,12 @@ export interface ApiMeta {
   [k: string]: unknown;
 }
 
+/**
+ * Responses carry live health data and permission state, so they must never sit in
+ * a shared cache — not the CDN's, not a proxy's, not a browser's.
+ */
+const NO_STORE = { "cache-control": "no-store, max-age=0, must-revalidate" };
+
 export function apiOk(
   data: unknown,
   opts: { meta?: Partial<ApiMeta>; clinical?: boolean; extra?: Record<string, unknown> } = {},
@@ -62,7 +68,7 @@ export function apiOk(
     meta: { generated_at: new Date().toISOString(), ...(opts.meta ?? {}) },
   };
   if (opts.clinical) body.disclaimer = DISCLAIMER;
-  return NextResponse.json(body, { status: 200 });
+  return NextResponse.json(body, { status: 200, headers: NO_STORE });
 }
 
 export function apiError(
@@ -71,7 +77,7 @@ export function apiError(
   extra: Record<string, unknown> = {},
 ) {
   const status = STATUS[code] ?? 400;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...NO_STORE };
   if (code === "rate_limited" && typeof extra.retry_after === "number") {
     headers["Retry-After"] = String(extra.retry_after);
   }
