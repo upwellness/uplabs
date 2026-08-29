@@ -182,7 +182,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | Route | Method | สิทธิ์ | ทำอะไร |
 |---|---|---|---|
 | `/api/v1/meta` | GET | API token | ตัวตน token + scope + intent ที่ใช้ได้ |
-| `/api/v1/openapi.json` | GET | **public** | สคีมาสำหรับ ChatGPT Actions / n8n |
+| `/api/v1/openapi.json` | GET | **public** | สคีมาสำหรับ ChatGPT Actions / n8n · `?flavor=gemini` ตัด key ที่ Gemini ไม่รับออก |
 | `/api/v1/query` | POST | API token | คำสั่งภาษาคน → ข้อมูลตรง ๆ (ไม่มี LLM ฝั่งเรา) |
 | `/api/v1/customers` | GET · POST | `customers:read` / `customers:write` | ค้นหา/สร้างลูกค้า |
 | `/api/v1/customers/{id}` | GET · PATCH | `customers:read` / `customers:write` | โปรไฟล์ |
@@ -406,6 +406,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-08-29 | **`/openapi.json?flavor=gemini`** — Gemini รับ OpenAPI แค่ subset (type, nullable, required, format, description, properties, items, enum) · สคีมาเรามี `default` 5 จุด + `maximum` 2 จุด ซึ่งอาจทำให้ Gemini ปฏิเสธ tool definition แล้วแสดงอาการเป็น "ไม่ยอมเรียก API" โดยไม่มี error ที่อ่านรู้เรื่อง → flavor นี้ตัด key ที่ไม่รองรับออก **แต่ย้ายความหมายไปต่อท้าย `description`** (โมเดลยังรู้ค่าเริ่มต้นและเพดาน) + 5 เทสต์ | (คอมมิตนี้) |
 | 2026-08-29 | **🔒 ผูก API token เข้ากับลำดับชั้นผู้ใช้** — เดิม `customer_scope` เป็นข้อความอิสระที่แอดมินพิมพ์เอง ไม่ผูกกับคน (`created_by` เป็น null ได้) · `all` ไม่เคยตรวจซ้ำว่าเจ้าของยังเป็นแอดมินไหม · `list:` ใส่ลูกค้านอกสายงานได้ → เพิ่ม `api_tokens.owner_user_id` (บังคับ) · **ขอบเขตคำนวณสดจากบทบาท+ตำแหน่งสายงานของเจ้าของทุก request** ไม่ใช่อ่านจากข้อความที่ freeze ไว้ · `all` ลดเหลือ `owner` อัตโนมัติเมื่อเจ้าของไม่ใช่แอดมินแล้ว (รายงานใน /meta) · `list:` ตัดกับสายงานเจ้าของ · โปรไฟล์เจ้าของหาย = token ตาย · สร้างลูกค้าผ่าน API ผูกกับเจ้าของเสมอ · `lib/api/reach.ts` แยกเป็นฟังก์ชันบริสุทธิ์ + 12 เทสต์ | (คอมมิตนี้) |
 | 2026-08-29 | **🔒 อุดช่องโหว่: token ที่เพิกถอนแล้วยังใช้ได้บน GET** — App Router แคช `fetch` ใน GET handler และ supabase-js ยิง query ผ่าน fetch ตัวเดียวกัน → **คำตอบจากฐานข้อมูลถูก reuse** · `dynamic = "force-dynamic"` คุมแค่การ render ไม่ได้คุม data cache · อาการจริง: เพิกถอน token แล้ว `GET /api/v1/meta` ยังตอบ 200 พร้อม scope ชุดก่อนเพิกถอน ขณะที่ `POST /api/v1/query` ตอบ `token_revoked` ถูกต้อง (POST ไม่ถูกแคช) → บังคับ `cache: "no-store"` ที่ `createAdminClient()` ที่เดียว + ใส่ `Cache-Control: no-store` ทุก response ของ API · **กระทบทั้งแอป ไม่ใช่แค่ /api/v1** เพราะ client ตัวนี้คืออำนาจตัดสินสิทธิ์ | (คอมมิตนี้) |
 | 2026-08-29 | **External API: แก้ 2 อย่างที่เจอตอนทดสอบกับข้อมูลจริงบน production** — (1) `/labs/compare` เคยนับค่าน้ำตาลปลายนิ้วที่วัดเองที่บ้าน (1 ค่า/วัน) เป็น "รอบตรวจ" ทำให้ขอ 3 รอบแล้วได้ปลายนิ้ว 2 + แล็บ 1 การเทียบจริงหลุดหาย → ข้ามรอบที่มีค่าเดียวโดยปริยาย + รายงานใน `skipped_rounds` (`selectRounds` แยกเป็นฟังก์ชันบริสุทธิ์ + เทสต์) · (2) ชื่อที่ตรงเป๊ะกับลูกค้าคนเดียวใช้ได้เลย ไม่งั้นชื่อที่ไปปรากฏในชื่อคนอื่นจะถามไม่ได้ตลอดกาล | (คอมมิตนี้) |

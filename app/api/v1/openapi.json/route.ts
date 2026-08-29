@@ -268,7 +268,49 @@ export async function GET(req: Request) {
     },
   };
 
-  return NextResponse.json(spec, {
+  // ?flavor=gemini — Gemini's function-calling schema accepts only a subset of
+  // OpenAPI (type, nullable, required, format, description, properties, items, enum).
+  // Feeding it our full spec risks a rejected tool definition, so this strips the
+  // unsupported keys and folds what they said into the description instead — the
+  // model still learns the default and the ceiling, just as prose it can read.
+  const flavor = new URL(req.url).searchParams.get("flavor");
+  const body = flavor === "gemini" ? geminiFlavor(spec) : spec;
+
+  return NextResponse.json(body, {
     headers: { "cache-control": "public, max-age=300" },
   });
+}
+
+const GEMINI_SCHEMA_KEYS = new Set([
+  "type", "nullable", "required", "format", "description", "properties", "items", "enum",
+]);
+
+/** Deep-clone the spec, rewriting every schema node into Gemini's accepted subset. */
+function geminiFlavor(spec: any): any {
+  const seen = (node: any): any => {
+    if (Array.isArray(node)) return node.map(seen);
+    if (!node || typeof node !== "object") return node;
+
+    const isSchema = "type" in node || "properties" in node;
+    if (!isSchema) {
+      const out: any = {};
+      for (const [k, v] of Object.entries(node)) out[k] = seen(v);
+      return out;
+    }
+
+    const out: any = {};
+    const notes: string[] = [];
+    for (const [k, v] of Object.entries(node)) {
+      if (GEMINI_SCHEMA_KEYS.has(k)) { out[k] = seen(v); continue; }
+      // keep the meaning, lose the keyword
+      if (k === "default") notes.push(`ค่าเริ่มต้น ${v}`);
+      else if (k === "maximum") notes.push(`สูงสุด ${v}`);
+      else if (k === "minimum") notes.push(`ต่ำสุด ${v}`);
+    }
+    if (notes.length) {
+      out.description = [out.description, `(${notes.join(" · ")})`].filter(Boolean).join(" ");
+    }
+    return out;
+  };
+  return seen(spec);
 }

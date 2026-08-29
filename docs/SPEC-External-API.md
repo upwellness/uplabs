@@ -193,7 +193,8 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | Endpoint | Scope | คืนอะไร |
 |---|---|---|
 | `GET /meta` | any | ชื่อ token · scope ที่มี · ขอบเขตลูกค้า · จำนวนลูกค้าที่เห็น · rate limit ที่เหลือ · รายการ intent ทั้งหมด |
-| `GET /openapi.json` | public | OpenAPI 3.1 สำหรับ import เข้า ChatGPT Actions |
+| `GET /openapi.json` | public | OpenAPI 3.1 สำหรับ import เข้า ChatGPT Actions / n8n |
+| `GET /openapi.json?flavor=gemini` | public | เวอร์ชันที่ตัด key ที่ Gemini ไม่รับ (`default`, `maximum`, `minimum`) ออก แล้วย้ายความหมายไปไว้ใน `description` แทน |
 
 `GET /meta` คือ endpoint แรกที่ควรเรียก — บอกว่า token นี้ทำอะไรได้บ้างโดยไม่ต้องเดา
 
