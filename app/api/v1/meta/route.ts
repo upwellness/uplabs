@@ -2,6 +2,7 @@ import { withApi, visibleCustomerIds } from "@/lib/api/auth";
 import { apiOk } from "@/lib/api/respond";
 import { intentCatalogue } from "@/lib/api/resolver";
 import { SCOPE_LABEL_TH } from "@/lib/api/scopes";
+import { describeReach } from "@/lib/api/reach";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,14 @@ export async function GET(req: Request) {
         customer_scope: ctx.token.customer_scope,
         customers_visible: customerCount,
         expires_at: ctx.token.expires_at,
+        owner: { id: ctx.token.owner_user_id, role: ctx.ownerRole },
+        reach: {
+          kind: ctx.reach.kind,
+          description: describeReach(ctx.reach, customerCount),
+          // set when the stored scope asked for more than the owner may currently have
+          downgraded: ctx.reach.kind === "all" ? false : ctx.reach.downgraded,
+          ...(ctx.reach.kind !== "all" && ctx.reach.downgraded ? { downgrade_reason: ctx.reach.reason } : {}),
+        },
       },
       rate_limit: {
         per_minute: ctx.token.rate_limit_per_min ?? 60,
@@ -56,6 +65,8 @@ export async function GET(req: Request) {
       },
       how_to_use:
         "ส่งคำสั่งภาษาไทย/อังกฤษไปที่ POST /api/v1/query หรือเรียก endpoint ตรง ๆ ก็ได้ · ระบบคืนข้อมูลดิบให้ไปเรียบเรียงเอง ไม่มี LLM ฝั่งนี้",
+      access_note:
+        "token นี้เห็นลูกค้าได้ไม่เกินกว่าที่เจ้าของ token เห็นเองในระบบ ณ ตอนนี้ — ถ้าเจ้าของถูกย้ายสายงานหรือเปลี่ยนบทบาท ขอบเขตของ token จะเปลี่ยนตามทันที",
     }, { meta: { token: ctx.token.name } });
   });
 }

@@ -34,12 +34,17 @@ export async function POST(req: Request) {
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     if (!name) return apiError("bad_request", 'ต้องมี "name"');
 
-    // A coach-scoped token can only create inside its own book — otherwise it could
-    // mint a customer it is then not allowed to read back.
-    let coachId: string | null = null;
-    if (ctx.token.customer_scope.startsWith("coach:")) coachId = ctx.token.customer_scope.slice(6);
-    else if (typeof body?.coach_id === "string") coachId = body.coach_id;
-    if (!coachId) return apiError("bad_request", 'ต้องระบุ "coach_id" เมื่อ token เป็นแบบเห็นทุกคน');
+    // A new customer is owned by the token's owner. Anything else would let a token
+    // create a record it is then not allowed to read back — or worse, park a customer
+    // in somebody else's book. Only an all-reach token (owner is an admin) may name a
+    // different coach, and even then that coach must exist.
+    let coachId = ctx.token.owner_user_id!;
+    if (ctx.reach.kind === "all" && typeof body?.coach_id === "string" && body.coach_id) {
+      coachId = body.coach_id;
+    } else if (typeof body?.coach_id === "string" && body.coach_id && body.coach_id !== coachId) {
+      return apiError("customer_out_of_scope",
+        "token นี้สร้างลูกค้าให้โค้ชคนอื่นไม่ได้ — ลูกค้าใหม่จะถูกผูกกับเจ้าของ token เสมอ");
+    }
 
     const admin = createAdminClient();
     const { data, error } = await admin.from("customers").insert({

@@ -57,6 +57,7 @@ export function TokensManager({
             <thead className="bg-surface text-xs text-ink-60">
               <tr>
                 <th className="p-3 text-left font-semibold">ชื่อ</th>
+                <th className="p-3 text-left font-semibold">ทำงานแทนใคร</th>
                 <th className="p-3 text-left font-semibold">token</th>
                 <th className="p-3 text-left font-semibold">สิทธิ์</th>
                 <th className="p-3 text-left font-semibold">ขอบเขตลูกค้า</th>
@@ -68,7 +69,7 @@ export function TokensManager({
             </thead>
             <tbody>
               {tokens.length === 0 && (
-                <tr><td colSpan={8} className="p-8 text-center text-ink-40">ยังไม่มี token — กด "สร้าง token ใหม่"</td></tr>
+                <tr><td colSpan={9} className="p-8 text-center text-ink-40">ยังไม่มี token — กด "สร้าง token ใหม่"</td></tr>
               )}
               {tokens.map((t) => {
                 const expired = t.expires_at && new Date(t.expires_at) < new Date();
@@ -78,6 +79,10 @@ export function TokensManager({
                     <td className="p-3">
                       <div className="font-medium text-ink">{t.name}</div>
                       {t.note && <div className="text-xs text-ink-40">{t.note}</div>}
+                    </td>
+                    <td className="p-3 text-xs">
+                      <div className="font-medium text-ink">{t.owner_label}</div>
+                      {t.owner_role && <div className="text-ink-40">{t.owner_role}</div>}
                     </td>
                     <td className="p-3 font-mono text-xs text-ink-60">{t.masked}</td>
                     <td className="p-3">
@@ -89,7 +94,7 @@ export function TokensManager({
                         ))}
                       </div>
                     </td>
-                    <td className="p-3 text-xs text-ink-60">{describeScope(t.customer_scope, coaches)}</td>
+                    <td className="p-3 text-xs text-ink-60">{describeScope(t.customer_scope)}</td>
                     <td className="p-3 text-xs text-ink-60">{t.last_used_at ? fmt(t.last_used_at) : "—"}</td>
                     <td className="p-3 text-right tabular-nums text-ink-60">{t.calls_7d}</td>
                     <td className="p-3 text-xs">
@@ -181,7 +186,7 @@ function CreateForm({ coaches, onDone }: { coaches: CoachOption[]; onDone: (toke
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [scopes, setScopes] = useState<Scope[]>(["customers:read", "labs:read"]);
-  const [kind, setKind] = useState<"all" | "coach" | "list">("coach");
+  const [kind, setKind] = useState<"owner" | "all" | "list">("owner");
   const [coachId, setCoachId] = useState(coaches[0]?.id ?? "");
   const [customerIds, setCustomerIds] = useState("");
   const [expires, setExpires] = useState<string>("90");
@@ -190,6 +195,11 @@ function CreateForm({ coaches, onDone }: { coaches: CoachOption[]; onDone: (toke
   const [pending, startTransition] = useTransition();
 
   const toggle = (s: Scope) => setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  const ownerIsAdmin = coaches.find((c) => c.id === coachId)?.role === "admin";
+  // Derived, not stored: switching to a non-admin owner must not leave "everyone"
+  // selected behind. Calling setKind() during render to correct it would loop, so the
+  // effective value is computed and the radio reads from it.
+  const effKind: "owner" | "all" | "list" = kind === "all" && !ownerIsAdmin ? "owner" : kind;
   const writeCount = scopes.filter((s) => s.endsWith(":write")).length;
   const clinicalCount = scopes.filter((s) => (CLINICAL_SCOPES as string[]).includes(s)).length;
 
@@ -236,30 +246,46 @@ function CreateForm({ coaches, onDone }: { coaches: CoachOption[]; onDone: (toke
       </fieldset>
 
       <fieldset className="mt-5">
-        <legend className="text-sm font-medium text-ink-80">เห็นลูกค้าของใคร</legend>
-        <div className="mt-2 space-y-2">
-          {([["coach", "ของโค้ชคนหนึ่ง + สายงานลงไปทั้งหมด"], ["list", "เฉพาะลูกค้าที่ระบุ"], ["all", "ทุกคนในระบบ (ระวัง)"]] as const).map(([k, label]) => (
-            <label key={k} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-ink-10 bg-white px-3 text-sm">
-              <input type="radio" name="scopekind" checked={kind === k} onChange={() => setKind(k)} className="h-4 w-4 accent-rose" />
-              <span>{label}</span>
-            </label>
+        <legend className="text-sm font-medium text-ink-80">token นี้ทำงานแทนใคร</legend>
+        <p className="mt-1 text-xs text-ink-60">
+          token จะเห็นลูกค้าได้<b>ไม่เกินกว่าที่คนนี้เห็นเองในระบบ</b> · ถ้าเขาถูกย้ายสายงานหรือเปลี่ยนบทบาท ขอบเขตของ token เปลี่ยนตามทันที
+        </p>
+        <select value={coachId} onChange={(e) => setCoachId(e.target.value)}
+          className="mt-2 min-h-11 w-full rounded-xl border border-ink-10 bg-white px-3 text-sm">
+          {coaches.map((c) => (
+            <option key={c.id} value={c.id}>{c.label} — เข้าถึงลูกค้า {c.customerCount} คน</option>
           ))}
+        </select>
+      </fieldset>
+
+      <fieldset className="mt-5">
+        <legend className="text-sm font-medium text-ink-80">ขอบเขตลูกค้า</legend>
+        <div className="mt-2 space-y-2">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-ink-10 bg-white px-3 text-sm">
+            <input type="radio" name="scopekind" checked={effKind === "owner"} onChange={() => setKind("owner")} className="h-4 w-4 accent-rose" />
+            <span>ตามสายงานของเจ้าของ — ลูกค้าของเขา + สายงานลงไปทั้งหมด <b className="text-wellness">(แนะนำ)</b></span>
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-ink-10 bg-white px-3 text-sm">
+            <input type="radio" name="scopekind" checked={effKind === "list"} onChange={() => setKind("list")} className="h-4 w-4 accent-rose" />
+            <span>เฉพาะลูกค้าที่ระบุ (ต้องอยู่ในสายงานของเจ้าของ)</span>
+          </label>
+          <label className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm ${
+            ownerIsAdmin ? "cursor-pointer border-ink-10 bg-white" : "cursor-not-allowed border-ink-10 bg-ink-5 text-ink-40"
+          }`}>
+            <input type="radio" name="scopekind" checked={effKind === "all"} disabled={!ownerIsAdmin}
+              onChange={() => setKind("all")} className="h-4 w-4 accent-rose" />
+            <span>ทุกคนในระบบ {ownerIsAdmin ? "(ระวัง)" : "— เลือกได้เฉพาะเมื่อเจ้าของเป็นแอดมิน"}</span>
+          </label>
         </div>
-        {kind === "coach" && (
-          <select value={coachId} onChange={(e) => setCoachId(e.target.value)}
-            className="mt-2 min-h-11 w-full rounded-xl border border-ink-10 bg-white px-3 text-sm">
-            {coaches.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        )}
-        {kind === "list" && (
+        {effKind === "list" && (
           <textarea value={customerIds} onChange={(e) => setCustomerIds(e.target.value)}
             rows={3} placeholder="customer id คั่นด้วย comma หรือขึ้นบรรทัดใหม่"
             className="mt-2 w-full rounded-xl border border-ink-10 bg-white px-3 py-2 font-mono text-xs" />
         )}
-        {kind === "all" && (
+        {effKind === "all" && (
           <p className="mt-2 flex items-start gap-2 rounded-xl bg-rose-pale px-3 py-2 text-xs text-rose-deep">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            token นี้จะเห็นลูกค้า<b className="mx-1">ทุกคน</b>ในระบบ — ใช้เฉพาะเครื่องมือของแอดมินเท่านั้น
+            token นี้จะเห็นลูกค้า<b className="mx-1">ทุกคน</b>ในระบบ · และจะถูกลดเหลือเฉพาะสายงานโดยอัตโนมัติถ้าเจ้าของไม่ได้เป็นแอดมินแล้ว
           </p>
         )}
       </fieldset>
@@ -292,13 +318,14 @@ function CreateForm({ coaches, onDone }: { coaches: CoachOption[]; onDone: (toke
             startTransition(async () => {
               const res = await createToken({
                 name, note, scopes,
-                customerScopeKind: kind,
-                coachId: kind === "coach" ? coachId : undefined,
-                customerIds: kind === "list" ? customerIds : undefined,
+                ownerUserId: coachId,
+                customerScopeKind: effKind,
+                customerIds: effKind === "list" ? customerIds : undefined,
                 expiresInDays: expires ? Number(expires) : null,
                 rateLimit: Number(rate) || 60,
               });
-              if (res.ok) onDone(res.token); else setError(res.error);
+              if (res.ok) { if (res.warning) alert(res.warning); onDone(res.token); }
+              else setError(res.error);
             });
           }}
           className="min-h-11 rounded-xl bg-rose px-5 text-sm font-semibold text-white transition-colors hover:bg-rose-deep disabled:opacity-50"
@@ -347,17 +374,13 @@ function MintedDialog({ token, onClose }: { token: string; onClose: () => void }
   );
 }
 
-function describeScope(scope: string, coaches: CoachOption[]): string {
-  if (!scope || scope === "all") return "ทุกคนในระบบ";
-  if (scope.startsWith("coach:")) {
-    const id = scope.slice(6);
-    return `โค้ช: ${coaches.find((c) => c.id === id)?.label ?? id.slice(0, 8)} + สายงาน`;
-  }
+function describeScope(scope: string): string {
+  if (scope === "all") return "ทุกคนในระบบ (ถ้าเจ้าของยังเป็นแอดมิน)";
   if (scope.startsWith("list:")) {
     const n = scope.slice(5).split(",").filter(Boolean).length;
     return `เฉพาะ ${n} คนที่ระบุ`;
   }
-  return scope;
+  return "ตามสายงานของเจ้าของ";
 }
 
 function fmt(iso: string, withTime = false): string {

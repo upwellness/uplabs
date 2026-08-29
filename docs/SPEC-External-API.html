@@ -159,10 +159,27 @@
 <h3>7.1 Scopes</h3>
 <table><thead><tr><th>Scope</th><th>ให้ทำอะไร</th></tr></thead><tbody><tr><td><code>customers:read</code></td><td>ค้นหา/อ่านโปรไฟล์ลูกค้า (ชื่อ เพศ วันเกิด ส่วนสูง)</td></tr><tr><td><code>customers:write</code></td><td>สร้าง/แก้โปรไฟล์</td></tr><tr><td><code>labs:read</code></td><td>อ่านผลแล็บ · เทียบย้อนหลัง · ภาพรวม · ค่าผิดปกติ</td></tr><tr><td><code>labs:write</code></td><td>เพิ่มใบตรวจ + ค่าแล็บ</td></tr><tr><td><code>measurements:read</code> / <code>measurements:write</code></td><td>BCA</td></tr><tr><td><code>supplements:read</code></td><td>อาหารเสริม + ความปลอดภัยคู่ยา</td></tr><tr><td><code>notes:read</code> / <code>notes:write</code></td><td>โน้ตโค้ช</td></tr><tr><td><code>links:write</code></td><td>ขอลิงก์สมัคร</td></tr></tbody></table>
 <p><b>หลักการ:</b> scope เป็น <b>allow-list</b> — ไม่ระบุ = ไม่ได้ · ไม่มี scope แบบ <code>*</code></p>
-<h3>7.2 ขอบเขตลูกค้า (customer scope)</h3>
-<p><code>api_tokens.customer_scope</code> เลือกได้ 3 แบบ:</p>
-<table><thead><tr><th>แบบ</th><th>ความหมาย</th></tr></thead><tbody><tr><td><code>all</code></td><td>ทุกคนในระบบ (ให้เฉพาะ token ของ admin)</td></tr><tr><td><code>coach:&lt;user_id&gt;</code></td><td>เฉพาะลูกค้าของโค้ชคนนั้น <b>+ สายงานลงไปทั้งหมด</b> (ใช้ <code>canManageCustomer</code> ตัวเดียวกับเว็บ)</td></tr><tr><td><code>list:&lt;uuid,uuid,…&gt;</code></td><td>เฉพาะลูกค้าที่ระบุ (เหมาะกับงานเฉพาะเคส)</td></tr></tbody></table>
-<div class="callout ok">✅ <b>เหตุผลที่ยืมตรรกะจากเว็บมาใช้ทั้งดุ้น</b> — ถ้า API มีตรรกะสิทธิ์ของตัวเอง วันหนึ่งมันจะไม่ตรงกับเว็บ แล้วช่องโหว่จะโผล่ในฝั่งที่ไม่มีคนดู · ใช้ <code>lib/customers/access.ts</code> ที่เดียว</div>
+<h3>7.2 ขอบเขตลูกค้า — ผูกกับลำดับชั้นของผู้ใช้</h3>
+<div class="callout">★ <b>หลักการเดียวที่ทุกอย่างยึด: token เห็นลูกค้าได้ไม่เกินกว่าที่ "เจ้าของ token" เห็นเองในระบบ ณ ตอนนั้น</b></div>
+<p>ทุก token ต้องมี <b><code>owner_user_id</code></b> = ทำงานแทนคนคนหนึ่งเสมอ · ขอบเขตไม่ได้อ่านจากข้อความที่เก็บไว้ตอนออก token แต่<b>คำนวณใหม่จากบทบาทและตำแหน่งในสายงานของเจ้าของทุก request</b></p>
+<p>เหตุผลที่ต้องคำนวณสด ไม่ใช่ freeze ไว้: ถ้าโค้ชถูกย้ายสายงาน ถูกลดบทบาทจากแอดมิน หรือลูกค้าถูกย้ายมือ → token ทุกใบของเขาต้องเปลี่ยนตาม <b>ในคำขอถัดไปทันที</b> ไม่ใช่รอจนหมดอายุ</p>
+<table><thead><tr><th><code>customer_scope</code></th><th>ความหมาย</th></tr></thead><tbody><tr><td><code>owner</code> <i>(ค่าเริ่มต้น · แนะนำ)</i></td><td>ลูกค้าของเจ้าของ + ที่ถูกมอบหมายให้ (co-coach) + <b>สายงานลงไปทุกระดับชั้น</b> — ชุดเดียวกับที่เขาเห็นในเว็บ</td></tr><tr><td><code>all</code></td><td>ทุกคนในระบบ · <b>ให้ผลก็ต่อเมื่อเจ้าของยัง <code>role = admin</code> อยู่ ณ ตอนนั้น</b> ถ้าไม่ใช่แล้ว จะถูกลดเหลือ <code>owner</code> อัตโนมัติ</td></tr><tr><td><code>list:&lt;uuid,…&gt;</code></td><td>เฉพาะที่ระบุ · <b>ตัดกับสายงานของเจ้าของเสมอ — ลดได้อย่างเดียว เพิ่มไม่ได้</b></td></tr></tbody></table>
+<p><b>สิ่งที่บังคับไว้</b></p>
+<ol>
+<li>token ที่ไม่มีเจ้าของ → ใช้ไม่ได้ (<code>invalid_token</code>) · ของเก่าที่ระบุเจ้าของไม่ได้ถูกเพิกถอนตอน migrate
+</li>
+<li>ลบ/ปิดโปรไฟล์เจ้าของ → token ตายทันที (ไม่มีสิทธิ์ให้สืบทอด)
+</li>
+<li><code>all</code> ที่เจ้าของไม่ใช่แอดมินแล้ว → <b>ลดเหลือ <code>owner</code> โดยอัตโนมัติ</b> และ <code>GET /meta</code> รายงาน <code>reach.downgraded</code> + เหตุผล (ลดแบบเงียบ ๆ = คนใช้งงว่าทำไมข้อมูลหาย)
+</li>
+<li><code>list:</code> ที่มี id นอกสายงาน → id นั้นถูกตัดทิ้ง ทั้งตอนสร้าง (เตือนแอดมิน) และตอนเรียก (บังคับซ้ำ)
+</li>
+<li><b>สร้างลูกค้าใหม่ผ่าน API ผูกกับเจ้าของ token เสมอ</b> — เว้น token ที่เจ้าของเป็นแอดมินและระบุ <code>coach_id</code> มาเอง · ไม่งั้น token จะสร้างข้อมูลที่ตัวเองอ่านกลับไม่ได้ หรือไปฝากไว้ในสมุดของคนอื่น
+</li>
+<li>ตัวตัดสินว่าใครแตะลูกค้าคนไหนได้คือ <b><code>canManageCustomer()</code> ตัวเดียวกับหน้าเว็บ</b> ไม่มีตรรกะสิทธิ์ชุดที่สอง
+</li>
+</ol>
+<div class="callout ok">✅ <b>ทำไมถึงยืมของเว็บมาทั้งดุ้น</b> — ถ้า API มีตรรกะสิทธิ์ของตัวเอง วันหนึ่งมันจะไม่ตรงกับเว็บ แล้วช่องโหว่จะโผล่ในฝั่งที่ไม่มีคนดู</div>
 <h3>7.3 Rate limit</h3>
 <p>ค่าเริ่มต้น <b>60 ครั้ง/นาที ต่อ token</b> (ตั้งรายตัวได้) · นับจาก <code>api_token_logs</code> ใน 60 วินาทีที่ผ่านมา ไม่ใช้ Redis — ที่สเกลนี้ query ตาราง log พอ และแลกกับความง่ายในการดูแลคุ้มกว่า</p>
 </section>

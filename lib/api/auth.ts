@@ -15,6 +15,7 @@
  */
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageCustomer } from "@/lib/customers/access";
+import { resolveReach, intersectWithOwnerReach, type Reach } from "./reach";
 import { parseToken, readTokenFromHeaders, verifySecret } from "./tokens";
 import { apiError } from "./respond";
 import type { Scope } from "./scopes";
@@ -29,10 +30,16 @@ export interface TokenRow {
   rate_limit_per_min: number;
   expires_at: string | null;
   revoked_at: string | null;
+  /** The user this token acts as. Reach is derived from them, live, every request. */
+  owner_user_id: string | null;
 }
 
 export interface ApiContext {
   token: TokenRow;
+  /** The owner's role as loaded on THIS request — not as it was when the token was issued. */
+  ownerRole: string | null;
+  /** What this request may touch, after applying the owner's current standing. */
+  reach: Reach;
   startedAt: number;
   req: Request;
   /** Filled in by the route once it knows which customer it touched. */
@@ -69,7 +76,7 @@ export async function authenticate(req: Request): Promise<AuthResult> {
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("api_tokens")
-    .select("id, name, token_prefix, token_hash, scopes, customer_scope, rate_limit_per_min, expires_at, revoked_at")
+    .select("id, name, token_prefix, token_hash, scopes, customer_scope, rate_limit_per_min, expires_at, revoked_at, owner_user_id")
     .eq("token_prefix", parsed.prefix)
     .maybeSingle();
 
@@ -87,6 +94,26 @@ export async function authenticate(req: Request): Promise<AuthResult> {
     return fail(apiError("token_expired", "token นี้หมดอายุแล้ว"), parsed.prefix, "token_expired");
   }
 
+  // A token acts as a person. If that person's profile is gone, the token has no
+  // standing to inherit and must stop working — otherwise deleting a coach would
+  // leave their credentials alive with whatever access they last had.
+  if (!token.owner_user_id) {
+    return fail(
+      apiError("invalid_token", "token นี้ไม่ได้ผูกกับผู้ใช้คนใด จึงใช้งานไม่ได้"),
+      parsed.prefix, "token_no_owner",
+    );
+  }
+  const { data: owner } = await admin
+    .from("profiles").select("id, role, display_name").eq("id", token.owner_user_id).maybeSingle();
+  if (!owner) {
+    return fail(
+      apiError("invalid_token", "ไม่พบเจ้าของ token นี้ในระบบแล้ว"),
+      parsed.prefix, "owner_missing",
+    );
+  }
+  const ownerRole = (owner as any).role as string | null;
+  const reach = resolveReach(token.customer_scope, ownerRole);
+
   const limit = token.rate_limit_per_min ?? 60;
   const since = new Date(Date.now() - 60_000).toISOString();
   const { count } = await admin
@@ -101,7 +128,7 @@ export async function authenticate(req: Request): Promise<AuthResult> {
     );
   }
 
-  return { ok: true, ctx: { token, startedAt, req } };
+  return { ok: true, ctx: { token, ownerRole, reach, startedAt, req } };
 }
 
 function fail(response: Response, prefix: string | null, code: string): AuthResult {
@@ -118,59 +145,75 @@ export function requireScope(ctx: ApiContext, scope: Scope): Response | null {
 
 /* ── customer scoping ─────────────────────────────────────────────────────── */
 
-export function parseCustomerScope(scope: string): { kind: "all" } | { kind: "coach"; userId: string } | { kind: "list"; ids: string[] } {
-  if (!scope || scope === "all") return { kind: "all" };
-  if (scope.startsWith("coach:")) return { kind: "coach", userId: scope.slice(6).trim() };
-  if (scope.startsWith("list:")) {
-    return { kind: "list", ids: scope.slice(5).split(",").map((s) => s.trim()).filter(Boolean) };
-  }
-  return { kind: "list", ids: [] }; // unrecognised → deny everything, never fall open
-}
-
 /**
- * May this token touch this customer?
- * 404 rather than 403 on "not found" is deliberate — a 403 would confirm the id
- * exists, which is itself a leak when ids can be guessed from elsewhere.
+ * Every customer the owner can manage right now: their own book, anyone co-coaching
+ * has been shared with them, and the entire downline beneath them in
+ * `profiles.parent_id` — the same set the web app would show them.
  */
-export async function assertCustomerInScope(ctx: ApiContext, customerId: string): Promise<Response | null> {
-  const scope = parseCustomerScope(ctx.token.customer_scope);
+export async function ownerReachIds(ownerId: string): Promise<string[]> {
   const admin = createAdminClient();
+  const { data: descendants } = await admin.rpc("profile_descendant_ids", { root: ownerId });
+  const coachIds = [ownerId, ...(Array.isArray(descendants) ? (descendants as string[]) : [])];
 
-  const { data: customer } = await admin
-    .from("customers").select("id, coach_id").eq("id", customerId).maybeSingle();
-  if (!customer) return apiError("not_found", "ไม่พบลูกค้ารายนี้");
-
-  if (scope.kind === "all") return null;
-  if (scope.kind === "list") {
-    return scope.ids.includes(customerId)
-      ? null
-      : apiError("customer_out_of_scope", "token นี้ไม่ได้รับสิทธิ์เข้าถึงลูกค้ารายนี้");
-  }
-
-  // coach: owner, co-coach, or anywhere upline of the owner — same rule as the web app
-  if ((customer as any).coach_id === scope.userId) return null;
-  if (await canManageCustomer(scope.userId, customerId)) return null;
-  return apiError("customer_out_of_scope", "token นี้ไม่ได้รับสิทธิ์เข้าถึงลูกค้ารายนี้");
-}
-
-/** Narrow a customer list query to what this token may see. */
-export async function visibleCustomerIds(ctx: ApiContext): Promise<{ all: true } | { all: false; ids: string[] }> {
-  const scope = parseCustomerScope(ctx.token.customer_scope);
-  if (scope.kind === "all") return { all: true };
-  if (scope.kind === "list") return { all: false, ids: scope.ids };
-
-  const admin = createAdminClient();
-  const { data: descendants } = await admin.rpc("profile_descendant_ids", { root: scope.userId });
-  const coachIds = [scope.userId, ...(Array.isArray(descendants) ? (descendants as string[]) : [])];
-
-  const { data: owned } = await admin.from("customers").select("id").in("coach_id", coachIds);
-  const { data: assigned } = await admin
-    .from("customer_assignments").select("customer_id").eq("user_id", scope.userId);
+  const [{ data: owned }, { data: assigned }] = await Promise.all([
+    admin.from("customers").select("id").in("coach_id", coachIds),
+    admin.from("customer_assignments").select("customer_id").eq("user_id", ownerId),
+  ]);
 
   const ids = new Set<string>();
   for (const r of owned ?? []) ids.add((r as any).id);
   for (const r of assigned ?? []) ids.add((r as any).customer_id);
-  return { all: false, ids: [...ids] };
+  return [...ids];
+}
+
+/**
+ * May this token touch this customer?
+ *
+ * Note the order: an explicit id list is checked *and* the owner check still has to
+ * pass. A list can only ever narrow — it is a convenience for scoping down, never a
+ * way to hand a coach's token somebody outside their downline.
+ *
+ * 404 rather than 403 on "not found" is deliberate — a 403 would confirm the id
+ * exists, which is itself a leak when ids can be guessed from elsewhere.
+ */
+export async function assertCustomerInScope(ctx: ApiContext, customerId: string): Promise<Response | null> {
+  const admin = createAdminClient();
+  const { data: customer } = await admin
+    .from("customers").select("id, coach_id").eq("id", customerId).maybeSingle();
+  if (!customer) return apiError("not_found", "ไม่พบลูกค้ารายนี้");
+
+  const reach = ctx.reach;
+  const ownerId = ctx.token.owner_user_id!;
+
+  if (reach.kind === "all") return null;   // only reachable while the owner is an admin
+
+  if (reach.kind === "list" && !reach.ids.includes(customerId)) {
+    return apiError("customer_out_of_scope", "token นี้ไม่ได้รับสิทธิ์เข้าถึงลูกค้ารายนี้", {
+      ...(reach.downgraded ? { note: reach.reason } : {}),
+    });
+  }
+
+  // The hierarchy check, applied for both 'owner' and 'list'. Same helper the web app
+  // uses, so API and UI can never disagree about who may see whom.
+  if ((customer as any).coach_id === ownerId) return null;
+  if (await canManageCustomer(ownerId, customerId)) return null;
+
+  return apiError("customer_out_of_scope", "ลูกค้ารายนี้ไม่ได้อยู่ในสายงานของเจ้าของ token", {
+    ...(reach.downgraded ? { note: reach.reason } : {}),
+  });
+}
+
+/** Narrow a customer list query to what this token may see. */
+export async function visibleCustomerIds(ctx: ApiContext): Promise<{ all: true } | { all: false; ids: string[] }> {
+  const reach = ctx.reach;
+  if (reach.kind === "all") return { all: true };
+
+  const owned = await ownerReachIds(ctx.token.owner_user_id!);
+  if (reach.kind === "owner") return { all: false, ids: owned };
+
+  // list: intersect, never union
+  const { allowed } = intersectWithOwnerReach(reach.ids, owned);
+  return { all: false, ids: allowed };
 }
 
 /* ── logging ──────────────────────────────────────────────────────────────── */

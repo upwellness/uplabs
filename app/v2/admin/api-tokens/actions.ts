@@ -16,10 +16,15 @@ import { requireAdmin } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mintToken, maskToken } from "@/lib/api/tokens";
 import { normalizeScopes } from "@/lib/api/scopes";
+import { ownerReachIds } from "@/lib/api/auth";
+import { intersectWithOwnerReach } from "@/lib/api/reach";
 
 export interface TokenListRow {
   id: string;
   name: string;
+  owner_user_id: string | null;
+  owner_label: string;
+  owner_role: string | null;
   token_prefix: string;
   masked: string;
   scopes: string[];
@@ -40,6 +45,18 @@ export async function listTokens(): Promise<TokenListRow[]> {
   const { data } = await admin.from("api_tokens").select("*").order("created_at", { ascending: false });
   const rows = (data ?? []) as any[];
 
+  // owner labels — a token's reach is its owner's, so the table must name them
+  const ownerIds = [...new Set(rows.map((r) => r.owner_user_id).filter(Boolean))];
+  const owners = new Map<string, { label: string; role: string | null }>();
+  if (ownerIds.length) {
+    const { data: profs } = await admin
+      .from("profiles").select("id, display_name, email, role").in("id", ownerIds);
+    for (const p of profs ?? []) {
+      const q = p as any;
+      owners.set(q.id, { label: q.display_name || q.email || q.id.slice(0, 8), role: q.role });
+    }
+  }
+
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
   const counts = new Map<string, number>();
   if (rows.length) {
@@ -53,7 +70,11 @@ export async function listTokens(): Promise<TokenListRow[]> {
   }
 
   return rows.map((r) => ({
-    id: r.id, name: r.name, token_prefix: r.token_prefix,
+    id: r.id, name: r.name,
+    owner_user_id: r.owner_user_id,
+    owner_label: owners.get(r.owner_user_id)?.label ?? "— ไม่มีเจ้าของ —",
+    owner_role: owners.get(r.owner_user_id)?.role ?? null,
+    token_prefix: r.token_prefix,
     masked: maskToken(r.token_prefix),
     scopes: r.scopes ?? [], customer_scope: r.customer_scope,
     rate_limit_per_min: r.rate_limit_per_min, expires_at: r.expires_at,
@@ -62,29 +83,40 @@ export async function listTokens(): Promise<TokenListRow[]> {
   }));
 }
 
-export interface CoachOption { id: string; label: string }
+export interface CoachOption { id: string; label: string; role: string; customerCount: number }
 
+/** Users a token may be issued to. A token always acts as one of these people. */
 export async function listCoaches(): Promise<CoachOption[]> {
   await requireAdmin();
-  const { data } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("profiles").select("id, display_name, email, role")
     .in("role", ["abo", "admin"]).order("display_name");
-  return (data ?? []).map((p: any) => ({
+
+  const people = (data ?? []) as any[];
+  // show how many customers each person actually reaches, so the admin can see the
+  // blast radius of a token before issuing it
+  const counts = await Promise.all(people.map((p) => ownerReachIds(p.id).then((ids) => ids.length)));
+
+  return people.map((p, i) => ({
     id: p.id,
     label: `${p.display_name || p.email || p.id.slice(0, 8)} · ${p.role}`,
+    role: p.role,
+    customerCount: counts[i],
   }));
 }
 
 export async function createToken(input: {
   name: string;
   scopes: string[];
-  customerScopeKind: "all" | "coach" | "list";
-  coachId?: string;
+  /** The user the token acts as — its reach is derived from them on every request. */
+  ownerUserId: string;
+  customerScopeKind: "owner" | "all" | "list";
   customerIds?: string;
   expiresInDays?: number | null;
   rateLimit?: number;
   note?: string;
-}): Promise<{ ok: true; token: string; prefix: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; token: string; prefix: string; warning?: string } | { ok: false; error: string }> {
   const admin_session = await requireAdmin();
 
   const name = (input.name ?? "").trim();
@@ -93,14 +125,38 @@ export async function createToken(input: {
   const scopes = normalizeScopes(input.scopes);
   if (scopes.length === 0) return { ok: false, error: "ต้องเลือกสิทธิ์อย่างน้อย 1 อย่าง" };
 
-  let customerScope = "all";
-  if (input.customerScopeKind === "coach") {
-    if (!input.coachId) return { ok: false, error: "ต้องเลือกโค้ช" };
-    customerScope = `coach:${input.coachId}`;
+  if (!input.ownerUserId) return { ok: false, error: "ต้องเลือกเจ้าของ token" };
+  const adminDb = createAdminClient();
+  const { data: owner } = await adminDb
+    .from("profiles").select("id, role").eq("id", input.ownerUserId).maybeSingle();
+  if (!owner) return { ok: false, error: "ไม่พบผู้ใช้ที่เลือกเป็นเจ้าของ" };
+
+  let customerScope = "owner";
+  let warning: string | undefined;
+
+  if (input.customerScopeKind === "all") {
+    // Refused rather than silently narrowed: at creation time the admin is right here
+    // and can pick someone else, so telling them beats quietly issuing a weaker token
+    // than they think they made.
+    if ((owner as any).role !== "admin") {
+      return { ok: false, error: 'ให้สิทธิ์ "เห็นทุกคน" ได้เฉพาะ token ที่เจ้าของเป็นแอดมิน — เลือกเจ้าของที่เป็นแอดมิน หรือใช้ขอบเขตตามสายงานแทน' };
+    }
+    customerScope = "all";
   } else if (input.customerScopeKind === "list") {
     const ids = (input.customerIds ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
     if (ids.length === 0) return { ok: false, error: "ต้องใส่ customer id อย่างน้อย 1 รายการ" };
-    customerScope = `list:${ids.join(",")}`;
+
+    // A list may only narrow. Anything outside the owner's reach is dropped now and
+    // would be rejected at request time anyway — better to say so while creating it.
+    const reach = await ownerReachIds(input.ownerUserId);
+    const { allowed, rejected } = intersectWithOwnerReach(ids, reach);
+    if (allowed.length === 0) {
+      return { ok: false, error: "ลูกค้าที่ระบุไม่มีใครอยู่ในสายงานของเจ้าของ token เลย" };
+    }
+    if (rejected.length) {
+      warning = `ตัด ${rejected.length} รายที่อยู่นอกสายงานของเจ้าของออก — token เห็นได้ ${allowed.length} ราย`;
+    }
+    customerScope = `list:${allowed.join(",")}`;
   }
 
   const minted = mintToken("live");
@@ -108,8 +164,9 @@ export async function createToken(input: {
     ? new Date(Date.now() + input.expiresInDays * 864e5).toISOString()
     : null;
 
-  const { error } = await createAdminClient().from("api_tokens").insert({
+  const { error } = await adminDb.from("api_tokens").insert({
     name,
+    owner_user_id: input.ownerUserId,
     token_prefix: minted.prefix,
     token_hash: minted.hash,
     scopes,
@@ -122,7 +179,7 @@ export async function createToken(input: {
   if (error) return { ok: false, error: "สร้าง token ไม่สำเร็จ" };
 
   revalidatePath("/v2/admin/api-tokens");
-  return { ok: true, token: minted.token, prefix: minted.prefix };
+  return { ok: true, token: minted.token, prefix: minted.prefix, ...(warning ? { warning } : {}) };
 }
 
 export async function revokeToken(id: string): Promise<{ ok: boolean }> {
