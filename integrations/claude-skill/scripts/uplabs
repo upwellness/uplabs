@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# UP Labs External API — one wrapper so the assistant never hand-writes curl.
+#
+# Hand-written curl is where the credential leaks: into a shell transcript, into a
+# copied command, into a log. Here the token is read from the environment once and
+# never printed, and every subcommand goes through the same request path.
+#
+#   export UPLAB_TOKEN="uplab_live_..."
+#   scripts/uplabs whoami
+#
+# Exits 1 with a readable message on any HTTP error, so a caller can tell "no data"
+# from "not allowed" without parsing the body.
+
+set -euo pipefail
+
+API="${UPLAB_API:-https://upwellness-ops.vercel.app/api/v1}"
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+
+[[ -n "${UPLAB_TOKEN:-}" ]] || die \
+"ยังไม่ได้ตั้ง UPLAB_TOKEN
+
+  export UPLAB_TOKEN=\"uplab_live_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"
+
+ขอ token ที่ https://upwellness-ops.vercel.app/v2/admin/api-tokens (ต้องเป็นแอดมิน)"
+
+# Send a request and split body from status so errors are reported, not returned as
+# if they were data — an assistant handed {"error":...} with exit 0 will summarise it
+# as a finding.
+req() {
+  local method="$1" path="$2" body="${3:-}"
+  local out status
+  if [[ -n "$body" ]]; then
+    out=$(curl -sS -w '\n%{http_code}' -X "$method" "$API$path" \
+      -H "Authorization: Bearer $UPLAB_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$body")
+  else
+    out=$(curl -sS -w '\n%{http_code}' -X "$method" "$API$path" \
+      -H "Authorization: Bearer $UPLAB_TOKEN")
+  fi
+  status="${out##*$'\n'}"
+  local payload="${out%$'\n'*}"
+
+  if [[ "$status" == 2* ]]; then
+    printf '%s\n' "$payload"
+    return 0
+  fi
+
+  local code msg
+  code=$(printf '%s' "$payload" | sed -n 's/.*"error":"\([^"]*\)".*/\1/p')
+  msg=$(printf '%s' "$payload" | sed -n 's/.*"message":"\([^"]*\)".*/\1/p')
+
+  # needs_disambiguation is not really a failure — it is the API refusing to guess
+  # which person you meant. Pass the candidate list through so the caller can ask.
+  if [[ "$code" == "needs_disambiguation" ]]; then
+    printf '%s\n' "$payload"
+    printf '\n⚠️  ชื่อนี้ตรงกับลูกค้าหลายคน — เลือกจาก candidates ข้างบน แล้วเรียกซ้ำด้วย id\n' >&2
+    exit 2
+  fi
+
+  printf 'HTTP %s · %s\n%s\n' "$status" "${code:-error}" "${msg:-$payload}" >&2
+  exit 1
+}
+
+# URL-encode a query value (Thai names need this)
+enc() { printf '%s' "$1" | od -An -tx1 | tr ' ' '\n' | grep -v '^$' | while read -r h; do
+  case "$h" in
+    3[0-9]|4[1-9a-f]|5[0-9a]|6[1-9a-f]|7[0-9a]|2d|2e|5f|7e) printf '%b' "\\x$h" ;;
+    *) printf '%%%s' "$(printf '%s' "$h" | tr 'a-f' 'A-F')" ;;
+  esac
+done; }
+
+usage() {
+  cat >&2 <<'USAGE'
+scripts/uplabs <command>
+
+  whoami                     สิทธิ์ของ token นี้ · เห็นลูกค้ากี่คน
+  find <ชื่อ>                 ค้นหาลูกค้า → เอา id
+  profile <id>               โปรไฟล์ + สรุปว่ามีข้อมูลอะไรบ้าง
+  compare <id> [รอบ=3]        ★ ตารางเทียบผลแล็บ + delta
+  overview <id>              ★ ภาพรวมทุกด้าน + ผิดปกติ + ที่ยังไม่เคยตรวจ
+  labs <id> [รอบ=3]           ผลแล็บดิบ
+  metric <id> <ชื่อค่า>        ค่าตัวเดียวทุกครั้ง เช่น hba1c, ldl, hdl
+  bca <id> [จำนวน=12]         องค์ประกอบร่างกาย
+  supplements <id>           อาหารเสริม + ความปลอดภัยคู่ยา
+  notes <id>                 โน้ตโค้ช
+  note <id> <ข้อความ>         เพิ่มโน้ต
+  ask <คำสั่ง> [id]           ถามภาษาคน ไม่ต้องเลือก endpoint
+USAGE
+  exit 1
+}
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  whoami)      req GET "/meta" ;;
+  find)        [[ $# -ge 1 ]] || usage; req GET "/customers?q=$(enc "$1")&limit=${2:-20}" ;;
+  profile)     [[ $# -ge 1 ]] || usage; req GET "/customers/$1" ;;
+  compare)     [[ $# -ge 1 ]] || usage; req GET "/customers/$1/labs/compare?rounds=${2:-3}" ;;
+  overview)    [[ $# -ge 1 ]] || usage; req GET "/customers/$1/overview" ;;
+  labs)        [[ $# -ge 1 ]] || usage; req GET "/customers/$1/labs?rounds=${2:-3}" ;;
+  metric)      [[ $# -ge 2 ]] || usage; req GET "/customers/$1/labs?metric=$(enc "$2")" ;;
+  bca)         [[ $# -ge 1 ]] || usage; req GET "/customers/$1/measurements?limit=${2:-12}" ;;
+  supplements) [[ $# -ge 1 ]] || usage; req GET "/customers/$1/supplements" ;;
+  notes)       [[ $# -ge 1 ]] || usage; req GET "/customers/$1/notes" ;;
+  note)
+    [[ $# -ge 2 ]] || usage
+    body=$(printf '%s' "$2" | python3 -c 'import json,sys; print(json.dumps({"body": sys.stdin.read()}))')
+    req POST "/customers/$1/notes" "$body" ;;
+  ask)
+    [[ $# -ge 1 ]] || usage
+    body=$(Q="$1" CID="${2:-}" python3 -c '
+import json, os
+d = {"q": os.environ["Q"]}
+if os.environ.get("CID"): d["customer_id"] = os.environ["CID"]
+print(json.dumps(d, ensure_ascii=False))')
+    req POST "/query" "$body" ;;
+  ""|-h|--help|help) usage ;;
+  *) die "ไม่รู้จักคำสั่ง \"$cmd\" — รัน scripts/uplabs help เพื่อดูรายการ" ;;
+esac
