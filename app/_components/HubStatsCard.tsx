@@ -32,8 +32,8 @@ const getHubStats = unstable_cache(
       { count: leadsToday },
     ] = await Promise.all([
       isAdmin
-        ? admin.from("customers").select("*", { count: "exact", head: true })
-        : admin.from("customers").select("*", { count: "exact", head: true }).eq("coach_id", coachId),
+        ? admin.from("customers").select("*", { count: "exact", head: true }).is("disabled_at", null)
+        : admin.from("customers").select("*", { count: "exact", head: true }).is("disabled_at", null).eq("coach_id", coachId),
       isAdmin
         ? admin.from("measurements").select("*", { count: "exact", head: true })
         : admin.from("measurements").select("*, customers!inner(coach_id)", { count: "exact", head: true }).eq("customers.coach_id", coachId),

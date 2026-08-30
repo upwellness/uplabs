@@ -142,7 +142,7 @@ export async function resolveGroup(lineGroupId: string): Promise<ResolvedGroup |
   if (!group || !group.customer_id) return null;
 
   const [{ data: customer }, { data: cfgRow }, { data: latestM }] = await Promise.all([
-    admin.from("customers").select("name, height").eq("id", group.customer_id).maybeSingle(),
+    admin.from("customers").select("name, height, disabled_at").eq("id", group.customer_id).maybeSingle(),
     admin
       .from("plate_plan_config")
       .select("goal, config, seed, even3, plan_len")
@@ -156,6 +156,11 @@ export async function resolveGroup(lineGroupId: string): Promise<ResolvedGroup |
       .limit(1)
       .maybeSingle(),
   ]);
+
+  // A retired profile stops receiving the daily menu. Of everywhere a disabled
+  // customer still gets read, this is the only one with an outward effect — the bot
+  // would keep pushing to a LINE group for someone the coach already marked inactive.
+  if (!customer || (customer as any).disabled_at) return null;
 
   const height = toNum(customer?.height);
   const weight = toNum(latestM?.weight);

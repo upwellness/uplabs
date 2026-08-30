@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     let customerCount: number | null = null;
     if (visible.all) {
       const { count } = await createAdminClient()
-        .from("customers").select("id", { count: "exact", head: true });
+        .from("customers").select("id", { count: "exact", head: true }).is("disabled_at", null);
       customerCount = count ?? null;
     } else {
       customerCount = visible.ids.length;

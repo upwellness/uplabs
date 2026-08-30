@@ -14,13 +14,14 @@ import { assignedCustomerIds, downlineUserIds } from "@/lib/customers/access";
  * Authorization is enforced OUTSIDE the cache in GET (session check + coach_id arg).
  */
 
-async function fetchCustomersList(coachId: string | null) {
+async function fetchCustomersList(coachId: string | null, includeDisabled: boolean) {
     const admin = createAdminClient();
     const isAdmin = coachId === null;
 
     let custQuery = admin.from("customers")
-      .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at")
+      .select("id, name, gender, birth_year, birth_date, height, coach_id, cgm_profile_names, created_at, disabled_at, disabled_reason")
       .order("name");
+    if (!includeDisabled) custQuery = custQuery.is("disabled_at", null);
     if (!isAdmin) {
       // own customers + assigned (co-coach) + everyone owned by the downline (full care, all levels)
       const [assigned, downline] = await Promise.all([
@@ -69,17 +70,20 @@ async function fetchCustomersList(coachId: string | null) {
     }));
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
     const isAdmin = session.profile.role === "admin";
     const coachId = isAdmin ? null : session.user.id;
+    const includeDisabled = new URL(req.url).searchParams.get("includeDisabled") === "1";
     // Per-coach cache key: a co-coach's widened list must never collide with another user's entry.
     const getCached = unstable_cache(
-      () => fetchCustomersList(coachId),
-      ["customers-list", coachId ?? "admin"],
+      () => fetchCustomersList(coachId, includeDisabled),
+      // includeDisabled is part of the cache key: without it the "show retired" view
+      // and the normal view would share one cached entry and overwrite each other.
+      ["customers-list", coachId ?? "admin", includeDisabled ? "all" : "active"],
       { revalidate: 60, tags: ["dashboard"] },
     );
     const result = await getCached();

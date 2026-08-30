@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -11,7 +11,13 @@ export async function GET() {
     const supa = createClient();
     const isAdmin = session.profile.role === "admin";
 
-    const query = supa.from("customers").select("*").order("name");
+    // Retired profiles are hidden by default — the whole point is to stop them
+    // cluttering the list. ?includeDisabled=1 brings them back for the "show retired"
+    // toggle; nothing is ever removed from the database.
+    const includeDisabled = new URL(req.url).searchParams.get("includeDisabled") === "1";
+
+    let query = supa.from("customers").select("*").order("name");
+    if (!includeDisabled) query = query.is("disabled_at", null);
     const { data, error } = isAdmin
       ? await query
       : await query.eq("coach_id", session.user.id);

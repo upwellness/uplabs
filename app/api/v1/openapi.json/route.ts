@@ -90,6 +90,7 @@ export async function GET(req: Request) {
         get: {
           operationId: "searchCustomers",
           summary: "ค้นหาลูกค้าด้วยชื่อ",
+          description: "คืนเฉพาะโปรไฟล์ที่ยังใช้งานอยู่ · โปรไฟล์ที่ถูกปิดใช้งานจะไม่ขึ้นในผลค้นหา แต่ยังเปิดด้วย id ได้",
           parameters: [
             { name: "q", in: "query", schema: { type: "string" }, description: "ชื่อบางส่วน" },
             { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
@@ -123,6 +124,7 @@ export async function GET(req: Request) {
         get: {
           operationId: "getCustomer",
           summary: "โปรไฟล์ลูกค้า + สรุปว่ามีข้อมูลอะไรบ้าง",
+          description: "ถ้า retired = true แปลว่าโปรไฟล์นี้ถูกปิดใช้งานแล้ว ข้อมูลยังอยู่ครบแต่อาจเป็นโปรไฟล์ซ้ำหรือเลิกใช้บริการ — ต้องบอกผู้ใช้ก่อนนำไปสรุป",
           parameters: [customerId],
           responses: { "200": { description: "ok" } },
         },

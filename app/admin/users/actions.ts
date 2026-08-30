@@ -48,7 +48,7 @@ export async function listUsers(): Promise<UserListRow[]> {
   const [{ data: profiles }, { data: grants }, { data: customers }, { data: assignments }] = await Promise.all([
     admin.from("profiles").select("id, email, display_name, role, abo_number, phone, parent_id"),
     admin.from("user_app_grants").select("user_id, app_slug"),
-    admin.from("customers").select("id, name, coach_id").order("name"),
+    admin.from("customers").select("id, name, coach_id").is("disabled_at", null).order("name"),
     admin.from("customer_assignments").select("user_id, customer_id"),
   ]);
 
@@ -216,7 +216,7 @@ export async function createUser(email: string, password: string, role: Role, di
 export async function listAssignableCustomers(): Promise<AssignableCustomer[]> {
   await requireAdmin();
   const admin = createAdminClient();
-  const { data } = await admin.from("customers").select("id, name, coach_id").order("name");
+  const { data } = await admin.from("customers").select("id, name, coach_id").is("disabled_at", null).order("name");
   return (data ?? []) as AssignableCustomer[];
 }
 

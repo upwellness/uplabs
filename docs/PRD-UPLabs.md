@@ -215,6 +215,8 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | Pulse | ข้อมูลนาฬิกา + assessment | `pulse_*`, `whoop_*`, `biomarker_readings` |
 | Notes | โน้ตโค้ช (ปักหมุดได้) | `coach_notes` |
 
+**ปิดใช้งานโปรไฟล์ (retire):** ปุ่มในหน้า Customer 360 · `PATCH /api/customers/[id]` `{disabled:true, disabled_reason}` → `customers.disabled_at/_by/_reason` · **ไม่ลบข้อมูล** แค่ซ่อนจากรายการ ค้นหา dropdown และการค้นชื่อของ External API · เปิดกลับได้ทุกเมื่อ (ล้าง reason ทิ้งด้วย) · เปิดหน้าตรงยังได้ พร้อมป้ายเตือน · **LINE bot หยุดส่งเมนูให้โปรไฟล์ที่ปิดแล้ว** (จุดเดียวที่มี side-effect ออกนอกระบบ) · สิทธิ์เท่ากับการแก้ข้อมูล (`canManageCustomer`) · รายการลูกค้ามีสวิตช์ "แสดงที่ปิดใช้งาน"
+
 **ตรรกะที่อยู่ใน lib:** `lib/customers/health-score.ts` · `insight-rules.ts` · `status-classifier.ts` · `access.ts`
 **ฟีเจอร์ย่อย:** Med-Map report · เก็บรายงาน HTML ส่วนตัว (`customer_report_html`) · view log (`customer_view_log`)
 
@@ -296,7 +298,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | กลุ่ม | ตาราง |
 |---|---|
-| **แกนกลาง** | `customers` · `profiles` · `user_invites` · `user_app_grants` · `customer_assignments` |
+| **แกนกลาง** | `customers` (มี `disabled_at`/`disabled_by`/`disabled_reason` = ปิดใช้งาน ไม่ใช่ลบ) · `profiles` · `user_invites` · `user_app_grants` · `customer_assignments` |
 | **ผลตรวจ** | `customer_records` · `customer_lab_values` · `customer_report_html` |
 | **ร่างกาย** | `measurements` · `biomarker_readings` |
 | **ภูมิแพ้** | `customer_allergy_tests` · `customer_food_allergens` |
@@ -408,6 +410,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-08-30 | **ปิดใช้งานโปรไฟล์ลูกค้าได้ (retire ไม่ใช่ลบ)** — โปรไฟล์เก่า/ซ้ำ/ที่สร้างไว้ทดสอบ ทำให้รายการรก และเปิดผิดคนได้ง่าย · แต่ลบไม่ได้เพราะประวัติแล็บคือตัวบันทึก ลบแล้วหายถาวร → เพิ่ม `customers.disabled_at/_by/_reason` · ซ่อนจากรายการ · ค้นหา · dropdown ผูก LINE · รายชื่อมอบหมาย co-coach · ตัวนับหน้าแรก · และการค้นชื่อของ External API (สำคัญ: ผู้ช่วย AI ที่ไปเจอโปรไฟล์ซ้ำจะตอบจากข้อมูลผิดคนโดยไม่มีใครเห็น) · **LINE bot หยุดส่งเมนูรายวัน** ให้โปรไฟล์ที่ปิดแล้ว · เปิดหน้าตรงยังได้พร้อมป้ายเตือน · `/api/v1/customers/{id}` คืน `retired: true` ให้ผู้ช่วยรู้ตัว · เปิดกลับได้ทุกเมื่อ | (คอมมิตนี้) |
 | 2026-08-29 | **`integrations/` — ไฟล์พร้อมใช้สำหรับต่อผู้ช่วย AI** · `claude-skill/` (SKILL.md + สคริปต์ห่อทุก endpoint ไม่ให้ผู้ช่วยเขียน curl เอง ซึ่งเป็นจุดที่ token รั่วเข้า transcript) · `chatgpt/GPT-INSTRUCTIONS.md` · `DROP-IN.md` (วางในแชทไหนก็ได้) · **บันทึกข้อจำกัดจริงไว้: ChatGPT แชทธรรมดายิง HTTP เองไม่ได้** ไฟล์อัปโหลด = ความรู้ ไม่ใช่ความสามารถ และ GPT ตั้ง Actions ให้ตัวเองไม่ได้ | (คอมมิตนี้) |
 | 2026-08-29 | **`/openapi.json?flavor=gemini`** — Gemini รับ OpenAPI แค่ subset (type, nullable, required, format, description, properties, items, enum) · สคีมาเรามี `default` 5 จุด + `maximum` 2 จุด ซึ่งอาจทำให้ Gemini ปฏิเสธ tool definition แล้วแสดงอาการเป็น "ไม่ยอมเรียก API" โดยไม่มี error ที่อ่านรู้เรื่อง → flavor นี้ตัด key ที่ไม่รองรับออก **แต่ย้ายความหมายไปต่อท้าย `description`** (โมเดลยังรู้ค่าเริ่มต้นและเพดาน) + 5 เทสต์ | (คอมมิตนี้) |
 | 2026-08-29 | **🔒 ผูก API token เข้ากับลำดับชั้นผู้ใช้** — เดิม `customer_scope` เป็นข้อความอิสระที่แอดมินพิมพ์เอง ไม่ผูกกับคน (`created_by` เป็น null ได้) · `all` ไม่เคยตรวจซ้ำว่าเจ้าของยังเป็นแอดมินไหม · `list:` ใส่ลูกค้านอกสายงานได้ → เพิ่ม `api_tokens.owner_user_id` (บังคับ) · **ขอบเขตคำนวณสดจากบทบาท+ตำแหน่งสายงานของเจ้าของทุก request** ไม่ใช่อ่านจากข้อความที่ freeze ไว้ · `all` ลดเหลือ `owner` อัตโนมัติเมื่อเจ้าของไม่ใช่แอดมินแล้ว (รายงานใน /meta) · `list:` ตัดกับสายงานเจ้าของ · โปรไฟล์เจ้าของหาย = token ตาย · สร้างลูกค้าผ่าน API ผูกกับเจ้าของเสมอ · `lib/api/reach.ts` แยกเป็นฟังก์ชันบริสุทธิ์ + 12 เทสต์ | (คอมมิตนี้) |

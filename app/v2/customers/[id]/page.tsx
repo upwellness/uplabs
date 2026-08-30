@@ -31,6 +31,7 @@ import {
 import { statusClasses, statusHex, STATUS_LABEL_TH, type StatusLevel } from "@/lib/medical-status";
 import { deriveBMI } from "@/lib/bca-derive";
 import { ReportUploadButton } from "./_v2/ReportUploadButton";
+import { DisableProfileButton, DisabledBanner } from "./_v2/DisableProfileButton";
 
 /**
  * Labs/Trends tabs are loaded on demand (SPEC §8 "กราฟ lazy/conditional").
@@ -221,6 +222,11 @@ function IdentityBar({ data, customerId }: { data: Customer360; customerId: stri
       )}
       <ReportUploadButton customerId={customerId} kind="lab-report" />
       <ReportUploadButton customerId={customerId} kind="med-map" />
+      <DisableProfileButton
+        customerId={customerId}
+        customerName={c.name}
+        disabledAt={c.disabled_at ?? null}
+      />
       <Link href={`/customers/${customerId}`} className="ml-auto inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-ink-5 px-3 py-1.5 text-[11px] font-semibold text-ink-60 transition-colors hover:bg-ink-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2" title="ไปหน้าเวอร์ชันปัจจุบัน (Legacy)">
         <ExternalLink size={12} strokeWidth={2.25} aria-hidden /> มุมมองเดิม
       </Link>
@@ -229,6 +235,9 @@ function IdentityBar({ data, customerId }: { data: Customer360; customerId: stri
 
   return (
     <>
+      {c.disabled_at && (
+        <DisabledBanner disabledAt={c.disabled_at} reason={c.disabled_reason} />
+      )}
       {/* ★ Same prominent IdentityBlock as BCA (SPEC §4): name · DOB ค.ศ. · age · gender · height */}
       <IdentityBlock
         customer={c}

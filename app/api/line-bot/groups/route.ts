@@ -32,6 +32,7 @@ export async function GET() {
     let custQuery = admin
       .from("customers")
       .select("id, name, gender, height, coach_id")
+      .is("disabled_at", null)   // ไม่เสนอโปรไฟล์ที่ปิดใช้งานให้ผูกกลุ่มใหม่
       .order("name");
     if (coachId) custQuery = custQuery.eq("coach_id", coachId);
     const { data: customers, error: custErr } = await custQuery;

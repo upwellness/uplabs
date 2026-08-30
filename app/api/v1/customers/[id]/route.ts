@@ -27,6 +27,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return apiOk({
       ...customer,
       age: ageFrom(customer.birth_date),
+      // Spelled out rather than left to a raw timestamp: an assistant reading this
+      // must not summarise a retired profile as if it were the person's live record.
+      retired: !!customer.disabled_at,
+      ...(customer.disabled_at ? {
+        retired_note: "โปรไฟล์นี้ถูกปิดใช้งานแล้ว — ข้อมูลยังอยู่ครบ แต่เจ้าของอาจไม่ได้ใช้บริการแล้ว หรือเป็นโปรไฟล์ซ้ำ · ควรยืนยันกับผู้ใช้ก่อนนำไปสรุป",
+      } : {}),
       data_available: {
         lab_values: labCount ?? 0,
         measurements: measureCount ?? 0,

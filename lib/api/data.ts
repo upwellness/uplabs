@@ -22,9 +22,11 @@ export interface CustomerLite {
   birth_date: string | null;
   height: string | null;
   coach_id: string | null;
+  /** Set = retired profile. Excluded from search; still readable by id. */
+  disabled_at?: string | null;
 }
 
-const CUSTOMER_COLS = "id, name, gender, birth_date, height, coach_id";
+const CUSTOMER_COLS = "id, name, gender, birth_date, height, coach_id, disabled_at";
 
 export async function getCustomer(id: string): Promise<CustomerLite | null> {
   const admin = createAdminClient();
@@ -32,14 +34,22 @@ export async function getCustomer(id: string): Promise<CustomerLite | null> {
   return (data as CustomerLite) ?? null;
 }
 
-/** Name search, already narrowed to what the token may see. */
+/**
+ * Name search, already narrowed to what the token may see.
+ *
+ * Retired profiles are excluded. This matters more here than in the web UI: an
+ * assistant resolving "เทียบแล็บของ X" against a retired duplicate would answer
+ * confidently from the wrong record, and nobody would see the profile to notice.
+ */
 export async function searchCustomers(
   q: string,
   visible: { all: true } | { all: false; ids: string[] },
   limit = 20,
+  includeDisabled = false,
 ): Promise<CustomerLite[]> {
   const admin = createAdminClient();
   let query = admin.from("customers").select(CUSTOMER_COLS).order("name");
+  if (!includeDisabled) query = query.is("disabled_at", null);
   if (q?.trim()) query = query.ilike("name", `%${q.trim()}%`);
   if (!visible.all) {
     if (visible.ids.length === 0) return [];

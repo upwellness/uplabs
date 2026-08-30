@@ -28,6 +28,8 @@ interface CustomerRow {
   height: number | null;
   cgm_profile_names: string[] | null;
   created_at: string;
+  disabled_at?: string | null;
+  disabled_reason?: string | null;
   stats: {
     bca: number;
     cgm: number;
@@ -58,12 +60,13 @@ export default function V2CustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [showDisabled, setShowDisabled] = useState(false);
 
-  const load = async () => {
+  const load = async (includeDisabled = showDisabled) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/customers/list");
+      const res = await fetch(`/api/customers/list${includeDisabled ? "?includeDisabled=1" : ""}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "โหลดรายชื่อลูกค้าไม่สำเร็จ");
       setCustomers(json.customers ?? []);
@@ -74,13 +77,17 @@ export default function V2CustomersPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(showDisabled); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [showDisabled]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return customers;
-    return customers.filter((c) => c.name.toLowerCase().includes(s));
+    const base = s ? customers.filter((c) => c.name.toLowerCase().includes(s)) : customers;
+    // retired profiles sink to the bottom — visible when asked for, never in the way
+    return [...base].sort((a, b) => Number(!!a.disabled_at) - Number(!!b.disabled_at));
   }, [customers, search]);
+
+  const disabledCount = useMemo(
+    () => customers.filter((c) => c.disabled_at).length, [customers]);
 
   return (
     <Shell breadcrumb={[{ label: "หน้าแรก", href: "/v2" }, { label: "ลูกค้า" }]}>
@@ -98,6 +105,18 @@ export default function V2CustomersPage() {
               {filtered.length === customers.length ? `${customers.length} คน` : `${filtered.length} / ${customers.length} คน`}
             </span>
           )}
+          <label className="inline-flex min-h-[36px] cursor-pointer items-center gap-2 rounded-full border border-ink-10 bg-white px-3 text-[12px] text-ink-60 transition-colors hover:border-ink-20">
+            <input
+              type="checkbox"
+              checked={showDisabled}
+              onChange={(e) => setShowDisabled(e.target.checked)}
+              className="h-3.5 w-3.5 accent-rose"
+            />
+            แสดงที่ปิดใช้งาน
+            {showDisabled && disabledCount > 0 && (
+              <span className="rounded-full bg-amber-pale px-1.5 font-mono text-[10.5px] text-amber">{disabledCount}</span>
+            )}
+          </label>
           <button
             type="button"
             onClick={() => setShowNew(true)}
@@ -200,7 +219,9 @@ function CustomerRowItem({ c }: { c: CustomerRow }) {
     <li>
       <Link
         href={`/v2/customers/${c.id}`}
-        className="group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface focus:outline-none focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose lg:px-5"
+        className={`group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface focus:outline-none focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose lg:px-5 ${
+          c.disabled_at ? "opacity-55" : ""
+        }`}
       >
         {/* Avatar */}
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${avatarBg} text-[13px] font-bold text-white ring-2 ${ringColor}`}>
@@ -209,7 +230,17 @@ function CustomerRowItem({ c }: { c: CustomerRow }) {
 
         {/* Name + meta + (mobile) status */}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-head text-[15px] font-bold text-ink">{c.name}</div>
+          <div className="flex items-center gap-2">
+            <span className="truncate font-head text-[15px] font-bold text-ink">{c.name}</span>
+            {c.disabled_at && (
+              <span
+                className="shrink-0 rounded-full bg-amber-pale px-2 py-0.5 text-[10.5px] font-semibold text-amber"
+                title={c.disabled_reason ? `ปิดใช้งาน · ${c.disabled_reason}` : "ปิดใช้งานอยู่"}
+              >
+                ปิดใช้งาน
+              </span>
+            )}
+          </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-thai text-[12px] text-ink-60">
             <span>{genderLabelWithGlyph(c.gender)}</span>
             {age != null && <><span className="text-ink-20" aria-hidden>·</span><span>{age} ปี</span></>}
