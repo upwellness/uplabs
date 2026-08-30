@@ -2,6 +2,7 @@ import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
 import { getCustomer, getLabRounds, ageFrom } from "@/lib/api/data";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateProfileEdit } from "@/lib/v2/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -55,15 +56,28 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     try { body = await req.json(); } catch { return apiError("bad_request", "body ต้องเป็น JSON"); }
 
     // allow-list — never spread the request body straight into an update
-    const patch: Record<string, unknown> = {};
-    for (const k of ["name", "gender", "birth_date", "height"]) {
-      if (body[k] !== undefined) patch[k] = body[k];
-    }
-    if (Object.keys(patch).length === 0) {
+    const FIELDS = ["name", "gender", "birth_date", "height"] as const;
+    if (!FIELDS.some((k) => body[k] !== undefined)) {
       return apiError("bad_request", "ไม่มีฟิลด์ที่แก้ได้ — รองรับ name, gender, birth_date, height");
     }
 
     const admin = createAdminClient();
+
+    // Same validator the web UI uses. An automation writing a พ.ศ. year here would
+    // skew age, every reference range and PhenoAge with nothing on screen looking
+    // wrong — and unlike the web form, there is no human watching the field.
+    const { data: current } = await admin
+      .from("customers").select("name, gender, birth_date, height").eq("id", params.id).maybeSingle();
+    if (!current) return apiError("not_found", "ไม่พบลูกค้ารายนี้");
+
+    const merged = Object.fromEntries(
+      FIELDS.map((k) => [k, body[k] !== undefined ? body[k] : (current as any)[k]]),
+    ) as any;
+    const check = validateProfileEdit(merged);
+    if (!check.ok) return apiError("bad_request", check.error!);
+
+    const patch: Record<string, unknown> = {};
+    for (const k of FIELDS) if (body[k] !== undefined) patch[k] = (check.value as any)[k];
     const { data, error } = await admin.from("customers").update(patch).eq("id", params.id)
       .select("id, name, gender, birth_date, height, coach_id").single();
     if (error) return apiError("bad_request", "แก้ไขไม่สำเร็จ — ตรวจรูปแบบข้อมูลที่ส่งมา");

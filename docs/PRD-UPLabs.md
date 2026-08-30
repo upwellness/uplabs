@@ -185,7 +185,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | `/api/v1/openapi.json` | GET | **public** | สคีมาสำหรับ ChatGPT Actions / n8n · `?flavor=gemini` ตัด key ที่ Gemini ไม่รับออก |
 | `/api/v1/query` | POST | API token | คำสั่งภาษาคน → ข้อมูลตรง ๆ (ไม่มี LLM ฝั่งเรา) |
 | `/api/v1/customers` | GET · POST | `customers:read` / `customers:write` | ค้นหา/สร้างลูกค้า |
-| `/api/v1/customers/{id}` | GET · PATCH | `customers:read` / `customers:write` | โปรไฟล์ |
+| `/api/v1/customers/{id}` | GET · PATCH | `customers:read` / `customers:write` | โปรไฟล์ · PATCH ตรวจด้วย `validateProfileEdit()` ตัวเดียวกับหน้าเว็บ · GET คืน `retired` |
 | `/api/v1/customers/{id}/labs` | GET · POST | `labs:read` / `labs:write` | ผลแล็บ (รองรับ `rounds=N`) |
 | `/api/v1/customers/{id}/labs/compare` | GET | `labs:read` | ตารางเทียบ N รอบล่าสุด |
 | `/api/v1/customers/{id}/overview` | GET | `labs:read` | ภาพรวมทุก factor (longevity snapshot) |
