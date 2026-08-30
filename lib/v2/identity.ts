@@ -162,14 +162,30 @@ export interface ProfileEditResult {
 }
 
 /**
+ * Validates only the fields actually supplied. A field left `undefined` is not being
+ * changed and is not checked.
+ *
+ * That distinction matters more than it looks. The first version merged the stored
+ * row in and validated the whole profile — which meant a customer whose birth date
+ * was already wrong (typed as พ.ศ. before this check existed) could not have their
+ * *name* corrected: every edit failed on the old bad date, and the error talked about
+ * a field the user had not touched. Records that need repair are exactly the records
+ * people need to edit, so each field now stands on its own.
+ *
  * @param today injected so the test suite is not tied to the wall clock
  */
 export function validateProfileEdit(input: ProfileEditInput, today = new Date()): ProfileEditResult {
-  const name = (input.name ?? "").trim();
-  if (!name) return { ok: false, error: "ต้องมีชื่อ" };
-  if (name.length > 120) return { ok: false, error: "ชื่อยาวเกินไป" };
+  const out: { name: string; gender: string | null; birth_date: string | null; height: number | null } =
+    { name: "", gender: null, birth_date: null, height: null };
 
-  const birth = (input.birth_date ?? "").trim() || null;
+  if (input.name !== undefined) {
+    const name = (input.name ?? "").trim();
+    if (!name) return { ok: false, error: "ต้องมีชื่อ" };
+    if (name.length > 120) return { ok: false, error: "ชื่อยาวเกินไป" };
+    out.name = name;
+  }
+
+  const birth = input.birth_date === undefined ? undefined : ((input.birth_date ?? "").trim() || null);
   if (birth) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return { ok: false, error: "รูปแบบวันเกิดไม่ถูกต้อง" };
     const d = new Date(birth + "T00:00:00Z");
@@ -185,21 +201,27 @@ export function validateProfileEdit(input: ProfileEditInput, today = new Date())
     if (year < 1900) return { ok: false, error: "ปีเกิดเก่าเกินไป — ตรวจสอบอีกครั้ง" };
   }
 
-  let height: number | null = null;
-  const rawH = typeof input.height === "number" ? String(input.height) : (input.height ?? "").toString().trim();
-  if (rawH !== "") {
-    const h = Number(rawH);
-    if (!Number.isFinite(h)) return { ok: false, error: "ส่วนสูงต้องเป็นตัวเลข" };
-    // Wide enough for children and outliers, tight enough to catch metres (1.65)
-    // and a stray weight typed into the wrong box.
-    if (h < 50 || h > 250) return { ok: false, error: "ส่วนสูงควรอยู่ระหว่าง 50–250 ซม." };
-    height = h;
+  if (birth !== undefined) out.birth_date = birth;
+
+  if (input.height !== undefined) {
+    const rawH = typeof input.height === "number" ? String(input.height) : (input.height ?? "").toString().trim();
+    if (rawH !== "") {
+      const h = Number(rawH);
+      if (!Number.isFinite(h)) return { ok: false, error: "ส่วนสูงต้องเป็นตัวเลข" };
+      // Wide enough for children and outliers, tight enough to catch metres (1.65)
+      // and a stray weight typed into the wrong box.
+      if (h < 50 || h > 250) return { ok: false, error: "ส่วนสูงควรอยู่ระหว่าง 50–250 ซม." };
+      out.height = h;
+    }
   }
 
-  const gender = (input.gender ?? "").trim() || null;
-  if (gender && gender !== "male" && gender !== "female") {
-    return { ok: false, error: "เพศต้องเป็น male หรือ female" };
+  if (input.gender !== undefined) {
+    const gender = (input.gender ?? "").trim() || null;
+    if (gender && gender !== "male" && gender !== "female") {
+      return { ok: false, error: "เพศต้องเป็น male หรือ female" };
+    }
+    out.gender = gender;
   }
 
-  return { ok: true, value: { name, gender, birth_date: birth, height } };
+  return { ok: true, value: out };
 }

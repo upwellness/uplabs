@@ -85,3 +85,45 @@ test("validation is pure — same input, same result", () => {
   const i = { name: "x", gender: "male", birth_date: "1990-05-05", height: "170" };
   assert.deepEqual(v(i), v(i));
 });
+
+/* ── partial updates ──────────────────────────────────────────────────────────
+ * Found by testing against production: merging the stored row in before validating
+ * made a record with an already-bad birth date impossible to edit at all — every
+ * change failed on the old date, and the error named a field the user never touched.
+ * Records that need repair are exactly the records people edit.
+ */
+
+test("★ a field that was not sent is not validated", () => {
+  // fixing the height on a profile whose stored birth date is already wrong
+  const r = v({ height: "172" });
+  assert.equal(r.ok, true, "must not fail on a field the caller did not touch");
+  assert.equal(r.value!.height, 172);
+});
+
+test("★ a name can be corrected on its own", () => {
+  const r = v({ name: "ชื่อที่แก้แล้ว" });
+  assert.equal(r.ok, true);
+  assert.equal(r.value!.name, "ชื่อที่แก้แล้ว");
+});
+
+test("a bad value is still caught when it IS the field being sent", () => {
+  assert.equal(v({ height: "1.65" }).ok, false);
+  assert.equal(v({ birth_date: "2569-01-01" }).ok, false);
+  assert.equal(v({ gender: "ชาย" }).ok, false);
+  assert.equal(v({ name: "" }).ok, false);
+});
+
+test("sending nothing is valid — it simply changes nothing", () => {
+  assert.equal(v({}).ok, true);
+});
+
+test("an explicit null still clears the field", () => {
+  assert.equal(v({ birth_date: null }).value!.birth_date, null);
+  assert.equal(v({ height: null }).value!.height, null);
+  assert.equal(v({ gender: null }).value!.gender, null);
+});
+
+test("all four together still validate as before", () => {
+  const r = v({ name: "ก", gender: "male", birth_date: "1980-06-01", height: 175 });
+  assert.deepEqual(r.value, { name: "ก", gender: "male", birth_date: "1980-06-01", height: 175 });
+});

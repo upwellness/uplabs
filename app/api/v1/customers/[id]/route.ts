@@ -63,17 +63,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const admin = createAdminClient();
 
-    // Same validator the web UI uses. An automation writing a พ.ศ. year here would
-    // skew age, every reference range and PhenoAge with nothing on screen looking
-    // wrong — and unlike the web form, there is no human watching the field.
-    const { data: current } = await admin
-      .from("customers").select("name, gender, birth_date, height").eq("id", params.id).maybeSingle();
-    if (!current) return apiError("not_found", "ไม่พบลูกค้ารายนี้");
-
-    const merged = Object.fromEntries(
-      FIELDS.map((k) => [k, body[k] !== undefined ? body[k] : (current as any)[k]]),
+    // Same validator the web UI uses, and only over what was sent. An automation
+    // writing a พ.ศ. year here would skew age, every reference range and PhenoAge
+    // with nothing on screen looking wrong — and unlike the web form, there is no
+    // human watching the field.
+    const supplied = Object.fromEntries(
+      FIELDS.filter((k) => body[k] !== undefined).map((k) => [k, body[k]]),
     ) as any;
-    const check = validateProfileEdit(merged);
+    const check = validateProfileEdit(supplied);
     if (!check.ok) return apiError("bad_request", check.error!);
 
     const patch: Record<string, unknown> = {};

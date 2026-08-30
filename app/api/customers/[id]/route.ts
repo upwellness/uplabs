@@ -35,18 +35,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       body.birth_date !== undefined || body.height !== undefined;
 
     if (touchesIdentity) {
-      const { data: current } = await createAdminClient()
-        .from("customers").select("name, gender, birth_date, height").eq("id", params.id).maybeSingle();
-      if (!current) return NextResponse.json({ error: "ไม่พบลูกค้ารายนี้" }, { status: 404 });
-
-      // merge over the stored row so a partial update is validated as a whole profile
-      const merged = {
-        name:       body.name       !== undefined ? body.name       : (current as any).name,
-        gender:     body.gender     !== undefined ? body.gender     : (current as any).gender,
-        birth_date: body.birth_date !== undefined ? body.birth_date : (current as any).birth_date,
-        height:     body.height     !== undefined ? body.height     : (current as any).height,
-      };
-      const check = validateProfileEdit(merged);
+      // Only what was sent. Merging the stored row in would make a profile with an
+      // already-bad birth date impossible to edit at all — and those are exactly the
+      // records someone is trying to fix.
+      const check = validateProfileEdit({
+        ...(body.name       !== undefined ? { name: body.name } : {}),
+        ...(body.gender     !== undefined ? { gender: body.gender } : {}),
+        ...(body.birth_date !== undefined ? { birth_date: body.birth_date } : {}),
+        ...(body.height     !== undefined ? { height: body.height } : {}),
+      } as any);
       if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
 
       if (body.name       !== undefined) update.name = check.value!.name;
