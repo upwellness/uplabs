@@ -19,3 +19,23 @@ comment on column public.customers.disabled_at is
   'Set = profile is retired: hidden from lists and search, still openable by id, all child data intact. Null = active. Reversible.';
 comment on column public.customers.disabled_reason is
   'Optional short note from whoever disabled it — e.g. "โปรไฟล์ซ้ำ", "เลิกใช้บริการ".';
+
+-- ── RLS gap found while shipping the disable button ──────────────────────────
+-- An upline could SELECT a downline's customer but not UPDATE it. The 2026-07-24
+-- RBAC change updated the route-level check (canManageCustomer) but never added the
+-- matching UPDATE policy — so the app said yes and Postgres said no: the UPDATE
+-- matched zero rows and `.select().single()` failed, surfacing as an unexplained 500.
+-- The disable button hit it first because it is the first row-level write an upline
+-- had reason to make on a downline's customer.
+
+drop policy if exists "customers_downline_update" on public.customers;
+create policy "customers_downline_update" on public.customers
+  for update
+  using      (coach_id in (select profile_descendant_ids(auth.uid())))
+  with check (coach_id in (select profile_descendant_ids(auth.uid())));
+
+drop policy if exists "customers_update_own" on public.customers;
+create policy "customers_update_own" on public.customers
+  for update
+  using      (auth.uid() = coach_id)
+  with check (auth.uid() = coach_id);

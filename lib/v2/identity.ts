@@ -139,3 +139,67 @@ export function initials(name?: string | null): string {
   const stripped = name.replace(/^(คุณ|นาย|นาง|นางสาว|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s?/, "").trim();
   return (stripped || name).slice(0, 2).toUpperCase();
 }
+
+/* ── profile edit validation ────────────────────────────────────────────────
+ * Pure, so the rules that guard identity fields can be tested without a browser
+ * or a database. These four fields feed age, BMI and every clinical threshold in
+ * the app — a wrong birth year produces wrong numbers everywhere and nothing
+ * looks broken, so the checks live here rather than inside a dialog.
+ */
+
+export interface ProfileEditInput {
+  name: string;
+  gender?: string | null;
+  birth_date?: string | null;
+  height?: string | number | null;
+}
+
+export interface ProfileEditResult {
+  ok: boolean;
+  error?: string;
+  /** Present when ok — the normalised values to send. */
+  value?: { name: string; gender: string | null; birth_date: string | null; height: number | null };
+}
+
+/**
+ * @param today injected so the test suite is not tied to the wall clock
+ */
+export function validateProfileEdit(input: ProfileEditInput, today = new Date()): ProfileEditResult {
+  const name = (input.name ?? "").trim();
+  if (!name) return { ok: false, error: "ต้องมีชื่อ" };
+  if (name.length > 120) return { ok: false, error: "ชื่อยาวเกินไป" };
+
+  const birth = (input.birth_date ?? "").trim() || null;
+  if (birth) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return { ok: false, error: "รูปแบบวันเกิดไม่ถูกต้อง" };
+    const d = new Date(birth + "T00:00:00Z");
+    if (Number.isNaN(d.getTime())) return { ok: false, error: "วันเกิดไม่ถูกต้อง" };
+
+    const year = Number(birth.slice(0, 4));
+    // Thai lab slips print พ.ศ. — typing 2569 here would put the birth 543 years out.
+    // Catching it by "year is in the future" also catches plain typos like 2990.
+    if (year > today.getFullYear()) {
+      return { ok: false, error: `ปีเกิด ${year} เป็นอนาคต — ระบบใช้ปี ค.ศ. (พ.ศ. ลบ 543 = ${year - 543})` };
+    }
+    if (d.getTime() > today.getTime()) return { ok: false, error: "วันเกิดอยู่ในอนาคต" };
+    if (year < 1900) return { ok: false, error: "ปีเกิดเก่าเกินไป — ตรวจสอบอีกครั้ง" };
+  }
+
+  let height: number | null = null;
+  const rawH = typeof input.height === "number" ? String(input.height) : (input.height ?? "").toString().trim();
+  if (rawH !== "") {
+    const h = Number(rawH);
+    if (!Number.isFinite(h)) return { ok: false, error: "ส่วนสูงต้องเป็นตัวเลข" };
+    // Wide enough for children and outliers, tight enough to catch metres (1.65)
+    // and a stray weight typed into the wrong box.
+    if (h < 50 || h > 250) return { ok: false, error: "ส่วนสูงควรอยู่ระหว่าง 50–250 ซม." };
+    height = h;
+  }
+
+  const gender = (input.gender ?? "").trim() || null;
+  if (gender && gender !== "male" && gender !== "female") {
+    return { ok: false, error: "เพศต้องเป็น male หรือ female" };
+  }
+
+  return { ok: true, value: { name, gender, birth_date: birth, height } };
+}

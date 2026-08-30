@@ -42,11 +42,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (!customer) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     const isAdmin = session.profile.role === "admin";
-    if (
-      !isAdmin &&
-      customer.coach_id !== session.user.id &&
-      !(await canManageCustomer(session.user.id, params.id))
-    ) {
+    const isOwner = customer.coach_id === session.user.id;
+    // Computed once and shipped to the client: a button the viewer cannot use should
+    // not be on screen at all, rather than there and answering 403 when pressed.
+    const canManage = isAdmin || isOwner || (await canManageCustomer(session.user.id, params.id));
+    if (!canManage) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
@@ -298,6 +298,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       allergyTests: allergyTests ?? [],
       timeline,
       meta: { bcaLapseDays, labLapseDays, orderLapseDays, lastTouch,
+        canManage, isOwner, isAdmin,
         hasMedMap: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "med_map"),
         hasLabReport: Array.isArray(latestRecord) && latestRecord.some((r: any) => r.document_type === "lab_report"),
         labReportToken: (Array.isArray(latestRecord) ? latestRecord.find((r: any) => r.document_type === "lab_report")?.source_id : null) ?? null },
