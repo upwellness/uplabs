@@ -213,7 +213,8 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 |---|---|---|
 | `GET /customers/{id}/labs?rounds=3&metric=hba1c` | `labs:read` | ค่าแล็บ · `rounds` = จำนวนใบตรวจล่าสุด (ค่าเริ่มต้น 3, สูงสุด 20) |
 | `GET /customers/{id}/labs/compare?rounds=3` | `labs:read` | **ตารางเทียบพร้อมใช้** — แต่ละ metric เป็นแถว แต่ละรอบเป็นคอลัมน์ + delta ระหว่างรอบล่าสุดกับก่อนหน้า · **ข้ามรอบที่มีค่าเดียว** (มักเป็นค่าที่วัดเองที่บ้าน) และรายงานไว้ใน `skipped_rounds` · `?include_single=true` เพื่อรวมกลับ |
-| `POST /customers/{id}/labs` | `labs:write` | สร้างใบตรวจ + ค่าในใบพร้อมกัน (atomic) |
+| `POST /customers/{id}/labs/submit` | `labs:submit` | **★ ใช้ตัวนี้เมื่ออ่านค่าจากเอกสาร** — เข้าคิวรอคนตรวจ ไม่เข้าประวัติทันที |
+| `POST /customers/{id}/labs` | `labs:write` | เขียนตรงเข้าประวัติ — เฉพาะข้อมูลที่ยืนยันแล้ว |
 | `GET /customers/{id}/overview` | `labs:read` | **ภาพรวมทุก factor** — ค่าล่าสุดต่อหมวด + สิ่งที่ผิดปกติ + สิ่งที่ยังไม่เคยตรวจ + ความพร้อมของ Health Age |
 
 `/labs/compare` คือ endpoint ที่ตอบ user story ข้อ 1 โดยตรง — ผู้เรียกไม่ต้องมาเรียงข้อมูลเอง
@@ -425,6 +426,6 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 
 | # | คำถาม | ต้องการคำตอบจาก | บล็อกงานไหม |
 |---|---|---|---|
-| 1 | ให้ token เขียนผลแล็บได้เลย หรือให้ยิงเข้า "รอตรวจสอบ" ก่อน | ต้น | ไม่ — v1 ทำแบบเขียนตรง แต่ต้อง `labs:write` ซึ่งไม่ให้โดยค่าเริ่มต้น |
+| 1 | ~~ให้ token เขียนผลแล็บได้เลย หรือยิงเข้า "รอตรวจสอบ" ก่อน~~ | **✅ ต้นเคาะ 31 ส.ค. 2026: เอาคิวรอตรวจสอบ** — เพิ่ม scope `labs:submit` + `POST /labs/submit` + หน้า `/v2/lab-inbox` · `labs:write` (เขียนตรง) ยังมีอยู่สำหรับ automation ที่ย้ายข้อมูลที่ยืนยันแล้ว |
 | 2 | ต้องมี token ที่คืนข้อมูลแบบไม่มีชื่อ (pseudonymous) ไหม | ต้น | ไม่ — เพิ่มทีหลังเป็น scope ใหม่ได้ |
 | 3 | จะทำ MCP server ต่อไหม (Claude ต่อตรงได้) | ต้น | ไม่ — roadmap |

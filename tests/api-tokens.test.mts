@@ -27,7 +27,13 @@ test("verification accepts the real secret and rejects near misses", () => {
   const m = mintToken();
   const secret = parseToken(m.token)!.secret;
   assert.equal(verifySecret(secret, m.hash), true);
-  assert.equal(verifySecret(secret.slice(0, -1) + "X", m.hash), false, "one wrong char must fail");
+  // Flip the last character to something it definitely is not. Appending a fixed
+  // letter used to be the test, which silently passed nothing whenever the random
+  // secret happened to end in that same letter — a test that fails ~1 run in 57 is a
+  // test nobody trusts.
+  const lastDiffers = secret.slice(0, -1) + (secret.endsWith("A") ? "B" : "A");
+  assert.notEqual(lastDiffers, secret, "the mutation must actually change the secret");
+  assert.equal(verifySecret(lastDiffers, m.hash), false, "one wrong char must fail");
   assert.equal(verifySecret("", m.hash), false);
   assert.equal(verifySecret(secret, ""), false, "empty stored hash must never pass");
   assert.equal(verifySecret(secret, "not-hex"), false);

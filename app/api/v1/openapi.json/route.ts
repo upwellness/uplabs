@@ -184,6 +184,49 @@ export async function GET(req: Request) {
           responses: { "200": { description: "ok" } },
         },
       },
+      "/customers/{id}/labs/submit": {
+        post: {
+          operationId: "submitLabResult",
+          summary: "ส่งผลแล็บที่อ่านจากเอกสารเข้าคิวรอตรวจสอบ",
+          description:
+            "★ ใช้ตัวนี้เมื่ออ่านค่าจากใบแล็บ/รูป/PDF มา — ไม่ใช่ addLabResult · " +
+            "ค่าจะเข้าคิวให้คนตรวจเทียบกับใบจริงก่อน ยังไม่เข้าประวัติลูกค้าทันที · " +
+            "ส่ง raw_text (ข้อความที่อ่านได้จากเอกสารแบบคำต่อคำ) มาด้วยเสมอ เพราะคนตรวจใช้เทียบว่าอ่านตรงแถวไหม · " +
+            "ห้ามเดาค่าที่อ่านไม่ออก ให้ข้ามไปเลย และห้ามเดาสถานะ (ปกติ/สูง/ต่ำ) ถ้าใบไม่ได้พิมพ์ไว้",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: {
+              type: "object", required: ["recorded_at", "values"],
+              properties: {
+                recorded_at: { type: "string", format: "date", description: "วันเจาะเลือด ปี ค.ศ. (ใบไทยพิมพ์ พ.ศ. ต้องลบ 543)" },
+                source: { type: "string", description: "ชื่อโรงพยาบาล/แล็บ ตามที่พิมพ์บนใบ" },
+                notes: { type: "string" },
+                raw_text: { type: "string", description: "ข้อความที่อ่านได้จากเอกสารแบบคำต่อคำ — คนตรวจใช้เทียบ" },
+                source_file_url: { type: "string", description: "ลิงก์ไฟล์ต้นฉบับ ถ้ามี" },
+                submitted_via: { type: "string", description: "เช่น ChatGPT, n8n" },
+                values: {
+                  type: "array",
+                  items: {
+                    type: "object", required: ["metric_key", "value"],
+                    properties: {
+                      metric_key: { type: "string", description: "เช่น hba1c, ldl, hdl, triglyceride, fbs" },
+                      metric_label_th: { type: "string" },
+                      value: { type: "string", description: "ตามที่พิมพ์บนใบ" },
+                      value_num: { type: "number" },
+                      unit: { type: "string" },
+                      ref_text: { type: "string", description: "ช่วงอ้างอิงตามที่พิมพ์บนใบ" },
+                      category: { type: "string", enum: ["cbc","glucose","lipid","kidney","liver","uric","thyroid","imaging","hepatitis","cancer","inflammation","cardiac","other"] },
+                      status: { type: "string", enum: ["normal", "low", "high", "borderline"], description: "ใส่เฉพาะที่ใบติดธงไว้ — ห้ามเดาเอง" },
+                    },
+                  },
+                },
+              },
+            } } },
+          },
+          responses: { "200": { description: "เข้าคิวแล้ว รอคนตรวจ" } },
+        },
+      },
       "/customers/{id}/labs/compare": {
         get: {
           operationId: "compareLabs",
