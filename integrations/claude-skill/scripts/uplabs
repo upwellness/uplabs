@@ -86,6 +86,7 @@ scripts/uplabs <command>
   supplements <id>           อาหารเสริม + ความปลอดภัยคู่ยา
   notes <id>                 โน้ตโค้ช
   note <id> <ข้อความ>         เพิ่มโน้ต
+  submit <id> <ไฟล์ json>     ★ ส่งผลแล็บที่อ่านจากเอกสาร → เข้าคิวรอคนตรวจ (ไม่เข้าประวัติทันที)
   ask <คำสั่ง> [id]           ถามภาษาคน ไม่ต้องเลือก endpoint
 USAGE
   exit 1
@@ -107,6 +108,12 @@ case "$cmd" in
     [[ $# -ge 2 ]] || usage
     body=$(printf '%s' "$2" | python3 -c 'import json,sys; print(json.dumps({"body": sys.stdin.read()}))')
     req POST "/customers/$1/notes" "$body" ;;
+  submit)
+    # Reading a document is never a direct write — this queues for human review.
+    # Takes a JSON file so a long payload never lands in the shell history.
+    [[ $# -ge 2 ]] || usage
+    [[ -f "$2" ]] || die "ไม่พบไฟล์ \"$2\" — เขียน payload เป็นไฟล์ .json ก่อน"
+    req POST "/customers/$1/labs/submit" "$(cat "$2")" ;;
   ask)
     [[ $# -ge 1 ]] || usage
     body=$(Q="$1" CID="${2:-}" python3 -c '
