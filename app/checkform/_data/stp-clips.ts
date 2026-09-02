@@ -1,7 +1,7 @@
 /**
  * STP · Success Clips Database (mirror of /STP/clips.json · active only)
  *
- * Source of truth: `/Users/ckawin/Documents/Claude/Projects/UP Wellness/STP/clips.json`
+ * Source of truth: `/Users/ckawin/Documents/Claude/Projects/UP Wellness/04_Content-Library/STP-Success-Clips/clips.json`
  * Sync workflow: when STP DB updated, manually mirror active clips here.
  * (Phase 2: load via API once 10-15+ clips active.)
  *
