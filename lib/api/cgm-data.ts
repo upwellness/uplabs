@@ -64,19 +64,34 @@ export async function insertReadings(rows: CgmRow[]): Promise<InsertOutcome | { 
 
 export interface ReadingRow { profile_name: string; original_time: string; reading_timestamp: number; date_str: string; glucose: number }
 
-/** Readings for a set of profile names between two local dates (inclusive), ascending, capped. */
+/**
+ * Readings for a set of profile names between two local dates (inclusive), ascending.
+ *
+ * PostgREST caps every response at 1,000 rows regardless of `.limit()` — found the
+ * hard way: a 6-day file came back as exactly 1,000 readings and the last day
+ * vanished from the metrics. A 14-day window is ~4,000 rows, so page with `.range()`
+ * until a page comes back short.
+ */
 export async function getReadings(
-  profiles: string[], fromDate: string, toDate: string, cap = 20_000,
+  profiles: string[], fromDate: string, toDate: string, cap = 30_000,
 ): Promise<ReadingRow[]> {
   if (profiles.length === 0) return [];
   const admin = createAdminClient();
-  const { data } = await admin.from("cgm_readings")
-    .select("profile_name, original_time, reading_timestamp, date_str, glucose")
-    .in("profile_name", profiles)
-    .gte("date_str", fromDate).lte("date_str", toDate)
-    .order("reading_timestamp", { ascending: true })
-    .limit(cap);
-  return ((data ?? []) as any[]).map((r) => ({ ...r, reading_timestamp: Number(r.reading_timestamp), glucose: Number(r.glucose) }));
+  const PAGE = 1000;
+  const out: ReadingRow[] = [];
+  for (let offset = 0; offset < cap; offset += PAGE) {
+    const { data, error } = await admin.from("cgm_readings")
+      .select("profile_name, original_time, reading_timestamp, date_str, glucose")
+      .in("profile_name", profiles)
+      .gte("date_str", fromDate).lte("date_str", toDate)
+      .order("reading_timestamp", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error) break;
+    const page = (data ?? []) as any[];
+    for (const r of page) out.push({ ...r, reading_timestamp: Number(r.reading_timestamp), glucose: Number(r.glucose) });
+    if (page.length < PAGE) break;
+  }
+  return out;
 }
 
 export const toPoints = (rows: ReadingRow[]): Point[] => rows.map((r) => ({ t: r.reading_timestamp, v: r.glucose }));
