@@ -77,3 +77,38 @@ test("non-schema wrappers keep their own keys", () => {
   const doc = { info: { title: "x", version: "1" }, paths: { "/a": { get: { operationId: "getA" } } } };
   assert.deepEqual(geminiFlavor(doc), doc);
 });
+
+
+// ── Importer limits that broke a real GPT setup (11 Sep 2026) ────────────────────
+import { buildSpec, MAX_OPERATION_DESCRIPTION } from "../lib/api/openapi-spec.ts";
+
+const ops = () => {
+  const spec: any = buildSpec("https://example.test", { scopes: ["customers:read"], intentNames: ["labs.compare"] });
+  const out: { id: string; method: string; path: string; op: any }[] = [];
+  for (const [path, methods] of Object.entries<any>(spec.paths)) {
+    for (const [method, op] of Object.entries<any>(methods)) out.push({ id: op.operationId, method, path, op });
+  }
+  return out;
+};
+
+test("every operation description fits ChatGPT's 300-character limit", () => {
+  const long = ops().filter((o) => (o.op.description ?? "").length > MAX_OPERATION_DESCRIPTION)
+    .map((o) => `${o.id}=${o.op.description.length}`);
+  assert.deepEqual(long, [], `over ${MAX_OPERATION_DESCRIPTION} chars: ${long.join(", ")}`);
+});
+
+test("no operation advertises multipart/form-data — ChatGPT drops the whole operation", () => {
+  const bad = ops().filter((o) => Object.keys(o.op.requestBody?.content ?? {}).some((c) => c.includes("multipart")));
+  assert.deepEqual(bad.map((o) => o.id), []);
+});
+
+test("every operation has a unique operationId and a summary", () => {
+  const ids = ops().map((o) => o.id);
+  assert.equal(new Set(ids).size, ids.length, "duplicate operationId");
+  for (const o of ops()) assert.ok(o.op.summary?.length, `${o.id} has no summary`);
+});
+
+test("the three CGM operations are published", () => {
+  const ids = new Set(ops().map((o) => o.id));
+  for (const id of ["importCgmFile", "getCgmMetrics", "getCgmReadings"]) assert.ok(ids.has(id), id);
+});
