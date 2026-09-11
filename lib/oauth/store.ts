@@ -103,6 +103,17 @@ export async function revokeRefresh(row: RefreshRow): Promise<void> {
   await admin.from("api_tokens").update({ revoked_at: now }).eq("id", row.api_token_id).is("revoked_at", null);
 }
 
+/**
+ * A rotated-out refresh token being presented again means it leaked (or two copies of
+ * the client share it). Every live token this user holds for this client goes — the
+ * legitimate copy will simply be asked to connect again.
+ */
+export async function revokeFamily(userId: string, clientId: string): Promise<void> {
+  const admin = createAdminClient(); const now = new Date().toISOString();
+  await admin.from("oauth_refresh_tokens").update({ revoked_at: now }).eq("user_id", userId).eq("client_id", clientId).is("revoked_at", null);
+  await admin.from("api_tokens").update({ revoked_at: now }).eq("owner_user_id", userId).eq("oauth_client_id", clientId).is("revoked_at", null);
+}
+
 /** Revoke an access token by its raw value (RFC 7009). Only OAuth-issued tokens are touched. */
 export async function revokeAccessByRaw(prefix: string, clientId: string): Promise<void> {
   const admin = createAdminClient(); const now = new Date().toISOString();

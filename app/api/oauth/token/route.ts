@@ -1,5 +1,5 @@
 import { verifyPkce, normaliseResource, readClientAuth, sha256, MCP_PATH } from "@/lib/oauth/core";
-import { getClient, consumeCode, issueTokens, findRefresh, revokeRefresh, getUserRole, type OAuthClient } from "@/lib/oauth/store";
+import { getClient, consumeCode, issueTokens, findRefresh, revokeRefresh, revokeFamily, getUserRole, type OAuthClient } from "@/lib/oauth/store";
 import { oauthError, json, preflight, readForm, baseUrl } from "@/lib/oauth/http";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +60,8 @@ async function refreshToken(client: OAuthClient, body: Record<string, string>) {
   if (!row || row.client_id !== client.client_id) return oauthError("invalid_grant", "refresh_token ไม่ถูกต้อง");
   if (row.revoked_at) {
     // A rotated-out token being replayed means it leaked, or two clients share it.
-    // Either way the current pair is burned too.
-    await revokeRefresh(row);
+    // Either way the current pair is burned too — not just this stale row.
+    await revokeFamily(row.user_id, row.client_id);
     return oauthError("invalid_grant", "refresh_token นี้ถูกใช้ไปแล้ว — token ทั้งชุดถูกเพิกถอน ต้องเชื่อมต่อใหม่");
   }
   if (new Date(row.expires_at).getTime() < Date.now()) return oauthError("invalid_grant", "refresh_token หมดอายุ — ต้องเชื่อมต่อใหม่");
