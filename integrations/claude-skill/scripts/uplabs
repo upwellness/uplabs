@@ -87,6 +87,9 @@ scripts/uplabs <command>
   notes <id>                 โน้ตโค้ช
   note <id> <ข้อความ>         เพิ่มโน้ต
   submit <id> <ไฟล์ json>     ★ ส่งผลแล็บที่อ่านจากเอกสาร → เข้าคิวรอคนตรวจ (ไม่เข้าประวัติทันที)
+  cgm-import <id> <ไฟล์ xlsx> ★ นำเข้าไฟล์ Ottai เข้าประวัติ (อัปโหลดซ้ำได้ ไม่เขียนทับ)
+  cgm <id> [วัน=14]           ค่าน้ำตาลต่อเนื่องดิบ
+  cgm-metrics <id> [วัน=14]   ★ TIR · TBR · CV · GMI + รายวัน (ดู reliable ก่อนสรุป)
   ask <คำสั่ง> [id]           ถามภาษาคน ไม่ต้องเลือก endpoint
 USAGE
   exit 1
@@ -114,6 +117,17 @@ case "$cmd" in
     [[ $# -ge 2 ]] || usage
     [[ -f "$2" ]] || die "ไม่พบไฟล์ \"$2\" — เขียน payload เป็นไฟล์ .json ก่อน"
     req POST "/customers/$1/labs/submit" "$(cat "$2")" ;;
+  cgm-import)
+    # Multipart, not JSON — the file goes straight through; the server parses it.
+    [[ $# -ge 2 ]] || usage
+    [[ -f "$2" ]] || die "ไม่พบไฟล์ \"$2\""
+    out=$(curl -sS -w '\n%{http_code}' -X POST "$API/customers/$1/cgm/import" \
+      -H "Authorization: Bearer $UPLAB_TOKEN" -F "file=@$2" ${3:+-F "profile_name=$3"})
+    status="${out##*$'\n'}"; payload="${out%$'\n'*}"
+    [[ "$status" == 2* ]] && { printf '%s\n' "$payload"; exit 0; }
+    printf 'HTTP %s\n%s\n' "$status" "$payload" >&2; exit 1 ;;
+  cgm)         [[ $# -ge 1 ]] || usage; req GET "/customers/$1/cgm?days=${2:-14}" ;;
+  cgm-metrics) [[ $# -ge 1 ]] || usage; req GET "/customers/$1/cgm/metrics?days=${2:-14}" ;;
   ask)
     [[ $# -ge 1 ]] || usage
     body=$(Q="$1" CID="${2:-}" python3 -c '

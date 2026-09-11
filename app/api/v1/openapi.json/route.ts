@@ -274,6 +274,58 @@ export async function GET(req: Request) {
           responses: { "200": { description: "ok" } },
         },
       },
+      "/customers/{id}/cgm": {
+        get: {
+          operationId: "getCgmReadings",
+          summary: "ค่าน้ำตาลต่อเนื่อง (CGM) ดิบ ตามช่วงวัน",
+          description: "ค่าทุก 5 นาทีจากเซ็นเซอร์ · ค่าเริ่มต้น = 14 วันล่าสุดที่มีข้อมูล · สูงสุด 90 วัน / 20,000 ค่า · ถ้าต้องการตัวเลขสรุป (TIR/CV) ใช้ getCgmMetrics แทน ไม่ต้องดึงดิบมาคำนวณเอง",
+          parameters: [customerId,
+            { name: "days", in: "query", schema: { type: "integer", default: 14, maximum: 90 }, description: "นับถอยหลังจากวันล่าสุดที่มีข้อมูล" },
+            { name: "from", in: "query", schema: { type: "string", format: "date" } },
+            { name: "to", in: "query", schema: { type: "string", format: "date" } }],
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/cgm/metrics": {
+        get: {
+          operationId: "getCgmMetrics",
+          summary: "★ ตัวเลขสรุป CGM — TIR · TAR · TBR · CV · GMI + รายวัน",
+          description:
+            "คำนวณบนเซิร์ฟเวอร์จากค่าจริงในฐาน ตามเกณฑ์ International Consensus on Time in Range (Battelino 2019 / ADA) · " +
+            "ดู reliable ก่อนเสมอ: false = ข้อมูลไม่ถึง 14 วันหรือไม่ครบ 70% ให้พูดเป็นแนวโน้ม ห้ามเทียบเกณฑ์ · " +
+            "meets บอกว่าผ่านเป้าข้อไหน · caveats ต้องบอกผู้ใช้ทุกครั้ง · GMI เป็นค่าประมาณ ไม่ใช่ HbA1c",
+          parameters: [customerId,
+            { name: "days", in: "query", schema: { type: "integer", default: 14, maximum: 90 } },
+            { name: "from", in: "query", schema: { type: "string", format: "date" } },
+            { name: "to", in: "query", schema: { type: "string", format: "date" } }],
+          responses: { "200": { description: "ok" } },
+        },
+      },
+      "/customers/{id}/cgm/import": {
+        post: {
+          operationId: "importCgmFile",
+          summary: "นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติลูกค้า",
+          description:
+            "รับไฟล์ export จากแอป Ottai (คอลัมน์ Time + Glucose mg/dL) แบบ multipart หรือส่ง rows ที่แยกแล้วเป็น JSON · " +
+            "เวลาในไฟล์ถือเป็นเวลาไทย · อัปโหลดไฟล์เดิมซ้ำได้ ค่าที่มีอยู่แล้วจะถูกข้าม ไม่เขียนทับ · " +
+            "profile_name ไม่ต้องส่งถ้าลูกค้ามีโปรไฟล์อยู่แล้ว (ใช้ของเดิมอัตโนมัติ) · ระบบไม่ยอมสร้างโปรไฟล์ที่สองซ้อนคนเดิม",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": { schema: { type: "object", required: ["file"], properties: {
+                file: { type: "string", format: "binary", description: ".xlsx หรือ .csv ไม่เกิน 5 MB" },
+                profile_name: { type: "string", description: "ชื่อโปรไฟล์ CGM (ไม่บังคับ)" },
+              } } },
+              "application/json": { schema: { type: "object", required: ["rows"], properties: {
+                rows: { type: "array", items: { type: "array", minItems: 2, maxItems: 2, items: {} }, description: "[[\"2026-09-11 19:08\", 83], …] เวลาไทย" },
+                profile_name: { type: "string" },
+              } } },
+            },
+          },
+          responses: { "200": { description: "บันทึกแล้ว — inserted / skipped_existing / rejected" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

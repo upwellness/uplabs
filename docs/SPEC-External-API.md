@@ -149,6 +149,8 @@ uplab_<env>_<prefix8>_<secret32>
 | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
 | `notes:read` / `notes:write` | โน้ตโค้ช |
 | `links:write` | ขอลิงก์สมัคร |
+| `cgm:read` | อ่านค่าน้ำตาลต่อเนื่อง (CGM) ดิบ + ตัวเลขสรุป TIR/CV/GMI |
+| `cgm:write` | นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติ — upsert ไม่เขียนทับ |
 
 **หลักการ:** scope เป็น **allow-list** — ไม่ระบุ = ไม่ได้ · ไม่มี scope แบบ `*`
 
@@ -219,7 +221,17 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 
 `/labs/compare` คือ endpoint ที่ตอบ user story ข้อ 1 โดยตรง — ผู้เรียกไม่ต้องมาเรียงข้อมูลเอง
 
-### 8.4 อื่น ๆ
+### 8.4 CGM — ค่าน้ำตาลต่อเนื่อง (เพิ่ม 11 ก.ย. 2026)
+
+| Endpoint | Scope | หมายเหตุ |
+|---|---|---|
+| `POST /customers/{id}/cgm/import` | `cgm:write` | **นำเข้าไฟล์ Ottai** — `multipart/form-data` (`file=` .xlsx/.csv ≤5 MB, `profile_name=` ไม่บังคับ) หรือ JSON `{rows:[[time,glucose],…]}` · หา header `Time`/`Glucose…` เองใน 10 แถวแรก (Ottai เขียน `Glucosemg/dL` ไม่มีเว้นวรรค) · **เวลาในไฟล์ = เวลาไทย** → `reading_timestamp` = epoch ms ของเวลาไทย (ตรงกับ 52,029 แถวเดิม) · รับ mmol/L แล้วแปลง · LO/HI → 36/400 · ค่านอก 10–700 ถูกปฏิเสธพร้อมเลขแถว · **upsert `ON CONFLICT (profile_name, reading_timestamp) DO NOTHING`** — อัปโหลดซ้ำปลอดภัย ตอบ `inserted` / `skipped_existing` แยกกัน |
+| `GET /customers/{id}/cgm?days=14` หรือ `?from=&to=` | `cgm:read` | ค่าดิบ ascending · ค่าเริ่มต้น = 14 วันล่าสุด**ที่มีข้อมูล** (ไม่ใช่นับจากวันนี้ — เซ็นเซอร์ที่ถอดไปแล้วยังมีหน้าต่างของมัน) · สูงสุด 90 วัน / 20,000 ค่า |
+| `GET /customers/{id}/cgm/metrics?days=14` | `cgm:read` | **★ TIR 70–180 · TITR 70–140 · TAR >180/>250 · TBR <70/<54 · CV · GMI · mean/sd/min/max · TBR ตอนกลางคืน (00–06) · จำนวนครั้งที่ต่ำ ≥15 นาที · ตารางรายวัน · `meets` เทียบเป้า · `reliable` (≥14 วัน + ≥70%) · `caveats`** — คำนวณจากแถวจริงในฐาน ไม่เชื่อหน้าจอสรุปของแอป · นิยามตาม Battelino 2019 / ADA · `lib/api/cgm-metrics.ts` บริสุทธิ์ + 9 เทสต์ |
+
+**กติกาชื่อโปรไฟล์:** ลูกค้า ↔ `cgm_readings` ผูกผ่าน `customers.cgm_profile_names[]` (ของเดิมตั้งชื่อตามชื่อเล่น จึงเป็น array) · ถ้าลูกค้ามีโปรไฟล์อยู่แล้ว **ต้องใช้ชื่อเดิม** — ส่งชื่อใหม่มาจะได้ 400 พร้อม `existing_profiles` · ถ้ายังไม่มี ใช้ `profile_name` ที่ส่งมา หรือชื่อลูกค้า แล้วสร้าง `cgm_profiles` + ต่อเข้า array ให้เอง · เหตุผล: เคยมีค่าของสองคนไปอยู่ใต้ชื่อเดียว และคนเดียวมีสองชื่อ ทั้งสองแบบทำให้ metrics ผิดโดยไม่มีใครเห็น
+
+### 8.5 อื่น ๆ
 
 | Endpoint | Scope |
 |---|---|
@@ -228,7 +240,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `GET /customers/{id}/notes?limit=` · `POST` | `notes:read` / `:write` |
 | `POST /links/invite` | `links:write` |
 
-### 8.5 `POST /query` — คำสั่งภาษาคน
+### 8.6 `POST /query` — คำสั่งภาษาคน
 
 ```jsonc
 // request
@@ -269,7 +281,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 }
 ```
 
-### 8.6 Intent catalogue
+### 8.7 Intent catalogue
 
 | Intent | ตัวอย่างคำสั่ง | Scope |
 |---|---|---|

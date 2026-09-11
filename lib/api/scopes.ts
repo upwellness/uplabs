@@ -20,6 +20,8 @@ export const SCOPES = [
   "notes:read",
   "notes:write",
   "links:write",
+  "cgm:read",
+  "cgm:write",
 ] as const;
 
 export type Scope = (typeof SCOPES)[number];
@@ -36,6 +38,8 @@ export const SCOPE_LABEL_TH: Record<Scope, string> = {
   "notes:read": "อ่านโน้ตโค้ช",
   "notes:write": "เขียนโน้ตโค้ช",
   "links:write": "ขอลิงก์สมัคร",
+  "cgm:read": "อ่านค่าน้ำตาลต่อเนื่อง (CGM) + ตัวเลขสรุป",
+  "cgm:write": "นำเข้าไฟล์ CGM (Ottai ฯลฯ) เข้าประวัติ",
 };
 
 /** Scopes that hand out health data — used by the admin UI to warn before saving. */
@@ -46,6 +50,8 @@ export const CLINICAL_SCOPES: Scope[] = [
   "measurements:read",
   "measurements:write",
   "supplements:read",
+  "cgm:read",
+  "cgm:write",
 ];
 
 export const isScope = (s: string): s is Scope => (SCOPES as readonly string[]).includes(s);
