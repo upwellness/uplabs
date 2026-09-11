@@ -321,7 +321,7 @@ API ทั้งชุดเปิดเป็น **MCP server** (Model Context 
 | ❌ ยังไม่รองรับ | **OAuth 2.1** — client ที่รับเฉพาะ OAuth (claude.ai custom connector · ChatGPT connector) ต่อไม่ได้ · ดู §14 |
 
 โค้ด: `lib/mcp/protocol.ts` (JSON-RPC, pure) · `lib/mcp/tools.ts` (derive จาก spec, pure) · `app/api/mcp/route.ts` (auth + handler table ที่ typed ด้วย `RouteKey` — เพิ่ม operation แล้วไม่ต่อ handler = build ไม่ผ่าน)
-เทสต์: `tests/mcp.test.mts` · วิธีตั้งค่าแต่ละ client: `integrations/mcp/README.md`
+เทสต์: `tests/mcp.test.mts` · ยืนยันบน prod 11 ก.ย. 2026 ด้วย curl (initialize → tools/list → tools/call) และ client ของ `@modelcontextprotocol/sdk` ตัวจริง · วิธีตั้งค่าแต่ละ client: `integrations/mcp/README.md`
 
 ---
 
