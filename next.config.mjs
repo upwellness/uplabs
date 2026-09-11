@@ -32,6 +32,11 @@ const nextConfig = {
       permanent: false,
     }));
   },
+  // OAuth discovery documents (RFC 8414 / RFC 9728) must live under /.well-known/;
+  // the App Router does not route dot-directories, so they are served from /api/well-known.
+  async rewrites() {
+    return [{ source: "/.well-known/:path*", destination: "/api/well-known/:path*" }];
+  },
   experimental: {
     typedRoutes: false,
     // per-customer report HTML (lab-report + med-map) now lives in private Supabase

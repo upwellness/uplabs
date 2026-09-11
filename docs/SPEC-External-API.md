@@ -318,10 +318,30 @@ API ทั้งชุดเปิดเป็น **MCP server** (Model Context 
 | Annotations | `readOnlyHint` = GET · `idempotentHint` = ไม่ใช่ POST · `destructiveHint` = false ทุกตัว (v1 ไม่มีการลบ/ทับประวัติ) |
 | Capabilities | เฉพาะ `tools` · `resources`/`prompts` → `-32601` |
 | Protocol version | รับ `2025-06-18` · `2025-03-26` · `2024-11-05` · ตอบ version ที่ client ขอถ้ารู้จัก ไม่งั้นตอบใหม่สุด |
-| ❌ ยังไม่รองรับ | **OAuth 2.1** — client ที่รับเฉพาะ OAuth (claude.ai custom connector · ChatGPT connector) ต่อไม่ได้ · ดู §14 |
+| OAuth 2.1 | ✅ มีแล้ว (§8.9) — claude.ai custom connector / ChatGPT ต่อตรงได้ · 401 ชี้ `resource_metadata` |
 
 โค้ด: `lib/mcp/protocol.ts` (JSON-RPC, pure) · `lib/mcp/tools.ts` (derive จาก spec, pure) · `app/api/mcp/route.ts` (auth + handler table ที่ typed ด้วย `RouteKey` — เพิ่ม operation แล้วไม่ต่อ handler = build ไม่ผ่าน)
 เทสต์: `tests/mcp.test.mts` · ยืนยันบน prod 11 ก.ย. 2026 ด้วย curl (initialize → tools/list → tools/call) และ client ของ `@modelcontextprotocol/sdk` ตัวจริง · วิธีตั้งค่าแต่ละ client: `integrations/mcp/README.md`
+
+### 8.9 OAuth 2.1 สำหรับ MCP — claude.ai และ ChatGPT ต่อตรงได้ (เพิ่ม 12 ก.ย. 2026)
+
+claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไม่มีช่องใส่ Bearer token — คุยกับ MCP server ผ่าน OAuth เท่านั้น
+จึงมี **authorization server ของเราเอง** ที่ทำงานง่าย ๆ: ผู้ใช้ UP Labs ล็อกอินหน้าเดิม → กดอนุญาต → ระบบ mint `api_tokens` แถวใหม่ให้ (ชื่อ `OAuth · <client>`) เป็น access token
+→ ทุกอย่างหลังจากนั้นคือ pipeline เดิม (scope · reach · rate limit · log · เพิกถอนที่ `/v2/admin/api-tokens`)
+
+| ขั้น | endpoint | มาตรฐาน | หมายเหตุ |
+|---|---|---|---|
+| 0 | `GET /.well-known/oauth-protected-resource[/api/mcp]` | RFC 9728 | MCP 401 ส่ง `WWW-Authenticate: Bearer resource_metadata=…` ชี้มาที่นี่ · rewrite → `/api/well-known/…` (App Router ไม่ route โฟลเดอร์ขึ้นต้นด้วยจุด) |
+| 1 | `GET /.well-known/oauth-authorization-server` | RFC 8414 | `issuer` = origin · S256 เท่านั้น · `token_endpoint_auth_methods` = none / client_secret_post / client_secret_basic |
+| 2 | `POST /api/oauth/register` | RFC 7591 | **เปิด** — client ลงทะเบียนเองก่อนมีผู้ใช้ · `redirect_uris` ต้อง https (หรือ http://localhost) ไม่มี fragment · `client_id` = `uplab_mcp_…` · public client ไม่มี secret |
+| 3 | `GET /oauth/authorize` | RFC 6749 §4.1 + PKCE | หน้า consent (`app/(auth)/oauth/authorize`) · public ใน middleware แต่เช็ค session เองแล้วส่ง URL เต็มผ่าน `/login?next=` · error ที่ยืนยัน redirect_uri ไม่ได้ **แสดงบนหน้าเรา ไม่ redirect** (กัน open-redirect) · scope ที่ติ๊กไว้ก่อน = ที่ client ขอ ∩ SCOPES หรือทั้งหมดยกเว้น `labs:write` |
+| 4 | `POST /api/oauth/token` | RFC 6749 §4.1.3 / §6 | `authorization_code` → ตรวจ code (hash, ใช้ครั้งเดียว, 10 นาที) + PKCE + redirect_uri + client secret (ถ้าเป็น confidential) → **access = `uplab_live_…` อายุ 7 วัน** + refresh 90 วัน · `refresh_token` → rotate: เพิกถอนคู่เก่า ออกคู่ใหม่ · **replay refresh ที่ rotate ไปแล้ว = เพิกถอนทั้งชุด** · scope ตอน refresh แคบลงได้ กว้างขึ้นไม่ได้ · `resource` (RFC 8707) ถ้าส่งมาต้องเป็น `<origin>/api/mcp` |
+| 5 | `POST /api/oauth/revoke` | RFC 7009 | รับได้ทั้ง access (`uplab_live_…`) และ refresh · ตอบ 200 เสมอ |
+
+ตาราง: `oauth_clients` · `oauth_codes` (hash, single-use) · `oauth_refresh_tokens` (hash, rotate) · `api_tokens.oauth_client_id` — RLS เปิด ไม่มี policy (service role เท่านั้น) · migration `20260912_oauth.sql`
+โค้ด: `lib/oauth/core.ts` (pure, tests) · `lib/oauth/store.ts` (I/O) · `lib/oauth/http.ts` · `app/api/oauth/*` · `app/api/well-known/*`
+สิทธิ์ของ token ที่ได้: `customer_scope` = `all` ถ้าผู้ใช้เป็นแอดมิน ไม่งั้น `owner` — เห็นเท่าที่ตัวเองเห็นในเว็บ ไม่มีทางกว้างกว่า · rate limit 120/นาที
+ใครล็อกอินได้ = ใครก็ตามที่มีบัญชี UP Labs · ไม่มีการอนุมัติจากแอดมินต่อ client (แอดมินเห็นและเพิกถอน token ที่ออกได้ในหน้า API tokens)
 
 ---
 
@@ -466,4 +486,5 @@ API ทั้งชุดเปิดเป็น **MCP server** (Model Context 
 | 1 | ~~ให้ token เขียนผลแล็บได้เลย หรือยิงเข้า "รอตรวจสอบ" ก่อน~~ | **✅ ต้นเคาะ 31 ส.ค. 2026: เอาคิวรอตรวจสอบ** — เพิ่ม scope `labs:submit` + `POST /labs/submit` + หน้า `/v2/lab-inbox` · `labs:write` (เขียนตรง) ยังมีอยู่สำหรับ automation ที่ย้ายข้อมูลที่ยืนยันแล้ว |
 | 2 | ต้องมี token ที่คืนข้อมูลแบบไม่มีชื่อ (pseudonymous) ไหม | ต้น | ไม่ — เพิ่มทีหลังเป็น scope ใหม่ได้ |
 | 3 | ~~จะทำ MCP server ต่อไหม~~ | **✅ ทำแล้ว 11 ก.ย. 2026** — `POST /api/mcp` bearer token (§8.8) |
-| 4 | MCP OAuth 2.1 — ให้ claude.ai custom connector / ChatGPT connector ต่อตรงได้ไหม | ต้น | ไม่ — ต้องสร้าง authorization server (login + consent + PKCE + dynamic client registration) · ตอนนี้ client ทีมใช้ (Claude Code, Cursor, n8n) ต่อด้วย header ได้แล้ว |
+| 4 | ~~MCP OAuth 2.1~~ | **✅ ทำแล้ว 12 ก.ย. 2026** (§8.9) — authorization server ในตัว · access token = `api_tokens` แถวปกติ |
+| 5 | ควรให้แอดมิน approve client ก่อนไหม (ตอนนี้ใครก็ register ได้ แต่ต้องมีผู้ใช้ล็อกอิน+ยินยอมอยู่ดี) | ต้น | ไม่ — เพิ่ม allow-list ทีหลังได้ |

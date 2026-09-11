@@ -184,7 +184,8 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 |---|---|---|---|
 | `/api/v1/meta` | GET | API token | ตัวตน token + scope + intent ที่ใช้ได้ |
 | `/api/v1/openapi.json` | GET | **public** | สคีมาสำหรับ ChatGPT Actions / n8n · `?flavor=gemini` ตัด key ที่ Gemini ไม่รับออก |
-| `/api/mcp` | POST | API token | **MCP server** — tool 19 ตัว derive จาก OpenAPI อัตโนมัติ · เรียก handler `/api/v1` ตัวเดิมในโปรเซส (สิทธิ์/log เดิม) · Claude Code · Cursor · Gemini CLI · n8n ต่อด้วย URL + Bearer · ยังไม่มี OAuth (claude.ai/ChatGPT connector ต่อไม่ได้) · SPEC §8.8 |
+| `/api/mcp` | POST | API token | **MCP server** — tool 19 ตัว derive จาก OpenAPI อัตโนมัติ · เรียก handler `/api/v1` ตัวเดิมในโปรเซส (สิทธิ์/log เดิม) · Claude Code · Cursor · Gemini CLI · n8n ต่อด้วย URL + Bearer · SPEC §8.8 |
+| `/oauth/authorize` · `/api/oauth/{register,token,revoke}` · `/.well-known/oauth-*` | GET/POST | session (consent) / client | **OAuth 2.1 authorization server** ให้ claude.ai และ ChatGPT ต่อ MCP ตรง · ผู้ใช้ล็อกอิน+ยินยอม → mint `api_tokens` (7 วัน + refresh 90 วัน rotate) · SPEC §8.9 |
 | `/api/v1/query` | POST | API token | คำสั่งภาษาคน → ข้อมูลตรง ๆ (ไม่มี LLM ฝั่งเรา) |
 | `/api/v1/customers` | GET · POST | `customers:read` / `customers:write` | ค้นหา/สร้างลูกค้า |
 | `/api/v1/customers/{id}` | GET · PATCH | `customers:read` / `customers:write` | โปรไฟล์ · PATCH ตรวจด้วย `validateProfileEdit()` ตัวเดียวกับหน้าเว็บ · GET คืน `retired` |
@@ -418,6 +419,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **OAuth 2.1 สำหรับ MCP** — discovery (RFC 8414/9728) · dynamic registration · หน้า consent `/oauth/authorize` · token/refresh/revoke · access token = `api_tokens` แถวปกติ · migration `20260912_oauth.sql` · +10 tests · claude.ai / ChatGPT connector ต่อได้ | `27b615b` |
 | 2026-09-11 | **MCP server `POST /api/mcp`** — API ทั้งชุดเป็น MCP (Streamable HTTP, stateless, bearer) · tool derive จาก `buildSpec()` (`lib/mcp/tools.ts`) · JSON-RPC core pure (`lib/mcp/protocol.ts`) · handler table typed ด้วย `RouteKey` · +14 tests · `integrations/mcp/README.md` config ต่อ client | `b0d35c2` |
 | 2026-09-11 | **GPT importer ปฏิเสธ description > 300 ตัวอักษร** (`submitLabResult` 327 · `importCgmFile` 411) — ตัดให้พอดี ย้าย how-to ไป GPT-INSTRUCTIONS · **แยก `buildSpec()` ออกจาก route เป็น `lib/api/openapi-spec.ts` (บริสุทธิ์ รับ scopes/intents เป็นพารามิเตอร์)** เพื่อให้เทสต์โหลด spec ได้โดยไม่ต้องรัน Next · เพิ่ม 4 เทสต์ปักกฎ importer: description ≤300 · ห้ามมี multipart · operationId ไม่ซ้ำ+มี summary · 3 operation CGM ต้องอยู่ — ทั้งสองข้อแรกเคยพังบน production แล้ว | (คอมมิตนี้) |
 | 2026-09-11 | **GPT ตัด `importCgmFile` ทิ้งเพราะ multipart** — หลัง re-import schema แล้ว ChatGPT ยังบอกว่า action ไม่เปิดให้เรียก · OpenAI Actions ไม่รองรับ multipart/form-data และทิ้ง operation ทั้งตัว ไม่ใช่แค่ content type นั้น → เอา multipart ออกจาก spec ที่เผยแพร่ เหลือ JSON `{rows}` อย่างเดียว (เซิร์ฟเวอร์ยังรับ multipart) | (คอมมิตนี้) |

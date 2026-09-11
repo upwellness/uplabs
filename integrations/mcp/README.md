@@ -6,6 +6,8 @@ Authorization: Bearer uplab_live_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 MCP (Model Context Protocol) คือมาตรฐานกลางที่ AI client ใช้ "เห็นเครื่องมือ" ของเซิร์ฟเวอร์
+
+**2 วิธียืนยันตัวตน** — (ก) วาง Bearer token ที่แอดมินออกให้ (Claude Code, Cursor, n8n, สคริปต์) · (ข) **OAuth**: กด Connect แล้วล็อกอิน UP Labs (claude.ai, ChatGPT, client อื่นที่รองรับ OAuth) — ได้สิทธิ์เท่าบัญชีที่ล็อกอิน
 UP Labs เปิด endpoint เดียว รับเฉพาะ `POST` (Streamable HTTP แบบไม่มี session) และให้ **tool 19 ตัว**
 ซึ่งเป็น operation เดียวกับ REST API ทุกตัว — ชื่อ tool = `operationId` ใน `/api/v1/openapi.json`
 (`searchCustomers`, `compareLabs`, `getOverview`, `getCgmMetrics`, `importCgmFile`, `submitLabResult`, …)
@@ -95,17 +97,22 @@ const { tools } = await client.listTools();
 const r = await client.callTool({ name: "getCgmMetrics", arguments: { id: "<customer-id>", days: 14 } });
 ```
 
-## ✋ client ที่ยังต่อไม่ได้ (ต้องมี OAuth)
+## claude.ai (เว็บ / มือถือ / Desktop) — ต่อด้วย OAuth ไม่ต้องมี token
 
-| client | สถานะ | เพราะ |
-|---|---|---|
-| **claude.ai เว็บ/มือถือ → Settings → Connectors → Custom connector** | ❌ | รับเฉพาะ OAuth 2.1 ไม่มีช่องใส่ header |
-| **ChatGPT → Connectors / Deep Research MCP** | ❌ | เหมือนกัน — OAuth เท่านั้น (ใช้ **Custom GPT + Actions** จาก `/api/v1/openapi.json` แทน ซึ่งใช้ได้แล้ว) |
-| Claude Desktop แบบต่อตรง (ไม่ผ่าน `mcp-remote`) | ❌ | ต่อ remote ผ่าน connector ของ claude.ai = OAuth |
+1. claude.ai → **Settings → Connectors → Add custom connector**
+2. Name: `UP Labs` · Remote MCP server URL: `https://upwellness-ops.vercel.app/api/mcp` · ไม่ต้องกรอก client id/secret (ระบบลงทะเบียนให้เอง)
+3. กด **Connect** → หน้า login ของ UP Labs → เข้าสู่ระบบด้วยบัญชีเดิม → ติ๊กสิทธิ์ → **อนุญาต**
+4. กลับมาที่ claude.ai แล้วเปิดใช้ connector ในแชท (ปุ่ม 🔌) — ถามได้เลย เช่น "สรุป CGM ของ พี่สุ 14 วันล่าสุด"
 
-เหตุผลที่ยังไม่ทำ OAuth: ต้องมี authorization server (หน้า login + consent + token issuance + PKCE + dynamic client registration)
-ซึ่งเป็นงานอีกก้อนและต้องออกแบบว่าใครล็อกอินได้ · token แบบ bearer ครอบคลุม client ที่ทีมใช้จริงตอนนี้ (Claude Code, Cursor, n8n, สคริปต์)
-ถ้าจะเปิดให้ claude.ai/ChatGPT ต่อตรง ให้เปิด issue "MCP OAuth" ใน SPEC §14
+token ที่ได้เห็นลูกค้าเท่าที่บัญชีนั้นเห็นในเว็บ · อายุ 7 วัน ต่ออายุอัตโนมัติ · แอดมินเห็นเป็นแถว `OAuth · Claude` ใน `/v2/admin/api-tokens` และเพิกถอนได้
+
+## ChatGPT — ต่อด้วย OAuth เช่นกัน
+
+1. ChatGPT → **Settings → Connectors → Advanced → เปิด Developer mode** (ต้องมี Plus/Pro/Team/Enterprise)
+2. **Create** → Name `UP Labs` · MCP server URL `https://upwellness-ops.vercel.app/api/mcp` · Authentication **OAuth** · ไม่ต้องกรอก client id/secret
+3. Connect → login UP Labs → อนุญาต → ใช้ในแชทโดยเปิด connector ในเมนู "+"
+
+> Custom GPT + Actions (`integrations/chatgpt/`) ยังใช้ได้ตามเดิม — ต่างกันที่ Actions ผูก token ตัวเดียวกับ GPT ทั้งตัว ส่วน connector ผูกกับบัญชีของคนที่ล็อกอิน
 
 ## ทดสอบด้วย curl
 

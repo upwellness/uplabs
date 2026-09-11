@@ -31,6 +31,10 @@ const PUBLIC_PATHS = [
   // /login and the token would never even be read.
   "/api/v1",
   "/api/mcp",                 // MCP server — same Bearer-token auth as /api/v1, runs inside the route
+  "/.well-known",             // OAuth discovery (RFC 8414 / 9728) — rewritten to /api/well-known
+  "/api/well-known",
+  "/api/oauth",               // OAuth register / token / revoke — client-authenticated, no session
+  "/oauth/authorize",         // consent page checks the session itself so the query string survives the login round-trip
 ];
 
 const isPublic = (path: string) =>

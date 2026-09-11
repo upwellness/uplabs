@@ -8,9 +8,9 @@
  * route handler, so token checks, scopes, customer reach, rate limits and the audit log
  * are the ones already in production. If it is refused over REST it is refused here.
  *
- * Auth is bearer-only. The MCP spec's OAuth 2.1 flow is not implemented, which means
- * clients that *only* do OAuth (claude.ai web "custom connectors", ChatGPT connectors)
- * cannot connect yet — see integrations/mcp/README.md for the per-client matrix.
+ * Two ways to hold a token: paste one issued by an admin (Claude Code, Cursor, n8n),
+ * or go through our OAuth 2.1 server (claude.ai custom connectors, ChatGPT) which mints
+ * the same kind of api_tokens row after the user logs in and consents — lib/oauth/.
  */
 import { NextResponse } from "next/server";
 import { SCOPES } from "@/lib/api/scopes";
@@ -120,8 +120,12 @@ async function callTool(req: Request, name: string, args: Record<string, unknown
 function unauthorized(res: Response, req: Request) {
   const h = new Headers(res.headers);
   for (const [k, v] of Object.entries({ ...CORS, ...NO_STORE })) h.set(k, v);
-  // RFC 6750 — tells a generic MCP client the server wants a bearer token, not OAuth discovery.
-  if (res.status === 401) h.set("www-authenticate", `Bearer realm="${new URL(req.url).origin}/api/mcp"`);
+  // RFC 6750 + RFC 9728: a client that has no token follows resource_metadata into the
+  // OAuth flow (claude.ai, ChatGPT); one that already holds a uplab_live_… token just sends it.
+  if (res.status === 401) {
+    const origin = new URL(req.url).origin;
+    h.set("www-authenticate", `Bearer realm="${origin}/api/mcp", resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp"`);
+  }
   return new Response(res.body, { status: res.status, headers: h });
 }
 

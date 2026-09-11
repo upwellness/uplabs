@@ -4,7 +4,7 @@
 
 | ไฟล์ | ใช้กับ | ทำอะไรได้ | ตั้งค่า |
 |---|---|---|---|
-| **`mcp/README.md`** ★ | Claude Code · Cursor · Windsurf · VS Code · Gemini CLI · Codex · n8n · SDK | **เรียก API เองได้จริง — tool ครบทุกตัว** | วาง URL `/api/mcp` + Bearer token ขั้นเดียว |
+| **`mcp/README.md`** ★ | **claude.ai · ChatGPT** (OAuth) · Claude Code · Cursor · Windsurf · VS Code · Gemini CLI · Codex · n8n · SDK | **เรียก API เองได้จริง — tool ครบทุกตัว** | วาง URL `/api/mcp` แล้วล็อกอิน (OAuth) หรือใส่ Bearer token |
 | **`claude-skill/`** | Claude Code · Claude Desktop | **เรียก API เองได้จริง** | วางโฟลเดอร์ + ตั้ง `UPLAB_TOKEN` |
 | **`chatgpt/GPT-INSTRUCTIONS.md`** | ChatGPT (Custom GPT) | **เรียก API เองได้จริง** | 2 ขั้น — Actions + วาง Instructions |
 | **`DROP-IN.md`** | แชทไหนก็ได้ | ผู้ช่วยเขียน `curl` ให้ เอาไปรันเอง แล้ววางผลกลับ | วางไฟล์ + token ในแชท |
@@ -46,5 +46,4 @@ export UPLAB_TOKEN="uplab_live_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 `https://upwellness-ops.vercel.app/api/mcp` — client ที่รับ HTTP header ต่อได้ทันที (ดู `mcp/README.md`)
 
-**ยังต่อไม่ได้:** claude.ai เว็บ (custom connector) และ ChatGPT connector รับเฉพาะ OAuth ซึ่งยังไม่ได้ทำ —
-ChatGPT ให้ใช้ Custom GPT + Actions (`chatgpt/`) · Claude เว็บให้ใช้ `DROP-IN.md` ไปก่อน
+**claude.ai และ ChatGPT connector** ต่อด้วย OAuth (กด Connect → ล็อกอิน UP Labs → อนุญาต) — ไม่ต้องมี token · ดู `mcp/README.md`
