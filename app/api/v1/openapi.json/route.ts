@@ -307,20 +307,22 @@ export async function GET(req: Request) {
           summary: "นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติลูกค้า",
           description:
             "★ ChatGPT/Gemini Actions ส่งไฟล์ multipart ไม่ได้ — ให้เปิดไฟล์ .xlsx ด้วย code interpreter อ่านคอลัมน์ Time กับ Glucose แล้วส่ง JSON {rows:[[\"2026-09-11 19:08\", 83], …]} ทุกแถว (ห้ามตัดทอน ห้ามสุ่มตัวอย่าง) · " +
-            "ระบบที่ส่งไฟล์ได้ (n8n, curl) ใช้ multipart file= · " +
             "เวลาในไฟล์ถือเป็นเวลาไทย · อัปโหลดไฟล์เดิมซ้ำได้ ค่าที่มีอยู่แล้วจะถูกข้าม ไม่เขียนทับ · " +
             "profile_name ไม่ต้องส่งถ้าลูกค้ามีโปรไฟล์อยู่แล้ว (ใช้ของเดิมอัตโนมัติ) · ระบบไม่ยอมสร้างโปรไฟล์ที่สองซ้อนคนเดิม",
           parameters: [customerId],
           requestBody: {
+            // JSON only in the published spec. ChatGPT Actions reject multipart/form-data and
+            // drop the whole operation when it is listed — which surfaced as "this action is not
+            // available to me". The server still accepts multipart (curl, n8n); see SPEC §8.4.
             required: true,
             content: {
-              "multipart/form-data": { schema: { type: "object", required: ["file"], properties: {
-                file: { type: "string", format: "binary", description: ".xlsx หรือ .csv ไม่เกิน 5 MB" },
-                profile_name: { type: "string", description: "ชื่อโปรไฟล์ CGM (ไม่บังคับ)" },
-              } } },
               "application/json": { schema: { type: "object", required: ["rows"], properties: {
-                rows: { type: "array", items: { type: "array", minItems: 2, maxItems: 2, items: {} }, description: "[[\"2026-09-11 19:08\", 83], …] เวลาไทย" },
-                profile_name: { type: "string" },
+                rows: {
+                  type: "array",
+                  description: "ทุกแถวจากไฟล์ [[เวลา, ค่าน้ำตาล], …] เช่น [[\"2026-09-11 19:08\", 83], [\"2026-09-11 19:03\", 77]] · เวลาตามที่อยู่ในไฟล์ (เวลาไทย) · ห้ามตัดทอน ห้ามสุ่มตัวอย่าง ส่งได้ถึง 60,000 แถว",
+                  items: { type: "array", minItems: 2, maxItems: 2, items: {} },
+                },
+                profile_name: { type: "string", description: "ไม่ต้องส่งถ้าลูกค้ามีโปรไฟล์ CGM อยู่แล้ว" },
               } } },
             },
           },

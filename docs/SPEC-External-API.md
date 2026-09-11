@@ -229,6 +229,8 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `GET /customers/{id}/cgm?days=14` หรือ `?from=&to=` | `cgm:read` | ค่าดิบ ascending · ค่าเริ่มต้น = 14 วันล่าสุด**ที่มีข้อมูล** (ไม่ใช่นับจากวันนี้ — เซ็นเซอร์ที่ถอดไปแล้วยังมีหน้าต่างของมัน) · สูงสุด 90 วัน / 20,000 ค่า |
 | `GET /customers/{id}/cgm/metrics?days=14` | `cgm:read` | **★ TIR 70–180 · TITR 70–140 · TAR >180/>250 · TBR <70/<54 · CV · GMI · mean/sd/min/max · TBR ตอนกลางคืน (00–06) · จำนวนครั้งที่ต่ำ ≥15 นาที · ตารางรายวัน · `meets` เทียบเป้า · `reliable` (≥14 วัน + ≥70%) · `caveats`** — คำนวณจากแถวจริงในฐาน ไม่เชื่อหน้าจอสรุปของแอป · นิยามตาม Battelino 2019 / ADA · `lib/api/cgm-metrics.ts` บริสุทธิ์ + 9 เทสต์ |
 
+**ChatGPT Actions กับ multipart:** OpenAI ไม่รองรับ `multipart/form-data` และ**ตัด operation ทิ้งทั้งตัว**ถ้าประกาศไว้ (อาการ: GPT บอกว่า "action นี้ไม่ได้เปิดให้เรียก" ทั้งที่ schema มี) → `openapi.json` ประกาศ `importCgmFile` เป็น `application/json` อย่างเดียว · multipart ยังใช้ได้จริงบนเซิร์ฟเวอร์สำหรับ curl/n8n/skill script แต่ไม่อยู่ใน spec ที่เผยแพร่
+
 **กติกาชื่อโปรไฟล์:** ลูกค้า ↔ `cgm_readings` ผูกผ่าน `customers.cgm_profile_names[]` (ของเดิมตั้งชื่อตามชื่อเล่น จึงเป็น array) · ถ้าลูกค้ามีโปรไฟล์อยู่แล้ว **ต้องใช้ชื่อเดิม** — ส่งชื่อใหม่มาจะได้ 400 พร้อม `existing_profiles` · ถ้ายังไม่มี ใช้ `profile_name` ที่ส่งมา หรือชื่อลูกค้า แล้วสร้าง `cgm_profiles` + ต่อเข้า array ให้เอง · เหตุผล: เคยมีค่าของสองคนไปอยู่ใต้ชื่อเดียว และคนเดียวมีสองชื่อ ทั้งสองแบบทำให้ metrics ผิดโดยไม่มีใครเห็น
 
 ### 8.5 อื่น ๆ
