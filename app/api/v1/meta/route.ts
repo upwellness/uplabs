@@ -59,6 +59,7 @@ export async function GET(req: Request) {
       endpoints: {
         query: "POST /api/v1/query",
         openapi: "GET /api/v1/openapi.json",
+        mcp: "POST /api/mcp (Streamable HTTP · Bearer token เดียวกัน · tool = operationId)",
         customers: "GET /api/v1/customers?q=",
         labs_compare: "GET /api/v1/customers/{id}/labs/compare?rounds=3",
         overview: "GET /api/v1/customers/{id}/overview",

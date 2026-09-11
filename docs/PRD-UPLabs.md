@@ -184,6 +184,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 |---|---|---|---|
 | `/api/v1/meta` | GET | API token | ตัวตน token + scope + intent ที่ใช้ได้ |
 | `/api/v1/openapi.json` | GET | **public** | สคีมาสำหรับ ChatGPT Actions / n8n · `?flavor=gemini` ตัด key ที่ Gemini ไม่รับออก |
+| `/api/mcp` | POST | API token | **MCP server** — tool 19 ตัว derive จาก OpenAPI อัตโนมัติ · เรียก handler `/api/v1` ตัวเดิมในโปรเซส (สิทธิ์/log เดิม) · Claude Code · Cursor · Gemini CLI · n8n ต่อด้วย URL + Bearer · ยังไม่มี OAuth (claude.ai/ChatGPT connector ต่อไม่ได้) · SPEC §8.8 |
 | `/api/v1/query` | POST | API token | คำสั่งภาษาคน → ข้อมูลตรง ๆ (ไม่มี LLM ฝั่งเรา) |
 | `/api/v1/customers` | GET · POST | `customers:read` / `customers:write` | ค้นหา/สร้างลูกค้า |
 | `/api/v1/customers/{id}` | GET · PATCH | `customers:read` / `customers:write` | โปรไฟล์ · PATCH ตรวจด้วย `validateProfileEdit()` ตัวเดียวกับหน้าเว็บ · GET คืน `retired` |
@@ -417,6 +418,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-11 | **MCP server `POST /api/mcp`** — API ทั้งชุดเป็น MCP (Streamable HTTP, stateless, bearer) · tool derive จาก `buildSpec()` (`lib/mcp/tools.ts`) · JSON-RPC core pure (`lib/mcp/protocol.ts`) · handler table typed ด้วย `RouteKey` · +14 tests · `integrations/mcp/README.md` config ต่อ client | `f458ab0` |
 | 2026-09-11 | **GPT importer ปฏิเสธ description > 300 ตัวอักษร** (`submitLabResult` 327 · `importCgmFile` 411) — ตัดให้พอดี ย้าย how-to ไป GPT-INSTRUCTIONS · **แยก `buildSpec()` ออกจาก route เป็น `lib/api/openapi-spec.ts` (บริสุทธิ์ รับ scopes/intents เป็นพารามิเตอร์)** เพื่อให้เทสต์โหลด spec ได้โดยไม่ต้องรัน Next · เพิ่ม 4 เทสต์ปักกฎ importer: description ≤300 · ห้ามมี multipart · operationId ไม่ซ้ำ+มี summary · 3 operation CGM ต้องอยู่ — ทั้งสองข้อแรกเคยพังบน production แล้ว | (คอมมิตนี้) |
 | 2026-09-11 | **GPT ตัด `importCgmFile` ทิ้งเพราะ multipart** — หลัง re-import schema แล้ว ChatGPT ยังบอกว่า action ไม่เปิดให้เรียก · OpenAI Actions ไม่รองรับ multipart/form-data และทิ้ง operation ทั้งตัว ไม่ใช่แค่ content type นั้น → เอา multipart ออกจาก spec ที่เผยแพร่ เหลือ JSON `{rows}` อย่างเดียว (เซิร์ฟเวอร์ยังรับ multipart) | (คอมมิตนี้) |
 | 2026-09-11 | **CGM ผ่านคำสั่งภาษาคน + ทางที่ ChatGPT ส่งไฟล์ได้จริง** — ต้นลองจาก ChatGPT: token มีสิทธิ์แล้วแต่ `/query` ตอบ `unknown_intent` (ยังไม่มี intent CGM) และ Action ไม่เห็น endpoint ใหม่ (GPT จำ schema ตอนตั้งค่า ไม่ดึงใหม่เอง) · เพิ่ม intent `cgm.metrics` (คำนวณให้เลย) และ `cgm.import` (คืน 400 ชี้ไป `importCgmFile` พร้อมรูป JSON — เพราะ `/query` รับข้อความไม่รับไฟล์) · **ChatGPT Actions ส่ง multipart ไม่ได้** → เขียนใน OpenAPI description + GPT-INSTRUCTIONS ให้แกะ xlsx ด้วย code interpreter แล้วส่ง `{rows:[…]}` ทุกแถว ห้ามตัดทอน · ขั้นตอน re-import schema เขียนไว้ใน GPT-INSTRUCTIONS | (คอมมิตนี้) |

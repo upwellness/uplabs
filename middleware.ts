@@ -30,6 +30,7 @@ const PUBLIC_PATHS = [
   // lib/api/auth.ts. Without this entry middleware would redirect the caller to
   // /login and the token would never even be read.
   "/api/v1",
+  "/api/mcp",                 // MCP server — same Bearer-token auth as /api/v1, runs inside the route
 ];
 
 const isPublic = (path: string) =>

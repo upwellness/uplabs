@@ -196,6 +196,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 |---|---|---|
 | `GET /meta` | any | ชื่อ token · scope ที่มี · ขอบเขตลูกค้า · จำนวนลูกค้าที่เห็น · rate limit ที่เหลือ · รายการ intent ทั้งหมด |
 | `GET /openapi.json` | public | OpenAPI 3.1 สำหรับ import เข้า ChatGPT Actions / n8n |
+| `POST /api/mcp` | any | MCP server — tool ทุกตัวของ API นี้ สำหรับ Claude Code / Cursor / Gemini CLI / n8n (§8.8) |
 | `GET /openapi.json?flavor=gemini` | public | เวอร์ชันที่ตัด key ที่ Gemini ไม่รับ (`default`, `maximum`, `minimum`) ออก แล้วย้ายความหมายไปไว้ใน `description` แทน |
 
 `GET /meta` คือ endpoint แรกที่ควรเรียก — บอกว่า token นี้ทำอะไรได้บ้างโดยไม่ต้องเดา
@@ -301,6 +302,26 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `notes.list` | "โน้ตของ X" | `notes:read` |
 | `notes.add` | "จดโน้ตให้ X ว่า …" | `notes:write` |
 | `links.invite` | "ขอลิงก์สมัครให้ที" | `links:write` |
+
+### 8.8 MCP server — `POST /api/mcp` (เพิ่ม 11 ก.ย. 2026)
+
+API ทั้งชุดเปิดเป็น **MCP server** (Model Context Protocol · Streamable HTTP · stateless) ที่ `https://upwellness-ops.vercel.app/api/mcp`
+ให้ AI client ทุกตัวที่รองรับ MCP ต่อได้ด้วย URL เดียว — Claude Code, Cursor, Windsurf, VS Code, Gemini CLI, Codex CLI, n8n, SDK
+
+| หัวข้อ | การตัดสินใจ |
+|---|---|
+| Transport | `POST` เดียว รับ JSON-RPC 2.0 (เดี่ยวหรือ batch) ตอบ JSON เสมอ · `GET` → 405 (ไม่มี SSE) · `DELETE` → 204 · ไม่มี session id |
+| Auth | **Bearer token เดิม** ใน `Authorization` header · ตรวจด้วย `authenticate()` ตัวเดียวกับ REST ก่อนทุก request (รวม `initialize`/`tools/list`) · ไม่ผ่าน → 401/403/429 พร้อม `WWW-Authenticate: Bearer` |
+| Tools | **derive อัตโนมัติจาก `buildSpec()`** — 1 operation = 1 tool · ชื่อ = `operationId` · path/query/body ยุบเป็น input object เดียว · `lib/mcp/tools.ts` โยน error ถ้า flatten แล้วชื่อชน จึงเพิ่ม operation ใหม่ใน OpenAPI แล้วได้ tool ฟรี |
+| Execution | tool call → สร้าง `Request` ใหม่ (header `Authorization`, IP, `user-agent: mcp:<tool> …`) → เรียก route handler ของ `/api/v1` ตรง ๆ ในโปรเซสเดียวกัน → **ไม่มี logic ซ้ำ**: scope, reach, rate limit, audit log เป็นตัวเดิมทั้งหมด |
+| ผลลัพธ์ | `content[0].text` = JSON string · `structuredContent` = object เดียวกัน · REST ตอบ ≥400 หรือ `ok:false` → `isError:true` + `http_status` |
+| Annotations | `readOnlyHint` = GET · `idempotentHint` = ไม่ใช่ POST · `destructiveHint` = false ทุกตัว (v1 ไม่มีการลบ/ทับประวัติ) |
+| Capabilities | เฉพาะ `tools` · `resources`/`prompts` → `-32601` |
+| Protocol version | รับ `2025-06-18` · `2025-03-26` · `2024-11-05` · ตอบ version ที่ client ขอถ้ารู้จัก ไม่งั้นตอบใหม่สุด |
+| ❌ ยังไม่รองรับ | **OAuth 2.1** — client ที่รับเฉพาะ OAuth (claude.ai custom connector · ChatGPT connector) ต่อไม่ได้ · ดู §14 |
+
+โค้ด: `lib/mcp/protocol.ts` (JSON-RPC, pure) · `lib/mcp/tools.ts` (derive จาก spec, pure) · `app/api/mcp/route.ts` (auth + handler table ที่ typed ด้วย `RouteKey` — เพิ่ม operation แล้วไม่ต่อ handler = build ไม่ผ่าน)
+เทสต์: `tests/mcp.test.mts` · วิธีตั้งค่าแต่ละ client: `integrations/mcp/README.md`
 
 ---
 
@@ -444,4 +465,5 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 |---|---|---|---|
 | 1 | ~~ให้ token เขียนผลแล็บได้เลย หรือยิงเข้า "รอตรวจสอบ" ก่อน~~ | **✅ ต้นเคาะ 31 ส.ค. 2026: เอาคิวรอตรวจสอบ** — เพิ่ม scope `labs:submit` + `POST /labs/submit` + หน้า `/v2/lab-inbox` · `labs:write` (เขียนตรง) ยังมีอยู่สำหรับ automation ที่ย้ายข้อมูลที่ยืนยันแล้ว |
 | 2 | ต้องมี token ที่คืนข้อมูลแบบไม่มีชื่อ (pseudonymous) ไหม | ต้น | ไม่ — เพิ่มทีหลังเป็น scope ใหม่ได้ |
-| 3 | จะทำ MCP server ต่อไหม (Claude ต่อตรงได้) | ต้น | ไม่ — roadmap |
+| 3 | ~~จะทำ MCP server ต่อไหม~~ | **✅ ทำแล้ว 11 ก.ย. 2026** — `POST /api/mcp` bearer token (§8.8) |
+| 4 | MCP OAuth 2.1 — ให้ claude.ai custom connector / ChatGPT connector ต่อตรงได้ไหม | ต้น | ไม่ — ต้องสร้าง authorization server (login + consent + PKCE + dynamic client registration) · ตอนนี้ client ทีมใช้ (Claude Code, Cursor, n8n) ต่อด้วย header ได้แล้ว |

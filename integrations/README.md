@@ -1,9 +1,10 @@
 # เชื่อม AI เข้ากับ UP Labs
 
-3 ไฟล์ เลือกใช้ตามเครื่องมือ
+4 ทาง เลือกใช้ตามเครื่องมือ
 
 | ไฟล์ | ใช้กับ | ทำอะไรได้ | ตั้งค่า |
 |---|---|---|---|
+| **`mcp/README.md`** ★ | Claude Code · Cursor · Windsurf · VS Code · Gemini CLI · Codex · n8n · SDK | **เรียก API เองได้จริง — tool ครบทุกตัว** | วาง URL `/api/mcp` + Bearer token ขั้นเดียว |
 | **`claude-skill/`** | Claude Code · Claude Desktop | **เรียก API เองได้จริง** | วางโฟลเดอร์ + ตั้ง `UPLAB_TOKEN` |
 | **`chatgpt/GPT-INSTRUCTIONS.md`** | ChatGPT (Custom GPT) | **เรียก API เองได้จริง** | 2 ขั้น — Actions + วาง Instructions |
 | **`DROP-IN.md`** | แชทไหนก็ได้ | ผู้ช่วยเขียน `curl` ให้ เอาไปรันเอง แล้ววางผลกลับ | วางไฟล์ + token ในแชท |
@@ -41,7 +42,9 @@ export UPLAB_TOKEN="uplab_live_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 **ให้ scope เท่าที่จำเป็น** — ผู้ช่วยที่ต้องการแค่อ่าน ให้ `customers:read` + `labs:read` พอ
 และตั้งวันหมดอายุไว้เสมอ
 
-## ถ้าทำ MCP server แล้ว
+## MCP server (ทำแล้ว 11 ก.ย. 2026)
 
-ทั้ง Claude, ChatGPT และ Gemini รองรับ MCP หมดแล้ว — เซิร์ฟเวอร์ตัวเดียวจะแทนที่ทั้ง 3 ไฟล์นี้
-และตั้งค่าเหลือขั้นเดียวคือวาง URL · ดู `docs/SPEC-External-API.md`
+`https://upwellness-ops.vercel.app/api/mcp` — client ที่รับ HTTP header ต่อได้ทันที (ดู `mcp/README.md`)
+
+**ยังต่อไม่ได้:** claude.ai เว็บ (custom connector) และ ChatGPT connector รับเฉพาะ OAuth ซึ่งยังไม่ได้ทำ —
+ChatGPT ให้ใช้ Custom GPT + Actions (`chatgpt/`) · Claude เว็บให้ใช้ `DROP-IN.md` ไปก่อน
