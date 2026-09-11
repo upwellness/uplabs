@@ -103,6 +103,29 @@ export const INTENTS: IntentDef[] = [
     describe: (_p, n) => `ค่าองค์ประกอบร่างกาย (BCA) ${who(n)}`.trim(),
   },
   {
+    intent: "cgm.metrics",
+    scope: "cgm:read",
+    needsCustomer: true,
+    keywords: [
+      { k: "cgm", w: 4 }, { k: "น้ำตาลต่อเนื่อง", w: 4 }, { k: "tir", w: 4 }, { k: "time in range", w: 4 },
+      { k: "ในเป้า", w: 3 }, { k: "กราฟน้ำตาล", w: 3 }, { k: "น้ำตาลแกว่ง", w: 3 }, { k: "cv", w: 2 },
+      { k: "gmi", w: 3 }, { k: "น้ำตาลตก", w: 3 }, { k: "น้ำตาลต่ำ", w: 3 }, { k: "ottai", w: 4 },
+      { k: "เซ็นเซอร์", w: 3 }, { k: "ติดเครื่อง", w: 3 }, { k: "glucose", w: 2 },
+    ],
+    describe: (_p, n) => `ตัวเลขสรุป CGM (TIR · TBR · CV · GMI) 14 วันล่าสุด ${who(n)}`.trim(),
+  },
+  {
+    intent: "cgm.import",
+    scope: "cgm:write",
+    needsCustomer: true,
+    keywords: [
+      { k: "นำเข้า cgm", w: 6 }, { k: "ลงไฟล์ cgm", w: 6 }, { k: "ใส่ไฟล์ cgm", w: 6 }, { k: "อัปโหลด cgm", w: 6 },
+      { k: "import cgm", w: 6 }, { k: "ไฟล์ ottai", w: 6 }, { k: "ลงข้อมูล cgm", w: 6 }, { k: "บันทึก cgm", w: 5 },
+      { k: "เอาไฟล์", w: 3 }, { k: "ลงไฟล์", w: 3 }, { k: "นำเข้า", w: 2 },
+    ],
+    describe: (_p, n) => `นำเข้าไฟล์ CGM ${who(n)}`.trim(),
+  },
+  {
     intent: "supplements.list",
     scope: "supplements:read",
     needsCustomer: true,

@@ -90,6 +90,12 @@ test("notes.add captures the body after ว่า", () => {
 
 test("BCA and supplements do not collide with lab queries", () => {
   assert.equal(resolveIntent("ค่า BCA ของ ต้น").intent, "measurements.list");
+  assert.equal(resolveIntent("TIR ของ คุณมาลี เท่าไร").intent, "cgm.metrics");
+  assert.equal(resolveIntent("ดูค่าน้ำตาลต่อเนื่องของคุณมาลี").intent, "cgm.metrics");
+  assert.equal(resolveIntent("ช่วยลงไฟล์ CGM ให้คุณมาลี").intent, "cgm.import");
+  assert.equal(resolveIntent("นำเข้าไฟล์ ottai ของคุณมาลี").intent, "cgm.import");
+  // "นำเข้า" alone is weak; "cgm" should not steal a lab question
+  assert.equal(resolveIntent("เทียบผลแล็บย้อนหลัง 3 รอบของคุณมาลี").intent, "labs.compare");
   assert.equal(resolveIntent("ต้น ทานอาหารเสริมอะไรอยู่").intent, "supplements.list");
 });
 

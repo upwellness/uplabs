@@ -293,6 +293,8 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `labs.abnormal` | "ค่าผิดปกติของ X มีอะไรบ้าง" | `labs:read` |
 | `overview.longevity` | "วิเคราะห์ภาพรวมทุก factor ของ X" | `labs:read` |
 | `measurements.list` | "ค่า BCA / น้ำหนักของ X" | `measurements:read` |
+| `cgm.metrics` | `cgm:read` | ✓ | TIR · TBR · CV · GMI 14 วันล่าสุด — "TIR ของ…", "น้ำตาลต่อเนื่อง", "กราฟน้ำตาล", "ottai" |
+| `cgm.import` | `cgm:write` | ✓ | **ไม่ทำเอง** — คืน 400 ชี้ไป `importCgmFile` พร้อมรูป JSON ที่ต้องส่ง เพราะ `/query` รับข้อความ ไม่รับไฟล์ |
 | `supplements.list` | "X กินอาหารเสริมอะไรอยู่" | `supplements:read` |
 | `notes.list` | "โน้ตของ X" | `notes:read` |
 | `notes.add` | "จดโน้ตให้ X ว่า …" | `notes:write` |

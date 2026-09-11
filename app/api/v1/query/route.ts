@@ -7,6 +7,8 @@ import {
 } from "@/lib/api/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Scope } from "@/lib/api/scopes";
+import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
+import { computeMetrics, TARGETS } from "@/lib/api/cgm-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +168,27 @@ export async function POST(req: Request) {
       case "measurements.list": {
         const rows = await getMeasurements(customerId!, 12);
         return envelope({ customer, measurements: rows }, rows.length);
+      }
+
+      case "cgm.metrics": {
+        const p = await getProfileNames(customerId!);
+        const profiles = p?.profiles ?? [];
+        const end = (await latestDate(profiles)) ?? todayBangkok();
+        const from = shiftDate(end, -13);
+        const rows = await getReadings(profiles, from, end);
+        const m = computeMetrics(toPoints(rows));
+        if (profiles.length === 0) m.caveats.unshift("ลูกค้ารายนี้ยังไม่มีข้อมูล CGM — ใช้คำสั่ง importCgmFile ก่อน");
+        return envelope({ customer, profiles, window: { from, to: end }, metrics: m, targets: TARGETS }, rows.length);
+      }
+
+      case "cgm.import": {
+        // /query carries text, not files. Point the caller at the real endpoint and
+        // say which shape works from where they are calling.
+        return apiError("bad_request",
+          "การนำเข้าไฟล์ CGM ต้องเรียก importCgmFile โดยตรง ไม่ผ่านคำสั่งภาษาคน — ChatGPT/Gemini: แกะไฟล์ .xlsx ด้วย code interpreter ให้ได้ [[เวลา, ค่าน้ำตาล], …] แล้วส่ง JSON {rows:[…]} · ระบบอื่น: ส่ง multipart file=",
+          { use_operation: "importCgmFile", customer_id: customerId,
+            json_shape: { rows: [["2026-09-11 19:08", 83], ["2026-09-11 19:03", 77]] },
+            note: "เวลาในไฟล์ถือเป็นเวลาไทย · ไม่ต้องส่ง profile_name ถ้าลูกค้ามีโปรไฟล์อยู่แล้ว" });
       }
 
       case "supplements.list": {
