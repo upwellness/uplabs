@@ -26,6 +26,8 @@ export const SCOPES = [
   "assessment:write",
   "food:read",
   "food:write",
+  "plan:read",
+  "plan:write",
 ] as const;
 
 export type Scope = (typeof SCOPES)[number];
@@ -43,6 +45,8 @@ export const SCOPE_LABEL_TH: Record<Scope, string> = {
   "notes:write": "เขียนโน้ตโค้ช",
   "links:write": "ขอลิงก์สมัคร",
   "cgm:read": "อ่านค่าน้ำตาลต่อเนื่อง (CGM) + ตัวเลขสรุป",
+  "plan:read": "อ่านแผนดูแล 90 วัน (ร่าง/ยืนยันแล้ว)",
+  "plan:write": "ร่างแผนดูแลใหม่ (โค้ชยืนยันในแอปเท่านั้น)",
   "food:read": "อ่านบันทึกอาหาร + สรุปรายวัน",
   "food:write": "บันทึกมื้ออาหารที่คนยืนยันแล้ว",
   "assessment:read": "อ่านผลประเมินสุขภาพรวม (UP Health Design)",
@@ -64,6 +68,8 @@ export const CLINICAL_SCOPES: Scope[] = [
   "assessment:write",
   "food:read",
   "food:write",
+  "plan:read",
+  "plan:write",
 ];
 
 export const isScope = (s: string): s is Scope => (SCOPES as readonly string[]).includes(s);

@@ -194,6 +194,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | `/api/v1/customers/{id}/overview` | GET | `labs:read` | ภาพรวมทุก factor (longevity snapshot) |
 | `/api/v1/customers/{id}/measurements` | GET · POST | `measurements:*` | BCA |
 | `/api/v1/customers/{id}/food` · `/api/v1/food/photo-date` | GET · POST | `food:read` / `food:write` | **บันทึกอาหาร 3 ทาง** + สรุปรายวัน · EXIF date จากรูปเก่า · SPEC-External-API §8.11 |
+| `/api/v1/customers/{id}/plan` | GET · POST | `plan:read` / `plan:write` | **แผนดูแล 90 วัน** — อ่าน / ร่าง (ยืนยัน+ส่งเฉพาะในแอป) · SPEC-External-API §8.12 |
 | `/api/v1/customers/{id}/assessment` | GET · POST | `assessment:read` / `assessment:write` | **ผลประเมินสุขภาพรวม 7 ด้าน** (UP Health Design เฟส 1) · SPEC-External-API §8.10 |
 | `/api/v1/customers/{id}/supplements` | GET | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
 | `/api/v1/customers/{id}/notes` | GET · POST | `notes:*` | โน้ตโค้ช |
@@ -284,6 +285,13 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **App registry:** `lib/apps-registry.ts` — เพิ่มแอปใหม่ต้องลงทะเบียนที่นี่ + เพิ่มลิงก์ใน `app/v2/_components/Shell.tsx`
 
 ---
+
+### 5.12 UP Health Design — แผนดูแล 90 วัน (เฟส 3 · 12 ก.ย. 2026)
+
+การ์ด "แผนดูแล 90 วัน" บน Customer 360 + `/api/customers/[id]/plan` + `/r/plan/[token]` + External API/MCP `getPlan`/`draftPlan`
+- **engine:** `lib/health-design/plan.ts` (pure · 4 tests) ร่างจาก assessment ล่าสุด: เป้า 90 วัน · อาหาร (Plate Planner) · กิจวัตร · อาหารเสริม (เภสัชกรจัดเท่านั้น) · ตรวจซ้ำ · ธงพบแพทย์
+- **วงจร:** ร่าง (engine) → โค้ชแก้ในการ์ด → **ยืนยัน** (เก็บ `final` + `edits`) → **ส่ง** ลิงก์หรือ LINE (`line_bot_groups`) → ลูกค้าเปิด `/r/plan/<token>` · ลูกค้าไม่เห็นอะไรก่อนโค้ชยืนยัน · `origin` = coach ถ้าโค้ชแก้
+- ตาราง `health_plans` · 1 แผน live ต่อลูกค้า (ร่างใหม่ = archive ร่างเก่า)
 
 ### 5.11 UP Health Design — ผลประเมินสุขภาพรวม (เฟส 1 · 12 ก.ย. 2026)
 
@@ -433,6 +441,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **UP Health Design เฟส 3 — แผนดูแล 90 วัน** · `lib/health-design/plan.ts` + `plan-store.ts` · ตาราง `health_plans` · การ์ด PlanCard (ร่าง→แก้→ยืนยัน→ส่งลิงก์/LINE) · `/r/plan/[token]` · External API/MCP `getPlan`/`draftPlan` + scope `plan:*` + intent `plan.get` · NutriScan เพิ่มปุ่มเลือกจากอัลบั้ม (มือถือเคยบังคับกล้อง) · +4 tests (156) | _pending_ |
 | 2026-09-12 | **UP Health Design เฟส 2 — Food log 3 ทาง** · `nutriscan_scans` + `eaten_at/time_known/source/estimated_by/confirmed_*/edited/items` (migration `20260912_food_log.sql`) · NutriScan เลิก auto-save → แผงยืนยัน + `POST /api/nutriscan/save` · EXIF date จากรูปเก่า (`lib/food/entries.ts` parser ไม่ใช้ dependency) · External API/MCP `getFoodLog` `logFood` `readFoodPhotoDate` + scope `food:*` + intent `food.list` · Assessment อ่าน food log แล้ว · +6 tests (152) | `6be246f` |
 | 2026-09-12 | **UP Health Design เฟส 1** — Assessment Engine 7 ด้าน (`lib/health-design/`) + ตาราง `health_assessments` + การ์ดบน Customer 360 + `/api/customers/[id]/assessment` + External API/MCP `getAssessment`/`runAssessment` + intent `assessment.get` + scope `assessment:*` + trigger หลังบันทึกแล็บ/BCA/CGM · +10 tests (146) · test runner รองรับ `@/` alias แล้ว (`tests/_resolve-ts.mjs`) | `28d1115` |
 | 2026-09-12 | **สเปกร่าง UP Health Design** (`docs/SPEC-Health-Design.md`) — ตรวจว่าคำโปรโมต 9 คำจริงแค่ไหนวันนี้ (4 จริง · 3 ครึ่ง · 2 ยังพูดไม่ได้: "ฐานข้อมูลขนาดใหญ่", "realtime") · 6 ชิ้นงาน · 4 เฟส · Q1–Q7 รอเคาะ · Roadmap ข้อ 6 · ยืนยันแล้วว่า OAuth MCP ใช้ได้จริง (connector `OAuth · Claude` อ่านข้อมูลได้) | `0ae4ae5` |

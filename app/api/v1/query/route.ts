@@ -10,6 +10,7 @@ import type { Scope } from "@/lib/api/scopes";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
 import { latestAssessment, runAssessment } from "@/lib/health-design/load";
 import { foodWindow } from "@/lib/food/store";
+import { currentPlan } from "@/lib/health-design/plan-store";
 import { DOMAIN_LABEL_TH } from "@/lib/health-design/assess";
 import { computeMetrics, TARGETS } from "@/lib/api/cgm-metrics";
 
@@ -171,6 +172,11 @@ export async function POST(req: Request) {
       case "measurements.list": {
         const rows = await getMeasurements(customerId!, 12);
         return envelope({ customer, measurements: rows }, rows.length);
+      }
+
+      case "plan.get": {
+        const p = await currentPlan(customerId!);
+        return envelope({ customer, plan: p ? { plan_id: p.id, status: p.status, is_draft: p.status === "draft", goal: p.goal, plan: p.final ?? p.draft, coach_note: p.coach_note } : null }, p ? 1 : 0);
       }
 
       case "food.list": {

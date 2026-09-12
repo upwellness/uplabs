@@ -15,7 +15,7 @@ const PUBLIC_PATHS = [
   "/intake",                  // UP Pulse customer-facing intake form
   "/api/pulse/intakes",       // intake submit (POST by token — no auth)
   "/api/pulse/share",         // public report fetch
-  "/r",                       // public report page
+  "/r",                       // public report page (+ /r/plan/<token> — confirmed care plan)
   "/check",                   // Public Health Check form (lead capture)
   "/metaflex",                // Public MetaFlex Quiz (lead capture)
   "/api/check",               // Public submit endpoint

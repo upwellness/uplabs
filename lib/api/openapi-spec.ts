@@ -393,6 +393,23 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
           responses: { "200": { description: "ok" } },
         },
       },
+      "/customers/{id}/plan": {
+        get: {
+          operationId: "getPlan",
+          summary: "แผนดูแล 90 วัน (UP Health Design)",
+          description: "คืนแผนล่าสุด · is_draft=true = โค้ชยังไม่ยืนยัน ห้ามนำไปบอกลูกค้าเป็นแผนจริง · แผนที่ยืนยันแล้วมี goals_90d · nutrition (เป้า+เมนู 7 วัน) · lifestyle · supplements (เภสัชกรจัด) · retest · doctor_flags",
+          parameters: [customerId],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "draftPlan",
+          summary: "ร่างแผนดูแลใหม่จากผลประเมินล่าสุด (โค้ชต้องยืนยันในแอปก่อนส่งลูกค้า)",
+          description: "สร้างร่างจาก getAssessment ล่าสุด · goal เลือกได้ loss/longevity/muscle ไม่ใส่ = ระบบเลือกจากองค์ประกอบร่างกาย · ร่างเก่าที่ยังไม่ยืนยันถูกแทนที่ · ระบบไม่เสนออาหารเสริมเอง",
+          parameters: [customerId],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { goal: { type: "string", enum: ["loss", "longevity", "muscle"] } } } } } },
+          responses: { "200": { description: "ร่างแล้ว — รอโค้ชยืนยัน" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

@@ -35,6 +35,7 @@ import * as cgmImport from "@/app/api/v1/customers/[id]/cgm/import/route";
 import * as assessment from "@/app/api/v1/customers/[id]/assessment/route";
 import * as food from "@/app/api/v1/customers/[id]/food/route";
 import * as photoDate from "@/app/api/v1/food/photo-date/route";
+import * as plan from "@/app/api/v1/customers/[id]/plan/route";
 import * as supplements from "@/app/api/v1/customers/[id]/supplements/route";
 import * as notes from "@/app/api/v1/customers/[id]/notes/route";
 
@@ -67,6 +68,8 @@ const HANDLERS: Record<RouteKey, Handler> = {
   "GET /customers/{id}/food": food.GET,
   "POST /customers/{id}/food": food.POST,
   "POST /food/photo-date": photoDate.POST,
+  "GET /customers/{id}/plan": plan.GET,
+  "POST /customers/{id}/plan": plan.POST,
   "GET /customers/{id}/supplements": supplements.GET,
   "GET /customers/{id}/notes": notes.GET,
   "POST /customers/{id}/notes": notes.POST,

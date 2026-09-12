@@ -154,6 +154,8 @@ uplab_<env>_<prefix8>_<secret32>
 | `food:read` | อ่านบันทึกอาหาร + สรุปรายวัน (เฉลี่ยเฉพาะวันที่บันทึก) |
 | `food:write` | บันทึกมื้ออาหารที่คนยืนยันตัวเลขแล้ว (`confirmed: true` บังคับ) |
 | `assessment:read` | อ่านผลประเมินสุขภาพรวม 7 ด้าน (UP Health Design) |
+| `plan:read` | อ่านแผนดูแล 90 วัน (ร่าง = `is_draft:true` ห้ามบอกลูกค้าว่าเป็นแผนจริง) |
+| `plan:write` | ร่างแผนใหม่จากผลประเมินล่าสุด — **ยืนยัน/ส่งทำได้เฉพาะโค้ชในแอป** |
 | `assessment:write` | สั่งประเมินใหม่เดี๋ยวนี้ |
 
 **หลักการ:** scope เป็น **allow-list** — ไม่ระบุ = ไม่ได้ · ไม่มี scope แบบ `*`
@@ -301,6 +303,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `overview.longevity` | "วิเคราะห์ภาพรวมทุก factor ของ X" | `labs:read` |
 | `measurements.list` | "ค่า BCA / น้ำหนักของ X" | `measurements:read` |
 | `cgm.metrics` | `cgm:read` | ✓ | TIR · TBR · CV · GMI 14 วันล่าสุด — "TIR ของ…", "น้ำตาลต่อเนื่อง", "กราฟน้ำตาล", "ottai" |
+| `plan.get` | `plan:read` | ✓ | "แผนดูแลของ X" → แผนล่าสุด (บอกสถานะ draft/confirmed/sent) |
 | `food.list` | `food:read` | ✓ | "X กินอะไรบ้าง / บันทึกอาหารของ X" → 14 วัน + สรุปรายวัน |
 | `assessment.get` | `assessment:read` | ✓ | "ประเมินสุขภาพรวมของ X" / "X ควรทำอะไรก่อน" → ผลประเมินล่าสุด (คำนวณให้ถ้ายังไม่มี) |
 | `cgm.import` | `cgm:write` | ✓ | **ไม่ทำเอง** — คืน 400 ชี้ไป `importCgmFile` พร้อมรูป JSON ที่ต้องส่ง เพราะ `/query` รับข้อความ ไม่รับไฟล์ |
@@ -372,6 +375,17 @@ claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไ�
 
 กฎ (pure ใน `lib/food/entries.ts` · 6 tests): `confirmed` ต้องเป็น `true` จริง ๆ = คนเห็นตัวเลขแล้ว · `eaten_at` รับ `"YYYY-MM-DD HH:MM"` (เวลาไทย) · `"YYYY-MM-DD"` (ไม่รู้เวลา → เก็บ 12:00 + `time_known=false`) · EXIF `"YYYY:MM:DD HH:MM:SS"` · ISO · **ปฏิเสธอนาคตและไม่ fallback เป็น "ตอนนี้"** · ต้องมี calories หรือมาโครอย่างน้อย 1 ค่า · ช่วง 0–5000 kcal / 0–1000 g
 ในแอป: NutriScan **เลิกบันทึกอัตโนมัติ** — วิเคราะห์ (`save:false`) → แผง "ยืนยันตัวเลข" แก้ได้ทุกช่อง → `POST /api/nutriscan/save` (session) เก็บพร้อม `edited` ว่าคนแก้อะไรจาก AI · เลือกรูปเก่า → อ่าน EXIF ในเบราว์เซอร์ (ไฟล์ต้นฉบับ ก่อนย่อ) เติมช่อง "กินเมื่อไร" · รูปเก่าไม่มี EXIF → ช่องว่างและบังคับกรอก
+
+### 8.12 Care plan — แผนดูแล 90 วัน (เพิ่ม 12 ก.ย. 2026 · เฟส 3 ของ SPEC-Health-Design)
+
+| Endpoint | Scope | คืนอะไร |
+|---|---|---|
+| `GET /customers/{id}/plan` | `plan:read` | แผนที่ยังไม่ archived: `status` draft/confirmed/sent · `plan` = `final` (ถ้ายืนยันแล้ว) ไม่งั้น `draft` + `is_draft:true` |
+| `POST /customers/{id}/plan` `{goal?}` | `plan:write` | ร่างใหม่จาก assessment ล่าสุด (คำนวณให้ถ้ายังไม่มี) · ร่างเก่าที่ยังไม่ยืนยัน → archived · **ไม่มี confirm/send ใน External API โดยตั้งใจ** |
+
+โครงแผน (`lib/health-design/plan.ts` · pure · 4 tests): `goal` (loss/longevity/muscle — จาก `plate_plan_config` ถ้ามี ไม่งั้นจากองค์ประกอบร่างกาย) · `goals_90d[]` (จาก priorities · เป้า = ขอบบนของแบนด์ที่อ้างอิง) · `nutrition` (เป้า kcal/P/C/F จาก Plate Planner `calcTargets` + เมนู 7 วัน `buildPlan` — ว่างถ้าไม่มีน้ำหนัก/ส่วนสูง) · `lifestyle[]` (นอน AASM · ก้าว Tudor-Locke · แรงต้าน WHO 2020 · +บันทึกอาหาร/CGM ถ้าขาด) · `supplements` = ตาราง `supplement_schedule` ของเภสัชกร **ระบบไม่เสนอเอง** (test บังคับว่าไม่มีชื่อสินค้าใน engine) · `retest[]` (ค่าที่ขาด 30 วัน · ด้านคลินิกที่ติดธง 90 วัน · BCA 30 วัน) · `doctor_flags[]` (driver ระดับ attention ในด้านคลินิก)
+วงจรในแอป (`/api/customers/[id]/plan` session): `draft` → โค้ชแก้ goals/lifestyle/retest + โน้ต → `confirm` (เก็บ `final` + `edits` diff + `share_token`) → `send` via `link` หรือ `line` (push ข้อความ + ลิงก์เข้ากลุ่ม LINE ที่ผูกลูกค้า) → ลูกค้าเปิด `/r/plan/<token>` (อ่านได้เฉพาะแผนที่ `sent_at` แล้ว)
+ตาราง `health_plans` (migration `20260912_health_plans.sql`) · การ์ด "แผนดูแล 90 วัน" บน Customer 360
 
 ---
 

@@ -34,6 +34,7 @@ import { ReportUploadButton } from "./_v2/ReportUploadButton";
 import { DisableProfileButton, DisabledBanner } from "./_v2/DisableProfileButton";
 import { EditProfileDialog } from "./_v2/EditProfileDialog";
 import { AssessmentCard } from "./_v2/AssessmentCard";
+import { PlanCard } from "./_v2/PlanCard";
 
 /**
  * Labs/Trends tabs are loaded on demand (SPEC §8 "กราฟ lazy/conditional").
@@ -138,6 +139,7 @@ export default function V2Customer360Page({ params }: { params: { id: string } }
           <div className="space-y-5 lg:col-span-2">
             <VitalDashboard data={data} />
             <AssessmentCard customerId={id} />
+            <PlanCard customerId={id} />
             <TimelinePanel events={data.timeline} />
           </div>
           <div className="lg:col-span-1">

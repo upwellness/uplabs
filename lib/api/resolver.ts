@@ -103,6 +103,16 @@ export const INTENTS: IntentDef[] = [
     describe: (_p, n) => `ค่าองค์ประกอบร่างกาย (BCA) ${who(n)}`.trim(),
   },
   {
+    intent: "plan.get",
+    scope: "plan:read",
+    needsCustomer: true,
+    keywords: [
+      { k: "แผนดูแล", w: 5 }, { k: "แผน 90 วัน", w: 5 }, { k: "แผนสุขภาพ", w: 5 }, { k: "care plan", w: 5 }, { k: "แผนของ", w: 3 },
+      { k: "โปรแกรม", w: 2 }, { k: "เป้าหมาย", w: 2 },
+    ],
+    describe: (_p, n) => `แผนดูแล 90 วันล่าสุด ${who(n)}`.trim(),
+  },
+  {
     intent: "food.list",
     scope: "food:read",
     needsCustomer: true,
