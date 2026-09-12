@@ -277,15 +277,26 @@ export function NutriScanClient() {
           {mode === "image" && (
             <div className="mt-4">
               {!imageDataUrl ? (
-                <label className="block cursor-pointer">
-                  <input ref={fileRef} type="file" accept="image/*" capture="environment"
-                         onChange={onPickFile} className="hidden" />
-                  <div className="flex h-48 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-10 bg-surface hover:border-rose hover:bg-rose-ultra transition-colors">
-                    <div className="text-4xl mb-2">📷</div>
-                    <div className="font-thai text-sm font-semibold text-ink">แตะเพื่อถ่ายรูป / เลือกรูป</div>
-                    <div className="mt-1 font-thai text-[11px] text-ink-40">JPG · PNG · WebP</div>
-                  </div>
-                </label>
+                // Two pickers: `capture` forces the camera on phones, which blocked logging an
+                // old photo from the album — so the album picker has no capture attribute.
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block cursor-pointer">
+                    <input type="file" accept="image/*" capture="environment" onChange={onPickFile} className="hidden" />
+                    <div className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-10 bg-surface hover:border-rose hover:bg-rose-ultra transition-colors">
+                      <div className="text-4xl mb-2">📷</div>
+                      <div className="font-thai text-sm font-semibold text-ink">ถ่ายรูปตอนนี้</div>
+                      <div className="mt-1 font-thai text-[11px] text-ink-40">เวลา = ตอนนี้</div>
+                    </div>
+                  </label>
+                  <label className="block cursor-pointer">
+                    <input ref={fileRef} type="file" accept="image/*" onChange={onPickFile} className="hidden" />
+                    <div className="flex h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-10 bg-surface hover:border-rose hover:bg-rose-ultra transition-colors">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <div className="font-thai text-sm font-semibold text-ink">เลือกจากอัลบั้ม</div>
+                      <div className="mt-1 font-thai text-[11px] text-ink-40">รูปเก่าได้ · อ่านเวลาจากรูป</div>
+                    </div>
+                  </label>
+                </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-ink-10">
                   <img src={imageDataUrl} alt="food" className="h-72 w-full object-cover" />
