@@ -185,6 +185,7 @@ customers (46 แถว)
 | Auth | Supabase Auth (email+password) · session ผ่าน `lib/auth/session.ts` |
 | Role | `admin` / `abo` (`lib/auth/roles.ts`) + `user_app_grants` รายแอป |
 | ข้อมูลลูกค้า | `lib/customers/access.ts` → **`canManageCustomer()` = ด่านเดียว** — เจ้าของ (`coach_id`) · ผู้ได้รับมอบหมาย (`customer_assignments`) · **upline ของเจ้าของทุกระดับชั้น (อ่าน+เขียน · recursive ผ่าน RPC `profile_descendant_ids`)** · ห้าม route เขียนเช็คสิทธิ์เอง (เคยทำให้ read/write ไม่ตรงกัน → `forbidden` งง ๆ) |
+| Backup | RPC `backup_catalog()` · `backup_clear_table()` · `backup_reset_sequences()` (SECURITY DEFINER · service_role เท่านั้น) · bucket `db-backups` (private) · cron 03:00 |
 | RLS | เปิดบนตารางอ่อนไหว (เช่น `cgm_readings`, `cgm_meals`) · CGM ใช้ passcode + SECURITY DEFINER RPC |
 | Service role | ใช้ได้เฉพาะ `lib/supabase/admin.ts` ฝั่งเซิร์ฟเวอร์ · ห้ามหลุดไป client |
 | ลิงก์สาธารณะ | token แบบใช้ครั้งเดียว/มีวันหมดอายุ (`user_invites`, `pulse_invites`, `pulse_intakes`) |

@@ -1,416 +1,202 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+/**
+ * Admin · Backup / Restore — whole database (PRD §5.10).
+ *
+ *   1. Snapshots in Storage — nightly automatic (03:00) + "take one now"; download / restore / delete
+ *   2. Download now — build a snapshot of all (or chosen) tables straight to the browser
+ *   3. Restore — from a stored snapshot or an uploaded file; always a dry run first;
+ *      real run needs the confirmation word; replace mode clears the chosen tables
+ */
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import type { TableInfo } from "@/lib/backup/tables";
+import { formatBytes, type CatalogEntry, type RestorePlan } from "@/lib/backup/snapshot";
 
-interface TablesResp {
-  tables: TableInfo[];
-  counts: Record<string, number | null>;
-}
+interface Stored { name: string; created_at: string; bytes: number }
+interface Report { dry_run: boolean; mode: string; snapshot: { created_at: string; created_by: string; version: number; totals: { tables: number; rows: number } }; plan: RestorePlan; results: { table: string; cleared?: number; written: number; errors: string[] }[]; sequences_reset: number; ok: boolean }
 
-type Mode = "backup" | "restore";
-
-const GROUP_LABEL: Record<TableInfo["group"], string> = {
-  core:      "Core",
-  bca:       "BCA",
-  cgm:       "CGM",
-  pulse:     "Pulse",
-  leads:     "Leads",
-  nutriscan: "NutriScan",
-  auth:      "Auth",
-};
-
-const GROUP_ACCENT: Record<TableInfo["group"], string> = {
-  core:      "border-rose/40 text-rose bg-rose-ultra",
-  bca:       "border-science/40 text-science bg-science-ultra",
-  cgm:       "border-wellness/40 text-wellness bg-wellness-ultra",
-  pulse:     "border-amber/40 text-amber bg-amber-ultra",
-  leads:     "border-rose/40 text-rose bg-rose-ultra",
-  nutriscan: "border-wellness/40 text-wellness bg-wellness-ultra",
-  auth:      "border-ink-20 text-ink-60 bg-ink-5",
-};
+const fmtDate = (s: string) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "—");
 
 export function BackupClient() {
-  const [mode, setMode] = useState<Mode>("backup");
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [counts, setCounts] = useState<Record<string, number | null>>({});
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [order, setOrder] = useState<string[]>([]);
+  const [totals, setTotals] = useState<{ tables: number; rows: number } | null>(null);
+  const [snapshots, setSnapshots] = useState<Stored[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [includeStructure, setIncludeStructure] = useState(true);
-  const [includeAuthUsers, setIncludeAuthUsers] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastBackup, setLastBackup] = useState<{ filename: string; size: number; total: number } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ tone: "ok" | "err" | "info"; text: string } | null>(null);
+  // restore
+  const [source, setSource] = useState<{ kind: "stored"; name: string } | { kind: "file"; file: File } | null>(null);
+  const [mode, setMode] = useState<"upsert" | "replace">("upsert");
+  const [onlySelected, setOnlySelected] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [report, setReport] = useState<Report | null>(null);
 
-  // Restore state
-  const [restoreFile, setRestoreFile] = useState<File | null>(null);
-  const [restoreParsed, setRestoreParsed] = useState<any | null>(null);
-  const [restoreResult, setRestoreResult] = useState<any | null>(null);
-  const [restoreMode, setRestoreMode] = useState<"preview" | "execute">("preview");
-  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/backup");
-        if (!res.ok) throw new Error((await res.json()).error ?? "failed to load tables");
-        const json: TablesResp = await res.json();
-        setTables(json.tables);
-        setCounts(json.counts);
-        setSelected(new Set(json.tables.map((t) => t.name)));
-      } catch (e: any) {
-        setError(e.message);
-      } finally { setLoading(false); }
-    })();
+  const load = useCallback(async () => {
+    setBusy("load");
+    try {
+      const [c, s] = await Promise.all([fetch("/api/admin/backup/catalog", { cache: "no-store" }).then((r) => r.json()), fetch("/api/admin/backup/snapshots", { cache: "no-store" }).then((r) => r.json())]);
+      if (c.error) throw new Error(c.error);
+      setCatalog(c.catalog ?? []); setOrder(c.order ?? []); setTotals(c.totals ?? null);
+      setSnapshots(s.snapshots ?? []);
+      if (s.error) setMsg({ tone: "err", text: `รายการ snapshot: ${s.error}` });
+    } catch (e: any) { setMsg({ tone: "err", text: e.message ?? "โหลดไม่สำเร็จ" }); }
+    finally { setBusy(null); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const grouped = useMemo(() => {
-    const byGroup: Record<TableInfo["group"], TableInfo[]> = {
-      core: [], bca: [], cgm: [], pulse: [], leads: [], nutriscan: [], auth: [],
-    };
-    for (const t of tables) byGroup[t.group].push(t);
-    return byGroup;
-  }, [tables]);
+  const ordered = useMemo(() => order.map((t) => catalog.find((c) => c.table_name === t)!).filter(Boolean), [order, catalog]);
+  const toggle = (t: string) => setSelected((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
 
-  const totalRows = useMemo(
-    () => Array.from(selected).reduce((sum, name) => sum + (counts[name] ?? 0), 0),
-    [selected, counts],
-  );
-
-  const toggle = (name: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  const downloadNow = async () => {
+    setBusy("download"); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tables: selected.size ? [...selected] : null, includeAuthUsers: true }) });
+      if (!r.ok) throw new Error((await r.json()).error ?? "backup failed");
+      const blob = await r.blob(); const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "uplabs_snapshot.json";
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+      setMsg({ tone: "ok", text: `ดาวน์โหลดแล้ว ${name} (${formatBytes(blob.size)})` });
+    } catch (e: any) { setMsg({ tone: "err", text: e.message }); } finally { setBusy(null); }
   };
 
-  const selectAll  = () => setSelected(new Set(tables.map((t) => t.name)));
-  const selectNone = () => setSelected(new Set());
-
-  const runBackup = async () => {
-    if (selected.size === 0) { setError("เลือกอย่างน้อย 1 table"); return; }
-    setBusy(true); setError(null); setLastBackup(null);
+  const snapshotNow = async () => {
+    setBusy("snapshot"); setMsg(null);
     try {
-      const res = await fetch("/api/admin/backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tables: Array.from(selected),
-          includeStructure,
-          includeAuthUsers,
-        }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? "backup failed");
-
-      const blob = await res.blob();
-      const cd = res.headers.get("Content-Disposition") ?? "";
-      const m = cd.match(/filename="([^"]+)"/);
-      const filename = m?.[1] ?? `upwellness-backup-${Date.now()}.json`;
-
-      // Trigger download
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = filename; document.body.appendChild(a);
-      a.click(); a.remove();
-      URL.revokeObjectURL(url);
-
-      setLastBackup({ filename, size: blob.size, total: totalRows });
-    } catch (e: any) { setError(e.message); }
-    finally { setBusy(false); }
+      const r = await fetch("/api/admin/backup/snapshots", { method: "POST" }); const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "snapshot failed");
+      setMsg({ tone: "ok", text: `เก็บ snapshot แล้ว: ${j.stored.name} · ${j.totals.tables} ตาราง · ${j.totals.rows.toLocaleString()} แถว · ${formatBytes(j.stored.bytes)} (บีบอัด)` });
+      await load();
+    } catch (e: any) { setMsg({ tone: "err", text: e.message }); } finally { setBusy(null); }
   };
 
-  const handleRestoreFile = async (file: File) => {
-    setRestoreFile(file); setRestoreParsed(null); setRestoreResult(null); setError(null);
+  const removeSnapshot = async (name: string) => {
+    if (!window.confirm(`ลบ snapshot ${name}?`)) return;
+    setBusy(name);
+    try { const r = await fetch(`/api/admin/backup/snapshots/${encodeURIComponent(name)}`, { method: "DELETE" }); if (!r.ok) throw new Error((await r.json()).error); await load(); }
+    catch (e: any) { setMsg({ tone: "err", text: e.message }); } finally { setBusy(null); }
+  };
+
+  const runRestore = async (dryRun: boolean) => {
+    if (!source) return;
+    setBusy(dryRun ? "dry" : "restore"); setMsg(null); if (dryRun) setReport(null);
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== "object" || !parsed.tables) {
-        throw new Error("ไฟล์ไม่ถูกต้อง · ต้องเป็น JSON ที่มี key 'tables'");
+      const only = onlySelected && selected.size ? [...selected] : null;
+      let r: Response;
+      if (source.kind === "file") {
+        const fd = new FormData(); fd.append("file", source.file); fd.append("mode", mode); fd.append("dry_run", String(dryRun)); fd.append("confirm", confirm); if (only) fd.append("only", only.join(","));
+        r = await fetch("/api/admin/restore", { method: "POST", body: fd });
+      } else {
+        r = await fetch("/api/admin/restore", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ snapshot_name: source.name, mode, only, dry_run: dryRun, confirm }) });
       }
-      setRestoreParsed(parsed);
-    } catch (e: any) { setError(`อ่านไฟล์ไม่ได้: ${e.message}`); }
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "restore failed");
+      setReport(j);
+      if (!dryRun) { setMsg({ tone: j.ok ? "ok" : "err", text: j.ok ? `กู้คืนเสร็จ · ${j.plan.totals.tables} ตาราง · ${j.plan.totals.rows.toLocaleString()} แถว · sequences ${j.sequences_reset}` : "กู้คืนมีบางตารางล้มเหลว — ดูรายงานด้านล่าง" }); setConfirm(""); await load(); }
+    } catch (e: any) { setMsg({ tone: "err", text: e.message }); } finally { setBusy(null); }
   };
 
-  const runRestore = async (execute: boolean) => {
-    if (!restoreParsed) return;
-    setBusy(true); setError(null); setRestoreResult(null);
-    try {
-      const res = await fetch(`/api/admin/restore?mode=${execute ? "execute" : "preview"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(restoreParsed),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "restore failed");
-      setRestoreResult(json);
-      if (execute) setRestoreConfirmOpen(false);
-    } catch (e: any) { setError(e.message); }
-    finally { setBusy(false); }
-  };
-
+  const word = mode === "replace" ? "REPLACE" : "RESTORE";
+  const box = "rounded-3xl border border-ink-10 bg-white p-6";
   return (
-    <div className="mt-8">
-      {/* Mode tabs */}
-      <div className="flex items-center gap-1 mb-6 rounded-2xl border border-ink-10 bg-white p-1 w-fit">
-        {([
-          { v: "backup",  label: "📦 Backup",  desc: "Download" },
-          { v: "restore", label: "♻️ Restore", desc: "Upload" },
-        ] as const).map((t) => (
-          <button
-            key={t.v}
-            onClick={() => setMode(t.v)}
-            className={`rounded-xl px-4 py-2 text-sm font-bold transition-all ${
-              mode === t.v ? "bg-ink text-white" : "text-ink-60 hover:bg-ink-5"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+    <div className="mt-6 space-y-6">
+      {msg && <div className={`rounded-xl px-4 py-3 font-thai text-sm ${msg.tone === "ok" ? "bg-status-bg-optimal text-status-optimal" : msg.tone === "err" ? "bg-status-bg-danger text-status-danger" : "bg-surface text-ink"}`}>{msg.text}</div>}
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-status-bg-danger bg-status-bg-danger px-4 py-3 text-sm text-status-danger">
-          ⚠ {error}
+      {/* 1 · stored snapshots */}
+      <section className={box}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-head text-[16px] font-extrabold text-ink">Snapshot ในระบบ</h2>
+            <p className="font-thai text-[12px] text-ink-60">อัตโนมัติทุกคืน 03:00 (เก็บ 30 ชุดล่าสุด) · ที่กดเก็บเองไม่ถูกลบอัตโนมัติ · ทั้งฐาน {totals ? `${totals.tables} ตาราง · ${totals.rows.toLocaleString()} แถว` : "…"}</p>
+          </div>
+          <Button variant="rose" size="sm" onClick={snapshotNow} disabled={!!busy}>{busy === "snapshot" ? "กำลังเก็บ…" : "📸 เก็บ snapshot ตอนนี้"}</Button>
         </div>
-      )}
-
-      {mode === "backup" ? (
-        loading ? (
-          <SkeletonGroups />
-        ) : (
-          <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-            {/* Tables picker */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-40 font-bold">
-                  เลือก tables ({selected.size}/{tables.length})
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={selectAll}  className="rounded-full border border-ink-10 bg-white px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20">ทั้งหมด</button>
-                  <button onClick={selectNone} className="rounded-full border border-ink-10 bg-white px-3 py-1 text-[11px] font-semibold text-ink-60 hover:border-ink-20">ล้าง</button>
-                </div>
-              </div>
-
-              {(["core", "bca", "cgm", "pulse", "leads", "nutriscan", "auth"] as const).map((g) =>
-                grouped[g].length > 0 && (
-                  <div key={g} className="rounded-3xl border border-ink-10 bg-white p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${GROUP_ACCENT[g]}`}>{GROUP_LABEL[g]}</span>
-                      <span className="font-mono text-[10px] text-ink-40">{grouped[g].length} tables</span>
-                    </div>
-                    <div className="space-y-2">
-                      {grouped[g].map((t) => {
-                        const checked = selected.has(t.name);
-                        const count = counts[t.name];
-                        return (
-                          <label key={t.name} className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all ${checked ? "border-ink-20 bg-ink-5/40" : "border-ink-10 hover:border-ink-20"}`}>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggle(t.name)}
-                              className="mt-1 h-4 w-4 accent-rose"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-baseline gap-2 flex-wrap">
-                                <span className="font-mono text-[13px] font-bold text-ink">{t.name}</span>
-                                <span className="font-thai text-[12px] text-ink-60">— {t.label}</span>
-                              </div>
-                              <div className="mt-0.5 font-thai text-[12px] text-ink-50">{t.description}</div>
-                            </div>
-                            <span className="shrink-0 font-mono text-[11px] font-bold text-ink-60">
-                              {count == null ? "—" : `${count.toLocaleString()} rows`}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )
-              )}
+        <div className="mt-4 divide-y divide-ink-10 rounded-2xl border border-ink-10">
+          {snapshots.length === 0 && <div className="p-4 font-thai text-[12px] text-ink-40">ยังไม่มี snapshot — กด "เก็บ snapshot ตอนนี้" หรือรอรอบ 03:00</div>}
+          {snapshots.map((s) => (
+            <div key={s.name} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-[12px]">
+              <span className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${s.name.startsWith("auto_") ? "bg-ink-5 text-ink-60" : "bg-rose-ultra text-rose"}`}>{s.name.startsWith("auto_") ? "auto" : "manual"}</span>
+              <span className="font-mono text-ink">{s.name.replace(/\.json\.gz$/, "")}</span>
+              <span className="text-ink-40">{formatBytes(s.bytes)}</span>
+              <span className="ml-auto flex gap-2">
+                <a href={`/api/admin/backup/snapshots/${encodeURIComponent(s.name)}`} className="underline text-ink-60 hover:text-ink">ดาวน์โหลด</a>
+                <button type="button" className="underline text-ink-60 hover:text-ink" onClick={() => { setSource({ kind: "stored", name: s.name }); setReport(null); document.getElementById("restore")?.scrollIntoView({ behavior: "smooth" }); }}>กู้คืนจากชุดนี้</button>
+                <button type="button" className="underline text-status-danger" disabled={busy === s.name} onClick={() => removeSnapshot(s.name)}>ลบ</button>
+              </span>
             </div>
+          ))}
+        </div>
+      </section>
 
-            {/* Sidebar — options + action */}
-            <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-              <div className="rounded-3xl border border-ink-10 bg-white p-5">
-                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-40 font-bold mb-3">Options</div>
-                <label className="flex items-start gap-3 mb-3 cursor-pointer">
-                  <input type="checkbox" checked={includeStructure} onChange={(e) => setIncludeStructure(e.target.checked)} className="mt-1 h-4 w-4 accent-rose" />
-                  <div>
-                    <div className="font-thai text-sm font-semibold text-ink">รวม structure</div>
-                    <div className="mt-0.5 font-thai text-[11px] text-ink-50">เก็บชื่อ column ไว้ด้วย · เผื่อ restore ที่อื่น</div>
-                  </div>
-                </label>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={includeAuthUsers} onChange={(e) => setIncludeAuthUsers(e.target.checked)} className="mt-1 h-4 w-4 accent-rose" />
-                  <div>
-                    <div className="font-thai text-sm font-semibold text-ink">รวม auth.users</div>
-                    <div className="mt-0.5 font-thai text-[11px] text-ink-50">รายชื่อ user + email · admin API</div>
-                  </div>
-                </label>
-              </div>
-
-              <div className="rounded-3xl border border-ink-10 bg-gradient-to-br from-rose-ultra to-warm-white p-5">
-                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-40 font-bold mb-3">Summary</div>
-                <div className="space-y-2 mb-4">
-                  <Row label="Tables" value={`${selected.size}`} />
-                  <Row label="Total rows" value={totalRows.toLocaleString()} />
-                  <Row label="Format" value="JSON" />
-                </div>
-                <Button variant="rose" onClick={runBackup} disabled={busy || selected.size === 0} className="w-full">
-                  {busy ? "กำลัง backup..." : `⬇ Download backup`}
-                </Button>
-              </div>
-
-              {lastBackup && (
-                <div className="rounded-2xl border border-status-bg-optimal bg-status-bg-optimal/50 px-4 py-3 text-[12px] font-thai text-status-optimal">
-                  ✓ บันทึก <b className="font-mono text-[11px]">{lastBackup.filename}</b> · {formatBytes(lastBackup.size)} · {lastBackup.total.toLocaleString()} rows
-                </div>
-              )}
-            </div>
+      {/* 2 · tables + download now */}
+      <section className={box}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-head text-[16px] font-extrabold text-ink">ตารางทั้งหมด (จากฐานจริง)</h2>
+            <p className="font-thai text-[12px] text-ink-60">เรียงตามลำดับที่กู้คืนได้ปลอดภัย (ตารางแม่ก่อน) · ไม่เลือก = ทั้งหมด · โครงสร้างตาราง (DDL) อยู่ใน <code>supabase/migrations/</code> ไม่ได้อยู่ในไฟล์นี้</p>
           </div>
-        )
-      ) : (
-        // Restore mode
-        <div className="space-y-5">
-          <div className="rounded-3xl border border-amber/30 bg-amber-ultra p-5">
-            <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-amber font-bold mb-2">⚠ Warning</div>
-            <p className="font-thai text-[13px] leading-relaxed text-ink-80">
-              Restore = <b>upsert by id</b> · ถ้า row id ซ้ำกับใน DB จะถูก<b>เขียนทับ</b> · ถ้าไม่มีจะ insert ใหม่
-              <br />
-              <b>ไม่</b>ลบ row ที่อยู่ใน DB แต่ไม่อยู่ใน backup file (additive only)
-              <br />
-              แนะนำให้รัน <b>Preview</b> ก่อนเสมอ · ตรวจ count แล้วค่อย Execute
-            </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={!selected.size}>ล้างที่เลือก</Button>
+            <Button variant="primary" size="sm" onClick={downloadNow} disabled={!!busy}>{busy === "download" ? "กำลังสร้าง…" : `⬇️ ดาวน์โหลด ${selected.size ? `${selected.size} ตาราง` : "ทั้งฐาน"}`}</Button>
           </div>
-
-          <div className="rounded-3xl border border-ink-10 bg-white p-6">
-            <label className="block">
-              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-40 font-bold">เลือกไฟล์ backup (.json)</span>
-              <input
-                type="file"
-                accept="application/json,.json"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRestoreFile(f); }}
-                className="mt-2 block w-full text-sm text-ink-60 file:mr-4 file:rounded-full file:border-0 file:bg-rose file:px-4 file:py-2 file:text-sm file:font-bold file:text-white hover:file:bg-rose-deep cursor-pointer"
-              />
+        </div>
+        <div className="mt-4 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          {ordered.map((c) => (
+            <label key={c.table_name} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${selected.has(c.table_name) ? "border-rose bg-rose-ultra" : "border-ink-10 hover:bg-ink-5"}`}>
+              <input type="checkbox" checked={selected.has(c.table_name)} onChange={() => toggle(c.table_name)} className="h-3.5 w-3.5 accent-rose" />
+              <span className="font-mono text-ink">{c.table_name}</span>
+              <span className="ml-auto text-ink-40">{c.exact_rows == null ? "?" : c.exact_rows.toLocaleString()}</span>
+              {c.pk_columns.length === 0 && <span className="text-[10px] text-status-caution" title="ไม่มี primary key — restore จะ insert อย่างเดียว">no PK</span>}
             </label>
-
-            {restoreFile && restoreParsed && (
-              <div className="mt-5 space-y-2">
-                <div className="rounded-xl border border-ink-10 bg-ink-5/40 px-4 py-3 font-mono text-[12px]">
-                  <div><b className="text-ink">{restoreFile.name}</b> · {formatBytes(restoreFile.size)}</div>
-                  {restoreParsed._meta && (
-                    <div className="mt-1 text-ink-60">
-                      backed up: {new Date(restoreParsed._meta.backed_up_at).toLocaleString("th-TH")} · {restoreParsed._meta.table_count} tables · {restoreParsed._meta.total_rows?.toLocaleString()} rows
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                  <Button variant="outline" onClick={() => runRestore(false)} disabled={busy}>
-                    {busy && restoreMode === "preview" ? "..." : "🔍 Preview only"}
-                  </Button>
-                  <Button variant="rose" onClick={() => { setRestoreMode("execute"); setRestoreConfirmOpen(true); }} disabled={busy}>
-                    ⚡ Execute restore
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {restoreResult && (
-            <div className="rounded-3xl border border-ink-10 bg-white p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-40 font-bold">
-                  {restoreResult.mode === "execute" ? "Executed" : "Preview"} · {restoreResult.summary.tables_processed} tables
-                </div>
-                <div className="font-mono text-[11px] text-ink-60">
-                  {restoreResult.summary.total_rows_upserted.toLocaleString()} / {restoreResult.summary.total_rows_provided.toLocaleString()} rows
-                  {restoreResult.summary.total_errors > 0 && <span className="ml-2 text-status-danger">· {restoreResult.summary.total_errors} errors</span>}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                {restoreResult.report.map((r: any) => (
-                  <div key={r.table} className="flex items-center justify-between rounded-lg bg-ink-5/40 px-3 py-2 font-mono text-[12px]">
-                    <span className="font-bold text-ink">{r.table}</span>
-                    {r.skipped ? (
-                      <span className="text-ink-40 text-[11px]">skipped · {r.reason}</span>
-                    ) : r.errors?.length ? (
-                      <span className="text-status-danger text-[11px]">{r.upserted}/{r.provided} · {r.errors.length} errors</span>
-                    ) : (
-                      <span className="text-status-optimal">{restoreResult.mode === "execute" ? `${r.upserted.toLocaleString()} upserted` : `${r.provided.toLocaleString()} ready`}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {restoreConfirmOpen && (
-            <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={() => !busy && setRestoreConfirmOpen(false)}>
-              <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="border-b border-ink-10 px-6 py-5">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-status-danger font-bold">⚠ Execute Restore</div>
-                  <div className="mt-1 font-head text-lg font-extrabold tracking-tight text-ink">เขียนข้อมูลทับ?</div>
-                </div>
-                <div className="space-y-3 px-6 py-5 font-thai text-sm text-ink-80">
-                  <p>กำลังจะ upsert ข้อมูลทั้งหมดจาก backup file เข้าฐานข้อมูล production</p>
-                  <ul className="ml-4 list-disc text-[13px] text-ink-60 space-y-0.5">
-                    <li>Row ที่มี id เดิม → <b className="text-ink">เขียนทับ</b></li>
-                    <li>Row ที่ id ไม่มี → insert ใหม่</li>
-                    <li>Row ที่มีใน DB แต่ไม่อยู่ใน file → <b>ยังอยู่</b></li>
-                  </ul>
-                  <p className="text-status-danger text-[13px]">การกระทำนี้ไม่สามารถย้อนกลับได้ · กรุณา backup ก่อนเสมอ</p>
-                </div>
-                <div className="flex items-center justify-end gap-2 border-t border-ink-10 bg-surface px-6 py-3">
-                  <Button variant="ghost" size="sm" onClick={() => setRestoreConfirmOpen(false)} disabled={busy}>ยกเลิก</Button>
-                  <button
-                    onClick={() => runRestore(true)}
-                    disabled={busy}
-                    className="rounded-xl bg-status-danger px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90"
-                  >
-                    {busy ? "กำลัง restore..." : "ยืนยัน · เขียนทับ"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          ))}
         </div>
-      )}
-    </div>
-  );
-}
+      </section>
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="font-mono text-[11px] uppercase tracking-wide text-ink-40">{label}</span>
-      <span className="font-head text-base font-extrabold text-ink">{value}</span>
-    </div>
-  );
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function SkeletonGroups() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-3xl border border-ink-10 bg-white p-5">
-          <div className="h-3 w-20 rounded bg-ink-5 animate-pulse" />
-          <div className="mt-4 space-y-2">
-            {Array.from({ length: 2 }).map((_, j) => (
-              <div key={j} className="h-12 rounded-xl bg-ink-5 animate-pulse" />
-            ))}
+      {/* 3 · restore */}
+      <section id="restore" className={box}>
+        <h2 className="font-head text-[16px] font-extrabold text-ink">กู้คืน</h2>
+        <p className="font-thai text-[12px] text-ink-60">ทดลอง (dry run) ก่อนเสมอ — ระบบบอกว่าจะเขียนตารางไหน กี่แถว ด้วย key อะไร · ตารางที่ไม่มีในฐานปัจจุบันจะข้าม (รัน migration ก่อน) · ผู้ใช้ auth ไม่ถูกกู้คืน (รหัสผ่านย้ายไม่ได้)</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-ink-10 p-3">
+            <div className="font-thai text-[11px] font-semibold text-ink-60">แหล่ง</div>
+            <div className="mt-1 font-thai text-[12px] text-ink">{source ? (source.kind === "stored" ? `snapshot: ${source.name}` : `ไฟล์: ${source.file.name} (${formatBytes(source.file.size)})`) : "ยังไม่เลือก — กด \"กู้คืนจากชุดนี้\" ด้านบน หรือเลือกไฟล์"}</div>
+            <label className="mt-2 inline-block cursor-pointer rounded-lg border border-ink-10 px-3 py-1.5 font-thai text-[12px] text-ink"><input type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setSource({ kind: "file", file: f }); setReport(null); } }} />📂 เลือกไฟล์ snapshot (.json)</label>
+          </div>
+          <div className="rounded-2xl border border-ink-10 p-3 space-y-2">
+            <div className="font-thai text-[11px] font-semibold text-ink-60">โหมด</div>
+            <label className="flex items-start gap-2 font-thai text-[12px] text-ink"><input type="radio" name="mode" checked={mode === "upsert"} onChange={() => setMode("upsert")} className="mt-0.5 accent-rose" /><span><b>เพิ่ม/อัปเดต</b> — แถวที่มี key ตรงกันถูกทับ แถวใหม่ถูกเพิ่ม <span className="text-ink-40">ไม่ลบอะไร</span></span></label>
+            <label className="flex items-start gap-2 font-thai text-[12px] text-ink"><input type="radio" name="mode" checked={mode === "replace"} onChange={() => setMode("replace")} className="mt-0.5 accent-rose" /><span><b className="text-status-danger">แทนที่ทั้งตาราง</b> — ล้างตารางที่เลือกก่อน แล้วใส่จาก snapshot <span className="text-ink-40">(ย้อนกลับไม่ได้ — เก็บ snapshot ตอนนี้ก่อนเสมอ)</span></span></label>
+            <label className="flex items-center gap-2 font-thai text-[12px] text-ink"><input type="checkbox" checked={onlySelected} onChange={(e) => setOnlySelected(e.target.checked)} className="accent-rose" />เฉพาะตารางที่ติ๊กไว้ด้านบน ({selected.size})</label>
           </div>
         </div>
-      ))}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => runRestore(true)} disabled={!source || !!busy}>{busy === "dry" ? "กำลังทดลอง…" : "🔍 ทดลองก่อน (ไม่เขียน)"}</Button>
+          {report?.dry_run && (
+            <>
+              <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={`พิมพ์ ${word}`} className="w-40 rounded-lg border border-ink-10 px-3 py-1.5 font-mono text-[12px] focus:border-rose focus:outline-none" />
+              <Button variant={mode === "replace" ? "rose" : "primary"} size="sm" onClick={() => runRestore(false)} disabled={confirm !== word || !!busy}>{busy === "restore" ? "กำลังกู้คืน…" : mode === "replace" ? "⚠️ แทนที่จริง" : "กู้คืนจริง"}</Button>
+            </>
+          )}
+        </div>
+
+        {report && (
+          <div className="mt-4 rounded-2xl border border-ink-10 p-4">
+            <div className="font-thai text-[12px] text-ink-60">{report.dry_run ? "ผลทดลอง" : "ผลกู้คืน"} · snapshot {fmtDate(report.snapshot.created_at)} โดย {report.snapshot.created_by} · v{report.snapshot.version} · {report.snapshot.totals.tables} ตาราง {report.snapshot.totals.rows.toLocaleString()} แถว</div>
+            {report.plan.warnings.length > 0 && <ul className="mt-2 list-disc pl-5 font-thai text-[12px] text-status-caution">{report.plan.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>}
+            <table className="mt-2 w-full text-[12px]">
+              <thead><tr className="text-left text-ink-40"><th className="py-1">ตาราง</th><th>แถว</th><th>key</th><th>ทำอะไร</th><th>{report.dry_run ? "" : "ผล"}</th></tr></thead>
+              <tbody>
+                {report.plan.steps.map((s) => { const r = report.results.find((x) => x.table === s.table); return (
+                  <tr key={s.table} className="border-t border-ink-10">
+                    <td className="py-1 font-mono">{s.table}</td><td>{s.rows.toLocaleString()}</td><td className="font-mono text-ink-40">{s.pk.join(",") || "—"}</td>
+                    <td className={s.action === "skip" ? "text-ink-40" : "text-ink"}>{s.action === "skip" ? `ข้าม — ${s.reason}` : s.action === "upsert" ? "upsert" : `insert ${s.reason ? `(${s.reason})` : ""}`}</td>
+                    <td className={r?.errors.length ? "text-status-danger" : "text-status-optimal"}>{r ? `${r.cleared != null ? `ล้าง ${r.cleared} · ` : ""}เขียน ${r.written}${r.errors.length ? ` · ${r.errors[0]}` : ""}` : ""}</td>
+                  </tr>); })}
+              </tbody>
+            </table>
+            <div className="mt-2 font-thai text-[12px] text-ink-60">รวม {report.plan.totals.tables} ตาราง · {report.plan.totals.rows.toLocaleString()} แถว · ข้าม {report.plan.totals.skipped}{!report.dry_run && ` · reset sequences ${report.sequences_reset}`}</div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

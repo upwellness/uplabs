@@ -47,13 +47,10 @@ mkdirSync(outDir, { recursive: true });
 console.log(`📦 Backup → ${outDir}\n`);
 
 async function listTables() {
-  // Try information_schema; if blocked, use fallback.
-  const { data, error } = await supa
-    .from("information_schema.tables")
-    .select("table_name")
-    .eq("table_schema", "public")
-    .neq("table_type", "VIEW");
-  if (error || !data) return FALLBACK_TABLES;
+  // Same catalog the admin page uses (backup_catalog RPC, migration 20260913_backup_system.sql).
+  // PostgREST does not expose information_schema, so the RPC is the only reliable way.
+  const { data, error } = await supa.rpc("backup_catalog");
+  if (error || !data) { console.warn("⚠️ backup_catalog RPC unavailable — using fallback list"); return FALLBACK_TABLES; }
   return data.map((r) => r.table_name);
 }
 

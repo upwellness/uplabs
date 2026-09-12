@@ -20,7 +20,7 @@ import Link from "next/link";
 import {
   LayoutGrid, Users, Scale, ChevronDown, ChevronRight,
   Home, Activity, ExternalLink, X,
-  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield, UserPlus, LogOut, KeyRound, Inbox } from "lucide-react";
+  HeartPulse, ClipboardList, Target, Stethoscope, Salad, UtensilsCrossed, Wand2, MessageCircle, Shield, UserPlus, LogOut, KeyRound, Inbox, Database } from "lucide-react";
 import { APPS } from "@/lib/apps-registry";
 import { ROLE_LABEL_TH, type Role } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,7 @@ const V2_LINKS: { href: string; label: string; icon: typeof Users; adminOnly?: b
   { href: "/v2/lab-inbox", label: "ผลแล็บรอตรวจ", icon: Inbox },
   { href: "/v2/admin/users", label: "Admin · ผู้ใช้", icon: Shield, adminOnly: true },
   { href: "/v2/admin/api-tokens", label: "Admin · API Token", icon: KeyRound, adminOnly: true },
+  { href: "/v2/admin/backup", label: "Admin · สำรอง/กู้คืน", icon: Database, adminOnly: true },
 ];
 
 /** Registry slug → v2 route (so the "all apps" list prefers v2 where it exists). */
@@ -275,6 +276,11 @@ export function Shell({
                     {who?.role === "admin" && (
                       <Link href="/v2/admin/users" role="menuitem" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-ink-5">
                         <Shield size={15} strokeWidth={2} aria-hidden className="text-ink-40" /> Admin · จัดการผู้ใช้
+                      </Link>
+                    )}
+                    {who?.role === "admin" && (
+                      <Link href="/v2/admin/backup" role="menuitem" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-ink-5">
+                        <Database size={15} strokeWidth={2} aria-hidden className="text-ink-40" /> Admin · สำรอง / กู้คืนฐานข้อมูล
                       </Link>
                     )}
                   </div>

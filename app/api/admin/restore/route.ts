@@ -1,109 +1,56 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { getSession } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { TABLE_NAMES } from "@/lib/backup/tables";
+import { requireBackupAdmin } from "@/lib/backup/guard";
+import { readSnapshot, restoreSnapshot } from "@/lib/backup/engine";
+import { parseSnapshot, type RestoreMode } from "@/lib/backup/snapshot";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Admin-only · restore tables from a backup JSON file via upsert.
- *
- * Body shape (matches backup output):
- * {
- *   _meta: { ... },
- *   tables: {
- *     "customers": { row_count, rows: [...] },
- *     ...
- *   }
- * }
- *
- * Query params:
- *   ?mode=preview   — dry run · count rows per table · no DB writes
- *   ?mode=execute   — actually upsert by primary key (default: id)
- *
- * Notes:
- *   - Upsert by id (won't duplicate existing rows · updates if present)
- *   - Skip tables not in the known TABLE_NAMES allowlist
- *   - Does NOT delete rows that exist in DB but not in backup (additive only)
- *   - Does NOT restore auth.users (separate process · risky)
+ * POST — restore from an uploaded snapshot file or a stored one.
+ *   multipart: file=<snapshot.json>  +  fields mode, only (comma list), dry_run, confirm
+ *   json:      { snapshot_name, mode, only?, dry_run, confirm }
+ * `mode` upsert (add/update, never delete) | replace (clear the chosen tables first).
+ * A real run needs confirm === "RESTORE" (and "REPLACE" for replace mode).
  */
-
-const CHUNK = 200;
-
 export async function POST(req: Request) {
+  const g = await requireBackupAdmin(); if (g.res) return g.res;
+  const ct = req.headers.get("content-type") ?? "";
+  let snapshot; let mode: RestoreMode = "upsert"; let only: string[] | null = null; let dryRun = true; let confirm = "";
+
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-    if (session.profile.role !== "admin") return NextResponse.json({ error: "admin only" }, { status: 403 });
-
-    const url = new URL(req.url);
-    const mode = url.searchParams.get("mode") === "execute" ? "execute" : "preview";
-
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== "object" || !body.tables) {
-      return NextResponse.json({ error: "invalid backup file · expected {tables: {...}}" }, { status: 400 });
+    if (ct.includes("multipart/form-data")) {
+      const fd = await req.formData();
+      const f = fd.get("file");
+      if (!(f instanceof File)) return NextResponse.json({ error: "ต้องแนบไฟล์ snapshot" }, { status: 400 });
+      if (f.size > 150 * 1024 * 1024) return NextResponse.json({ error: "ไฟล์เกิน 150 MB" }, { status: 400 });
+      const p = parseSnapshot(JSON.parse(await f.text()));
+      if (!p.ok) return NextResponse.json({ error: p.error }, { status: 400 });
+      snapshot = p.snapshot;
+      mode = fd.get("mode") === "replace" ? "replace" : "upsert";
+      only = String(fd.get("only") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      dryRun = fd.get("dry_run") !== "false";
+      confirm = String(fd.get("confirm") ?? "");
+    } else {
+      const b = await req.json();
+      if (typeof b.snapshot_name !== "string") return NextResponse.json({ error: "ต้องมี snapshot_name หรือแนบไฟล์" }, { status: 400 });
+      snapshot = await readSnapshot(b.snapshot_name);
+      mode = b.mode === "replace" ? "replace" : "upsert";
+      only = Array.isArray(b.only) ? b.only.map(String) : null;
+      dryRun = b.dry_run !== false;
+      confirm = String(b.confirm ?? "");
     }
+  } catch (e: any) { return NextResponse.json({ error: e?.message ?? "อ่าน snapshot ไม่ได้" }, { status: 400 }); }
 
-    const admin = createAdminClient();
-    const report: Array<{
-      table: string;
-      provided: number;
-      skipped?: boolean;
-      reason?: string;
-      upserted?: number;
-      errors?: string[];
-    }> = [];
-
-    for (const [tableName, entry] of Object.entries(body.tables as Record<string, { rows: any[]; row_count?: number }>)) {
-      if (!TABLE_NAMES.includes(tableName)) {
-        report.push({ table: tableName, provided: 0, skipped: true, reason: "not in allowlist" });
-        continue;
-      }
-      const rows: any[] = Array.isArray(entry?.rows) ? entry.rows : [];
-      if (rows.length === 0) {
-        report.push({ table: tableName, provided: 0, skipped: true, reason: "empty rows" });
-        continue;
-      }
-
-      if (mode === "preview") {
-        report.push({ table: tableName, provided: rows.length, upserted: 0 });
-        continue;
-      }
-
-      // Execute mode: upsert in chunks
-      let upserted = 0;
-      const errors: string[] = [];
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const chunk = rows.slice(i, i + CHUNK);
-        const { error } = await admin.from(tableName).upsert(chunk, { onConflict: "id" });
-        if (error) {
-          errors.push(`chunk ${i}-${i + chunk.length}: ${error.message}`);
-        } else {
-          upserted += chunk.length;
-        }
-      }
-      report.push({ table: tableName, provided: rows.length, upserted, ...(errors.length ? { errors } : {}) });
+  if (!dryRun) {
+    if (confirm !== (mode === "replace" ? "REPLACE" : "RESTORE")) {
+      return NextResponse.json({ error: `ต้องพิมพ์ ${mode === "replace" ? "REPLACE" : "RESTORE"} เพื่อยืนยัน` }, { status: 400 });
     }
-
-    if (mode === "execute") revalidateTag("dashboard");
-
-    const totalProvided = report.reduce((s, r) => s + r.provided, 0);
-    const totalUpserted = report.reduce((s, r) => s + (r.upserted ?? 0), 0);
-    const totalErrors   = report.reduce((s, r) => s + (r.errors?.length ?? 0), 0);
-
-    return NextResponse.json({
-      mode,
-      summary: {
-        tables_processed: report.length,
-        total_rows_provided: totalProvided,
-        total_rows_upserted: totalUpserted,
-        total_errors: totalErrors,
-      },
-      report,
-    });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });
   }
+  try {
+    const report = await restoreSnapshot(snapshot, { mode, only: only?.length ? only : null, dryRun });
+    if (!dryRun) { revalidateTag("dashboard"); console.warn(`[restore] ${g.session!.profile.email} mode=${mode} tables=${report.plan.totals.tables} rows=${report.plan.totals.rows} ok=${report.ok}`); }
+    return NextResponse.json({ dry_run: dryRun, mode, snapshot: { created_at: snapshot.created_at, created_by: snapshot.created_by, version: snapshot.version, totals: snapshot.totals }, ...report });
+  } catch (e: any) { return NextResponse.json({ error: e?.message ?? "restore failed" }, { status: 500 }); }
 }
