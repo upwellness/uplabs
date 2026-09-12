@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCustomer, ageFrom } from "@/lib/api/data";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
 import { computeMetrics } from "@/lib/api/cgm-metrics";
+import { foodWindow } from "@/lib/food/store";
 import { assess, ENGINE_VERSION, type AssessInput, type HealthAssessment, type LabPoint, type WearableSummary, type FoodSummary } from "./assess";
 
 export type Trigger = "manual" | "lab_import" | "lab_review" | "bca" | "cgm_import" | "wearable_sync" | "food_log" | "api";
@@ -76,25 +77,15 @@ export async function loadInput(customerId: string): Promise<AssessInput | null>
     }
   }
 
-  // Food — NutriScan entries linked to this customer in the window
+  // Food — the food log (nutriscan_scans by eaten_at), summarised over logged days only
   let food: FoodSummary | null = null;
-  const { data: scans } = await admin.from("nutriscan_scans")
-    .select("created_at, calories_estimate, carb_g, protein_g, fat_g, glucose_impact_score, health_score")
-    .eq("customer_id", customerId).gte("created_at", `${since}T00:00:00Z`).limit(500);
-  if (scans && scans.length) {
-    const s = scans as any[];
-    const byDay = new Map<string, any[]>();
-    for (const x of s) { const d = String(x.created_at).slice(0, 10); (byDay.get(d) ?? byDay.set(d, []).get(d)!).push(x); }
-    const perDay = [...byDay.values()];
-    const sum = (rows: any[], k: string) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const fw = await foodWindow(customerId, WINDOW_DAYS);
+  if (fw.summary.entries > 0) {
+    const s = fw.summary;
     food = {
-      window_days: WINDOW_DAYS, days_logged: byDay.size, entries: s.length,
-      avg_calories: avg(perDay.map((r) => sum(r, "calories_estimate"))),
-      avg_protein_g: avg(perDay.map((r) => sum(r, "protein_g"))),
-      avg_carb_g: avg(perDay.map((r) => sum(r, "carb_g"))),
-      avg_fat_g: avg(perDay.map((r) => sum(r, "fat_g"))),
-      avg_health_score: avg(s.map((x) => x.health_score)),
-      avg_glucose_impact: avg(s.map((x) => x.glucose_impact_score)),
+      window_days: s.window_days, days_logged: s.days_logged, entries: s.entries,
+      avg_calories: s.avg_calories, avg_protein_g: s.avg_protein_g, avg_carb_g: s.avg_carb_g, avg_fat_g: s.avg_fat_g,
+      avg_health_score: s.avg_health_score, avg_glucose_impact: s.avg_glucose_impact,
     };
   }
 

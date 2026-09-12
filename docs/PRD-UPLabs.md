@@ -193,6 +193,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | `/api/v1/customers/{id}/labs/compare` | GET | `labs:read` | ตารางเทียบ N รอบล่าสุด |
 | `/api/v1/customers/{id}/overview` | GET | `labs:read` | ภาพรวมทุก factor (longevity snapshot) |
 | `/api/v1/customers/{id}/measurements` | GET · POST | `measurements:*` | BCA |
+| `/api/v1/customers/{id}/food` · `/api/v1/food/photo-date` | GET · POST | `food:read` / `food:write` | **บันทึกอาหาร 3 ทาง** + สรุปรายวัน · EXIF date จากรูปเก่า · SPEC-External-API §8.11 |
 | `/api/v1/customers/{id}/assessment` | GET · POST | `assessment:read` / `assessment:write` | **ผลประเมินสุขภาพรวม 7 ด้าน** (UP Health Design เฟส 1) · SPEC-External-API §8.10 |
 | `/api/v1/customers/{id}/supplements` | GET | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
 | `/api/v1/customers/{id}/notes` | GET · POST | `notes:*` | โน้ตโค้ช |
@@ -247,9 +248,12 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 `/cgm` + `/api/cgm/passcode` — น้ำตาลต่อเนื่อง + มื้ออาหาร · เข้าถึงผ่าน **passcode ต่อ profile** (RLS + SECURITY DEFINER RPC) · `cgm_readings` เป็นตารางใหญ่สุดในระบบ (~34k แถว)
 
-### 5.5 NutriScan AI + Food Log
+### 5.5 NutriScan AI + Food Log (= food log ของ UP Health Design เฟส 2 · 12 ก.ย. 2026)
 
-`lib/nutriscan/gemini-vision.ts` + `macros.ts` — ถ่ายรูปอาหาร → Gemini Vision → มาโคร + ผลต่อน้ำตาล + คะแนนสุขภาพ + คำแนะนำ → `nutriscan_scans`
+`lib/nutriscan/gemini-vision.ts` + `macros.ts` — ถ่ายรูป/พิมพ์อธิบาย → Gemini → มาโคร + ผลต่อน้ำตาล + คะแนนสุขภาพ → **แผงยืนยันตัวเลข (แก้ได้)** → `POST /api/nutriscan/save` → `nutriscan_scans`
+- **3 ทาง:** ถ่ายรูปตอนนี้ · พิมพ์เอง · **รูปเก่าลงย้อนหลัง** (อ่าน EXIF ในเบราว์เซอร์เติม "กินเมื่อไร" · ไม่มี EXIF = บังคับกรอก ห้ามเดา) · ผ่าน AI ภายนอก: `logFood` / `readFoodPhotoDate`
+- **ไม่บันทึกอัตโนมัติอีกต่อไป** — ค่าจาก AI ต้องมีคนกดยืนยัน (`confirmed_at/by`) และเก็บ `edited` ว่าแก้อะไร · `eaten_at` + `time_known` · `source` · `estimated_by`
+- ตรรกะ pure `lib/food/entries.ts` (parseEatenAt · exifDateTime · validateEntry · summariseFood) · I/O `lib/food/store.ts` · ป้อนเข้า Assessment Engine (domain โภชนาการ) และประเมินใหม่อัตโนมัติหลังบันทึก
 **สิทธิ์:** วิเคราะห์เฉย ๆ ไม่ต้องมี `customer_id` จึงไม่เช็ค · เช็คความเป็นเจ้าของ **เฉพาะตอนบันทึกผูกลูกค้า**
 
 ### 5.6 Plate Planner + LINE Bot (น้องจาน)
@@ -429,6 +433,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **UP Health Design เฟส 2 — Food log 3 ทาง** · `nutriscan_scans` + `eaten_at/time_known/source/estimated_by/confirmed_*/edited/items` (migration `20260912_food_log.sql`) · NutriScan เลิก auto-save → แผงยืนยัน + `POST /api/nutriscan/save` · EXIF date จากรูปเก่า (`lib/food/entries.ts` parser ไม่ใช้ dependency) · External API/MCP `getFoodLog` `logFood` `readFoodPhotoDate` + scope `food:*` + intent `food.list` · Assessment อ่าน food log แล้ว · +6 tests (152) | _pending_ |
 | 2026-09-12 | **UP Health Design เฟส 1** — Assessment Engine 7 ด้าน (`lib/health-design/`) + ตาราง `health_assessments` + การ์ดบน Customer 360 + `/api/customers/[id]/assessment` + External API/MCP `getAssessment`/`runAssessment` + intent `assessment.get` + scope `assessment:*` + trigger หลังบันทึกแล็บ/BCA/CGM · +10 tests (146) · test runner รองรับ `@/` alias แล้ว (`tests/_resolve-ts.mjs`) | `28d1115` |
 | 2026-09-12 | **สเปกร่าง UP Health Design** (`docs/SPEC-Health-Design.md`) — ตรวจว่าคำโปรโมต 9 คำจริงแค่ไหนวันนี้ (4 จริง · 3 ครึ่ง · 2 ยังพูดไม่ได้: "ฐานข้อมูลขนาดใหญ่", "realtime") · 6 ชิ้นงาน · 4 เฟส · Q1–Q7 รอเคาะ · Roadmap ข้อ 6 · ยืนยันแล้วว่า OAuth MCP ใช้ได้จริง (connector `OAuth · Claude` อ่านข้อมูลได้) | `0ae4ae5` |
 | 2026-09-12 | **OAuth 2.1 สำหรับ MCP** — discovery (RFC 8414/9728) · dynamic registration · หน้า consent `/oauth/authorize` · token/refresh/revoke · access token = `api_tokens` แถวปกติ · migration `20260912_oauth.sql` · +10 tests · claude.ai / ChatGPT connector ต่อได้ | `3aa21ea` |

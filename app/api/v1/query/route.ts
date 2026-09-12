@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Scope } from "@/lib/api/scopes";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
 import { latestAssessment, runAssessment } from "@/lib/health-design/load";
+import { foodWindow } from "@/lib/food/store";
 import { DOMAIN_LABEL_TH } from "@/lib/health-design/assess";
 import { computeMetrics, TARGETS } from "@/lib/api/cgm-metrics";
 
@@ -170,6 +171,11 @@ export async function POST(req: Request) {
       case "measurements.list": {
         const rows = await getMeasurements(customerId!, 12);
         return envelope({ customer, measurements: rows }, rows.length);
+      }
+
+      case "food.list": {
+        const w = await foodWindow(customerId!, 14);
+        return envelope({ customer, window: { from: w.from, to: w.to, days: 14 }, summary: w.summary, entries: w.entries }, w.entries.length);
       }
 
       case "assessment.get": {

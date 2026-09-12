@@ -19,6 +19,8 @@ interface ScanRow {
   glucose_impact_score: number | null;
   health_score: number | null;
   created_at: string;
+  eaten_at?: string | null;
+  time_known?: boolean;
   customer_id: string | null;
   notes: string | null;
 }
@@ -75,7 +77,7 @@ export function FoodLogClient() {
       const ma = MEAL_ORDER[a.meal_type ?? ""] ?? 99;
       const mb = MEAL_ORDER[b.meal_type ?? ""] ?? 99;
       if (ma !== mb) return ma - mb;
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return new Date(a.eaten_at ?? a.created_at).getTime() - new Date(b.eaten_at ?? b.created_at).getTime();
     });
   }, [scans]);
 
@@ -259,7 +261,7 @@ function MealCard({ row }: { row: ScanRow }) {
     protein_g: row.protein_g ?? 0,
     fat_g: row.fat_g ?? 0,
   });
-  const time = new Date(row.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  const time = row.time_known === false ? "เวลาไม่ระบุ" : new Date(row.eaten_at ?? row.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   const gi = row.glucose_impact_score;
   const giColor = (gi ?? 0) >= 7 ? "text-status-danger" : (gi ?? 0) >= 4 ? "text-status-warning" : "text-status-optimal";
   return (

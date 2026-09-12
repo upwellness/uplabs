@@ -342,6 +342,57 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
           responses: { "200": { description: "ok" } },
         },
       },
+      "/customers/{id}/food": {
+        get: {
+          operationId: "getFoodLog",
+          summary: "บันทึกอาหารย้อนหลัง + สรุปรายวัน (แคลอรี · C:P:F · โปรตีน)",
+          description: "ค่าเริ่มต้น 14 วัน · ค่าเฉลี่ยคิดเฉพาะวันที่มีบันทึก (coverage_pct บอกว่าบันทึกกี่วัน) · ตัวเลขเป็นค่าประมาณที่คนยืนยันแล้ว ไม่ใช่ค่าที่วัด · ห้ามสรุปว่า 'กินน้อย' จากวันที่ไม่ได้บันทึก",
+          parameters: [customerId, { name: "days", in: "query", schema: { type: "integer", default: 14, maximum: 90 } }],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "logFood",
+          summary: "บันทึกมื้ออาหาร (พิมพ์บอก / รูปเก่า) — หลังคนยืนยันตัวเลขแล้ว",
+          description:
+            "★ ขั้นตอน: คนบอกว่ากินอะไร → คุณประมาณแคลอรี/มาโคร → แสดงให้คนดู → คนยืนยัน → ค่อยเรียกพร้อม confirmed:true · " +
+            "eaten_at ต้องเป็นเวลาไทย เช่น '2026-09-12 12:30' หรือวันอย่างเดียวถ้าไม่รู้เวลา · ห้ามเดาเวลา ถ้าไม่รู้ให้ถาม · รูปเก่าใช้ readFoodPhotoDate หาเวลาก่อน",
+          parameters: [customerId],
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: {
+              type: "object", required: ["entries"],
+              properties: {
+                entries: {
+                  type: "array", minItems: 1, maxItems: 50,
+                  items: {
+                    type: "object", required: ["eaten_at", "description", "confirmed"],
+                    properties: {
+                      eaten_at: { type: "string", description: "เวลาไทย 'YYYY-MM-DD HH:MM' หรือ 'YYYY-MM-DD' (ไม่รู้เวลา)" },
+                      description: { type: "string", description: "เช่น 'ข้าวมันไก่ 1 จาน + กาแฟเย็นหวานน้อย'" },
+                      items: { type: "array", items: { type: "string" } },
+                      meal_type: { type: "string", enum: ["breakfast", "lunch", "dinner", "snack"] },
+                      calories: { type: "number" }, carb_g: { type: "number" }, protein_g: { type: "number" }, fat_g: { type: "number" }, fiber_g: { type: "number" },
+                      glucose_impact_score: { type: "number", description: "0–10" }, health_score: { type: "number", description: "0–10" },
+                      notes: { type: "string" },
+                      confirmed: { type: "boolean", description: "ต้องเป็น true = คนเห็นตัวเลขแล้วยืนยัน" },
+                    },
+                  },
+                },
+              },
+            } } },
+          },
+          responses: { "200": { description: "บันทึกแล้ว + ประเมินสุขภาพรวมใหม่อัตโนมัติ" } },
+        },
+      },
+      "/food/photo-date": {
+        post: {
+          operationId: "readFoodPhotoDate",
+          summary: "อ่านเวลาถ่ายจากรูปอาหารเก่า (EXIF) เพื่อลงย้อนหลัง",
+          description: "คืน eaten_at_suggested (เวลาไทย) ถ้ารูปมี EXIF · ภาพหน้าจอ/รูปที่ส่งผ่านแชตมักไม่มี → ถามคนว่ากินวันไหนมื้อไหน ห้ามเดา · ไม่วิเคราะห์อาหารและไม่เก็บรูป",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["photo_base64"], properties: { photo_base64: { type: "string", description: "JPEG base64 (≤4.5 MB)" } } } } } },
+          responses: { "200": { description: "ok" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

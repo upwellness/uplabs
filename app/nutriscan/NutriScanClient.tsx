@@ -1,5 +1,6 @@
 "use client";
 
+import { exifDateTime } from "@/lib/food/entries";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,8 @@ interface ScanRow {
   glucose_impact_score: number | null;
   health_score: number | null;
   created_at: string;
+  eaten_at?: string | null;
+  time_known?: boolean;
   customer_id: string | null;
   notes: string | null;
 }
@@ -64,6 +67,12 @@ export function NutriScanClient() {
   const [result,       setResult]       = useState<AnalysisResult | null>(null);
   const [error,        setError]        = useState<string | null>(null);
   const [recent,       setRecent]       = useState<ScanRow[]>([]);
+  // When the meal was eaten — never guessed: EXIF from the photo (suggested, editable),
+  // "now" for a fresh photo/typed meal, or blank (must be filled) for an old photo without EXIF.
+  const [eatenAt,      setEatenAt]      = useState<string>(nowLocal());
+  const [eatenHint,    setEatenHint]    = useState<string | null>(null);
+  const [saving,       setSaving]       = useState(false);
+  const [savedMsg,     setSavedMsg]     = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const loadCustomers = async () => {
@@ -90,10 +99,50 @@ export function NutriScanClient() {
       setError("ต้องเป็นไฟล์รูปภาพเท่านั้น");
       return;
     }
+    // Read the shooting time from the ORIGINAL bytes (compression strips EXIF).
+    try {
+      const exif = exifDateTime(new Uint8Array(await file.arrayBuffer()));
+      if (exif) {
+        setEatenAt(exif.replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}).*$/, "$1-$2-$3T$4:$5"));
+        setEatenHint("📷 เวลาจากรูป — แก้ได้ถ้าไม่ตรง");
+      } else if (Date.now() - file.lastModified > 24 * 3600_000) {
+        setEatenAt(""); // old file, no EXIF → the person must say when
+        setEatenHint("รูปเก่าและไม่มีเวลาถ่ายในไฟล์ — ระบุวันเวลาที่กินก่อนบันทึก");
+      } else { setEatenAt(nowLocal()); setEatenHint(null); }
+    } catch { setEatenAt(nowLocal()); setEatenHint(null); }
     const dataUrl = await compressImage(file, 1280, 0.85);
     setImageDataUrl(dataUrl);
     setResult(null);
+    setSavedMsg(null);
     setError(null);
+  };
+
+  /** Store the meal after the person has seen (and maybe edited) the estimate. */
+  const saveConfirmed = async (edited: { calories: number | null; carb_g: number | null; protein_g: number | null; fat_g: number | null; fiber_g: number | null; description: string }) => {
+    if (!result) return;
+    if (!eatenAt) { setError("ต้องระบุวันเวลาที่กินก่อนบันทึก"); return; }
+    setSaving(true); setError(null);
+    try {
+      const orig = { calories: result.calories_estimate ?? null, carb_g: result.macros?.carb_g ?? null, protein_g: result.macros?.protein_g ?? null, fat_g: result.macros?.fat_g ?? null, fiber_g: result.macros?.fiber_g ?? null, description: result.food_identified };
+      const diff: Record<string, { from: unknown; to: unknown }> = {};
+      for (const k of Object.keys(orig) as (keyof typeof orig)[]) if (orig[k] !== edited[k]) diff[k] = { from: orig[k], to: edited[k] };
+      const res = await fetch("/api/nutriscan/save", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          confirmed: true, customer_id: customerId || null, meal_type: mealType, notes: notes.trim() || null,
+          eaten_at: eatenAt.replace("T", " "), source: mode === "text" ? "text" : (eatenHint?.startsWith("📷") || eatenHint?.startsWith("รูปเก่า") ? "photo_backfill" : "photo"),
+          description: edited.description, items: result.food_components ?? [],
+          calories: edited.calories, carb_g: edited.carb_g, protein_g: edited.protein_g, fat_g: edited.fat_g, fiber_g: edited.fiber_g,
+          glucose_impact_score: result.glucose_impact?.score ?? null, health_score: result.health_score?.score ?? null,
+          raw_analysis: result, edited: Object.keys(diff).length ? diff : null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "บันทึกไม่สำเร็จ");
+      setSavedMsg(`บันทึกแล้ว · ${eatenAt.replace("T", " ")}${Object.keys(diff).length ? ` · แก้ ${Object.keys(diff).length} ค่าจากที่ AI ประมาณ` : ""}`);
+      loadRecent();
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
   };
 
   const analyze = async () => {
@@ -116,6 +165,7 @@ export function NutriScanClient() {
         customer_id: customerId || null,
         notes: notes.trim() || null,
         apiKey: geminiKey,
+        save: false, // analysis only — the person confirms before anything is stored (saveConfirmed)
       };
       if (mode === "image" && imageDataUrl) {
         const match = imageDataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
@@ -134,7 +184,7 @@ export function NutriScanClient() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "วิเคราะห์ไม่สำเร็จ");
       setResult(json.result);
-      if (json.saved) loadRecent();
+      setSavedMsg(null);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -148,6 +198,7 @@ export function NutriScanClient() {
     setResult(null);
     setError(null);
     setNotes("");
+    setEatenAt(nowLocal()); setEatenHint(null); setSavedMsg(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -259,6 +310,14 @@ export function NutriScanClient() {
             </div>
           )}
 
+          {/* When eaten — required; EXIF suggestion for old photos */}
+          <label className="mt-4 block">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-60">กินเมื่อไร</span>
+            <input type="datetime-local" value={eatenAt} max={nowLocal()} onChange={(e) => { setEatenAt(e.target.value); setEatenHint(null); }}
+              className={`mt-1.5 w-full rounded-xl border bg-white px-4 py-2 text-sm focus:border-rose focus:outline-none ${eatenAt ? "border-ink-10" : "border-status-danger"}`} />
+            <div className="mt-1 font-thai text-[11px] text-ink-60">{eatenHint ?? "ค่าเริ่มต้น = ตอนนี้ · เลือกรูปเก่าแล้วระบบจะอ่านเวลาถ่ายจากรูปให้ (ถ้ามี)"}</div>
+          </label>
+
           {/* Notes */}
           <label className="mt-4 block">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-60">หมายเหตุ (optional)</span>
@@ -273,7 +332,7 @@ export function NutriScanClient() {
           {/* Actions */}
           <div className="mt-4 flex gap-2">
             <Button variant="rose" size="md" onClick={analyze} disabled={analyzing || !canAnalyze} className="flex-1">
-              {analyzing ? "🔍 กำลังวิเคราะห์..." : "วิเคราะห์ + บันทึก ✨"}
+              {analyzing ? "🔍 กำลังวิเคราะห์..." : "วิเคราะห์ ✨"}
             </Button>
             {(imageDataUrl || textDesc) && (
               <Button variant="ghost" size="md" onClick={reset} disabled={analyzing}>
@@ -284,7 +343,7 @@ export function NutriScanClient() {
 
           {selectedCustomer && (
             <div className="mt-3 font-thai text-[11px] text-ink-60">
-              💾 จะบันทึกให้ <span className="font-semibold text-rose">{selectedCustomer.name}</span>
+              💾 หลังวิเคราะห์ ตรวจตัวเลขแล้วกด "ยืนยันและบันทึก" ให้ <span className="font-semibold text-rose">{selectedCustomer.name}</span>
             </div>
           )}
 
@@ -299,8 +358,11 @@ export function NutriScanClient() {
           )}
         </section>
 
-        {/* Result */}
+        {/* Result → the person confirms (or edits) before it is stored */}
         {result && <ResultCard result={result} />}
+        {result && !result.error && result.food_identified !== "ไม่สามารถระบุได้" && (
+          <ConfirmPanel result={result} saving={saving} savedMsg={savedMsg} eatenAt={eatenAt} onSave={saveConfirmed} />
+        )}
       </div>
 
       {/* ── Right column · Recent ───────────────── */}
@@ -323,7 +385,70 @@ export function NutriScanClient() {
   );
 }
 
+/** Local wall-clock "YYYY-MM-DDTHH:MM" for <input type="datetime-local"> (the API reads it as Thai time). */
+function nowLocal(): string {
+  const d = new Date(); d.setSeconds(0, 0);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /* ─── Sub-components ──────────────────────────── */
+
+// Hoisted so React keeps the same component identity between renders (an inline
+// component would remount on every keystroke and drop focus).
+function NumField({ label, v, set, unit }: { label: string; v: string; set: (s: string) => void; unit: string }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-60">{label}</span>
+      <div className="mt-1 flex items-center gap-1">
+        <input type="number" inputMode="decimal" value={v} onChange={(e) => set(e.target.value)} className="w-full rounded-lg border border-ink-10 px-2 py-1.5 text-sm focus:border-rose focus:outline-none" />
+        <span className="text-[11px] text-ink-40">{unit}</span>
+      </div>
+    </label>
+  );
+}
+
+/**
+ * The human-confirmation step (SPEC-Health-Design §3.2): every number the AI
+ * estimated is shown in an editable field; nothing is written until "ยืนยันและบันทึก".
+ */
+function ConfirmPanel({ result, saving, savedMsg, eatenAt, onSave }: {
+  result: AnalysisResult; saving: boolean; savedMsg: string | null; eatenAt: string;
+  onSave: (v: { calories: number | null; carb_g: number | null; protein_g: number | null; fat_g: number | null; fiber_g: number | null; description: string }) => void;
+}) {
+  const [desc, setDesc] = useState(result.food_identified);
+  const [kcal, setKcal] = useState<string>(result.calories_estimate == null ? "" : String(result.calories_estimate));
+  const [carb, setCarb] = useState<string>(result.macros?.carb_g == null ? "" : String(result.macros.carb_g));
+  const [prot, setProt] = useState<string>(result.macros?.protein_g == null ? "" : String(result.macros.protein_g));
+  const [fat,  setFat]  = useState<string>(result.macros?.fat_g == null ? "" : String(result.macros.fat_g));
+  const [fib,  setFib]  = useState<string>(result.macros?.fiber_g == null ? "" : String(result.macros.fiber_g));
+  const n = (v: string) => (v.trim() === "" ? null : Number(v));
+  return (
+    <section className="rounded-3xl border border-rose/30 bg-rose-ultra p-6">
+      <div className="font-mono text-[10px] uppercase tracking-wider text-rose">🤖 ค่าประมาณจาก AI — ตรวจก่อนบันทึก</div>
+      <h3 className="mt-1 font-head text-[16px] font-extrabold text-ink">ยืนยันตัวเลขของมื้อนี้</h3>
+      <p className="mt-1 font-thai text-[12px] text-ink-60">แก้ได้ทุกช่อง · ระบบเก็บว่าแก้อะไรจากที่ AI ประมาณ · กินเมื่อ <b className="text-ink">{eatenAt ? eatenAt.replace("T", " ") : "— ยังไม่ระบุ —"}</b></p>
+      <label className="mt-4 block">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-60">ชื่อมื้อ</span>
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} className="mt-1 w-full rounded-lg border border-ink-10 px-3 py-1.5 text-sm font-thai focus:border-rose focus:outline-none" />
+      </label>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <NumField label="พลังงาน" v={kcal} set={setKcal} unit="kcal" />
+        <NumField label="คาร์บ" v={carb} set={setCarb} unit="g" />
+        <NumField label="โปรตีน" v={prot} set={setProt} unit="g" />
+        <NumField label="ไขมัน" v={fat} set={setFat} unit="g" />
+        <NumField label="ใยอาหาร" v={fib} set={setFib} unit="g" />
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <Button variant="rose" size="md" disabled={saving || !!savedMsg || !desc.trim() || !eatenAt}
+          onClick={() => onSave({ description: desc.trim(), calories: n(kcal), carb_g: n(carb), protein_g: n(prot), fat_g: n(fat), fiber_g: n(fib) })}>
+          {saving ? "กำลังบันทึก…" : savedMsg ? "บันทึกแล้ว ✓" : "ยืนยันและบันทึก"}
+        </Button>
+        {savedMsg && <span className="font-thai text-[12px] text-status-optimal">{savedMsg}</span>}
+      </div>
+    </section>
+  );
+}
 
 function ResultCard({ result }: { result: AnalysisResult }) {
   if (result.error) {
@@ -509,9 +634,9 @@ function MacroRow({ label, g, kcal, pct, color }: { label: string; g: number; kc
 }
 
 function RecentItem({ row, customers }: { row: ScanRow; customers: CustomerOpt[] }) {
-  const d = new Date(row.created_at);
+  const d = new Date(row.eaten_at ?? row.created_at);
   const date = d.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
-  const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  const time = row.time_known === false ? "เวลาไม่ระบุ" : d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   const gi = row.glucose_impact_score ?? 0;
   const giColor = gi >= 7 ? "text-status-danger" : gi >= 4 ? "text-status-warning" : "text-status-optimal";
   const customer = row.customer_id ? customers.find((c) => c.id === row.customer_id) : null;

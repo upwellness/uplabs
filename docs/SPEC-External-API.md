@@ -151,6 +151,8 @@ uplab_<env>_<prefix8>_<secret32>
 | `links:write` | ขอลิงก์สมัคร |
 | `cgm:read` | อ่านค่าน้ำตาลต่อเนื่อง (CGM) ดิบ + ตัวเลขสรุป TIR/CV/GMI |
 | `cgm:write` | นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติ — upsert ไม่เขียนทับ |
+| `food:read` | อ่านบันทึกอาหาร + สรุปรายวัน (เฉลี่ยเฉพาะวันที่บันทึก) |
+| `food:write` | บันทึกมื้ออาหารที่คนยืนยันตัวเลขแล้ว (`confirmed: true` บังคับ) |
 | `assessment:read` | อ่านผลประเมินสุขภาพรวม 7 ด้าน (UP Health Design) |
 | `assessment:write` | สั่งประเมินใหม่เดี๋ยวนี้ |
 
@@ -299,6 +301,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `overview.longevity` | "วิเคราะห์ภาพรวมทุก factor ของ X" | `labs:read` |
 | `measurements.list` | "ค่า BCA / น้ำหนักของ X" | `measurements:read` |
 | `cgm.metrics` | `cgm:read` | ✓ | TIR · TBR · CV · GMI 14 วันล่าสุด — "TIR ของ…", "น้ำตาลต่อเนื่อง", "กราฟน้ำตาล", "ottai" |
+| `food.list` | `food:read` | ✓ | "X กินอะไรบ้าง / บันทึกอาหารของ X" → 14 วัน + สรุปรายวัน |
 | `assessment.get` | `assessment:read` | ✓ | "ประเมินสุขภาพรวมของ X" / "X ควรทำอะไรก่อน" → ผลประเมินล่าสุด (คำนวณให้ถ้ายังไม่มี) |
 | `cgm.import` | `cgm:write` | ✓ | **ไม่ทำเอง** — คืน 400 ชี้ไป `importCgmFile` พร้อมรูป JSON ที่ต้องส่ง เพราะ `/query` รับข้อความ ไม่รับไฟล์ |
 | `supplements.list` | "X กินอาหารเสริมอะไรอยู่" | `supplements:read` |
@@ -356,6 +359,19 @@ claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไ�
 รูปผลลัพธ์ (`payload` = `HealthAssessment` ใน `lib/health-design/assess.ts`): `sources_used[]` · `data_gaps[]` · `confidence` + `confidence_reason` · `domains{metabolic, body_comp, cardio_lipid, liver_kidney, recovery, nutrition, health_age}` แต่ละด้านมี `level: good|watch|attention|null` + `drivers[]` (ค่า · แหล่ง · วันที่ · เกณฑ์) + `caveats[]` · `priorities[]` 3 ด้านที่ควรทำก่อน · `disclaimer`
 **ไม่มีคะแนนรวมเลขเดียวโดยตั้งใจ** (ต้นเคาะ 12 ก.ย. 2026) · `level: null` = ไม่มีข้อมูล ไม่ใช่ปกติ · ค่าที่ไม่มีเกณฑ์ทางคลินิก (HRV, RHR, GMI, แคลอรี) มี `level: null` และอยู่ในผลเป็นข้อมูลประกอบเท่านั้น
 ประเมินใหม่อัตโนมัติหลัง: บันทึกแล็บ (API/หน้าเว็บ/คิว lab-inbox) · บันทึก BCA · นำเข้า CGM ที่มีค่าใหม่ — ผ่าน `recomputeQuietly()` ซึ่งไม่ทำให้การเขียนต้นทางล้มเหลว
+
+### 8.11 Food log — บันทึกอาหาร 3 ทาง (เพิ่ม 12 ก.ย. 2026 · เฟส 2 ของ SPEC-Health-Design)
+
+ตาราง = `nutriscan_scans` ที่ขยายด้วย `eaten_at` · `time_known` · `source` (photo/text/photo_backfill/api) · `estimated_by` (gemini/client_ai/manual) · `confirmed_at/by` · `edited` · `items` (ตัดสินใจไม่สร้างตารางใหม่ — ทุก scan เดิมคือ food entry อยู่แล้ว)
+
+| Endpoint | Scope | คืนอะไร |
+|---|---|---|
+| `GET /customers/{id}/food?days=14` | `food:read` | `entries[]` (eaten_at ascending) + `summary` (days_logged · coverage_pct · เฉลี่ยต่อวันที่บันทึก · C:P:F ต่อวัน) + caveats |
+| `POST /customers/{id}/food` | `food:write` | `{entries:[{eaten_at, description, items?, calories?, carb_g?, protein_g?, fat_g?, fiber_g?, meal_type?, notes?, confirmed:true}]}` · **ทั้งชุดต้องผ่านหมด ไม่งั้นไม่บันทึกเลย** (`rejected[]` บอกว่า index ไหนพลาดเพราะอะไร) · บันทึกแล้วประเมินสุขภาพรวมใหม่อัตโนมัติ |
+| `POST /food/photo-date` | token ใดก็ได้ | `{photo_base64}` → `eaten_at_suggested` จาก EXIF (เวลาไทย) หรือ `null` พร้อมเหตุผล · **ไม่วิเคราะห์อาหาร ไม่เก็บรูป** |
+
+กฎ (pure ใน `lib/food/entries.ts` · 6 tests): `confirmed` ต้องเป็น `true` จริง ๆ = คนเห็นตัวเลขแล้ว · `eaten_at` รับ `"YYYY-MM-DD HH:MM"` (เวลาไทย) · `"YYYY-MM-DD"` (ไม่รู้เวลา → เก็บ 12:00 + `time_known=false`) · EXIF `"YYYY:MM:DD HH:MM:SS"` · ISO · **ปฏิเสธอนาคตและไม่ fallback เป็น "ตอนนี้"** · ต้องมี calories หรือมาโครอย่างน้อย 1 ค่า · ช่วง 0–5000 kcal / 0–1000 g
+ในแอป: NutriScan **เลิกบันทึกอัตโนมัติ** — วิเคราะห์ (`save:false`) → แผง "ยืนยันตัวเลข" แก้ได้ทุกช่อง → `POST /api/nutriscan/save` (session) เก็บพร้อม `edited` ว่าคนแก้อะไรจาก AI · เลือกรูปเก่า → อ่าน EXIF ในเบราว์เซอร์ (ไฟล์ต้นฉบับ ก่อนย่อ) เติมช่อง "กินเมื่อไร" · รูปเก่าไม่มี EXIF → ช่องว่างและบังคับกรอก
 
 ---
 

@@ -103,6 +103,16 @@ export const INTENTS: IntentDef[] = [
     describe: (_p, n) => `ค่าองค์ประกอบร่างกาย (BCA) ${who(n)}`.trim(),
   },
   {
+    intent: "food.list",
+    scope: "food:read",
+    needsCustomer: true,
+    keywords: [
+      { k: "อาหาร", w: 3 }, { k: "กินอะไร", w: 4 }, { k: "บันทึกอาหาร", w: 5 }, { k: "มื้อ", w: 3 }, { k: "แคลอรี", w: 4 },
+      { k: "โปรตีน", w: 3 }, { k: "มาโคร", w: 4 }, { k: "food log", w: 5 }, { k: "diet", w: 3 }, { k: "กินเยอะไหม", w: 3 },
+    ],
+    describe: (_p, n) => `บันทึกอาหารและสรุปรายวัน 14 วันล่าสุด ${who(n)}`.trim(),
+  },
+  {
     intent: "assessment.get",
     scope: "assessment:read",
     needsCustomer: true,

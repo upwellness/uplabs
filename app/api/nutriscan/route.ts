@@ -132,8 +132,8 @@ export async function GET(req: Request) {
   const supa = createClient();
   let q = supa
     .from("nutriscan_scans")
-    .select("id, food_identified, meal_type, calories_estimate, carb_g, protein_g, fat_g, fiber_g, glucose_impact_score, health_score, created_at, eaten_on, customer_id, notes")
-    .order("created_at", { ascending: false })
+    .select("id, food_identified, meal_type, calories_estimate, carb_g, protein_g, fat_g, fiber_g, glucose_impact_score, health_score, created_at, eaten_on, eaten_at, time_known, source, customer_id, notes")
+    .order("eaten_at", { ascending: false, nullsFirst: false })
     .limit(limit);
 
   if (customer_id) q = q.eq("customer_id", customer_id);

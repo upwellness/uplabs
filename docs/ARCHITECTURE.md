@@ -132,6 +132,7 @@ customers (46 แถว)
 | **องค์ประกอบร่างกาย** | `measurements` (248) | น้ำหนัก ไขมัน กล้ามเนื้อ visceral body-age BMR |
 | **ภูมิแพ้** | `customer_allergy_tests` → `customer_food_allergens` | ผลทดสอบ + รายการอาหารที่แพ้ |
 | **น้ำตาลต่อเนื่อง** | `cgm_profiles` (+ `cgm_readings` >50k, `cgm_meals`) | CGM ต่อ profile · เข้าถึงด้วย passcode · นำเข้าผ่าน `/api/v1/…/cgm/import` |
+| **อาหาร (food log)** | `nutriscan_scans` (+ `eaten_at` · `time_known` · `source` · `estimated_by` · `confirmed_at/by` · `edited` · `items`) | 3 ทาง: รูป · พิมพ์ · รูปเก่า (EXIF) · ทุกแถวมีคนยืนยันตัวเลขก่อนเก็บ · เขียนผ่าน `lib/food/store.ts` |
 | **ผลประเมินรวม** | `health_assessments` (jsonb `payload`) | UP Health Design — 1 แถวต่อการประเมิน ไม่ทับ · เขียนโดย `lib/health-design/load.ts` เท่านั้น (service role · RLS เปิด ไม่มี policy) |
 | **OAuth (MCP)** | `oauth_clients` · `oauth_codes` · `oauth_refresh_tokens` · `api_tokens.oauth_client_id` | authorization server สำหรับ `/api/mcp` · access token = แถว `api_tokens` |
 | **อุปกรณ์สวมใส่** | `pulse_connections` · `pulse_readings` · `biomarker_readings` · `wearable_connections` · `sync_jobs` | token (เข้ารหัส) + ค่าที่ดึงมา |
