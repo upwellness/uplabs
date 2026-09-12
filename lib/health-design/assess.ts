@@ -265,7 +265,8 @@ function healthAge(labs: LabPoint[], c: AssessInput["customer"]): HealthAge {
   // Same gate as Customer 360: a number is shown only when CRP and RDW are real.
   const haveCrp = pre.input.crp != null, haveRdw = pre.input.rdw != null;
   if (!haveCrp || !haveRdw) {
-    out.caveats.push(`ยังไม่แสดงอายุสุขภาพ — ขาด ${[!haveCrp && "hs-CRP", !haveRdw && "RDW"].filter(Boolean).join(" และ ")} (สองค่านี้ประมาณแทนไม่ได้)`);
+    const miss = [!haveCrp && "hs-CRP", !haveRdw && "RDW"].filter(Boolean);
+    out.caveats.push(`ยังไม่แสดงอายุสุขภาพ — ขาด ${miss.join(" และ ")} (${miss.length > 1 ? "สองค่านี้" : "ค่านี้"}ประมาณแทนไม่ได้)`);
     if (pre.missing.length) out.imputed = pre.missing;
     return out;
   }
@@ -281,8 +282,11 @@ function healthAge(labs: LabPoint[], c: AssessInput["customer"]): HealthAge {
 const domainWhy = (key: DomainKey, level: Level, drivers: Driver[]): string => {
   const named = drivers.filter((x) => x.level === level).map((x) => `${x.label_th} ${x.value}${x.unit ? ` ${x.unit}` : ""}`);
   const list = named.slice(0, 3).join(" · ") + (named.length > 3 ? ` และอีก ${named.length - 3} ค่า` : "");
+  // Lab domains escalate to a doctor; body composition, sleep and food are lifestyle
+  // work first — "see a doctor" for a fat% reading would be noise the coach ignores.
+  const clinical = key === "metabolic" || key === "cardio_lipid" || key === "liver_kidney";
   return level === "attention"
-    ? `${DOMAIN_LABEL_TH[key]}: ${list} อยู่ในช่วงที่ควรปรึกษาแพทย์`
+    ? `${DOMAIN_LABEL_TH[key]}: ${list} ${clinical ? "อยู่ในช่วงที่ควรปรึกษาแพทย์" : "อยู่ในช่วงที่ต้องดูแลจริงจัง"}`
     : `${DOMAIN_LABEL_TH[key]}: ${list} เริ่มออกนอกช่วงที่ดี ควรติดตามและปรับพฤติกรรม`;
 };
 

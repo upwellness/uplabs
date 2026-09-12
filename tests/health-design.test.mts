@@ -63,6 +63,11 @@ test("priorities: attention domains first, most-flagged first, and the wording n
   }
   assert.match(a.priorities[0].why, /ควรปรึกษาแพทย์/);
   assert.match(a.priorities[2].why, /ควรติดตาม/);
+  // body composition at "attention" is lifestyle work, not a referral
+  const b = assess(base({ measurement: { recorded_at: TODAY, weight: 90, fat_pct: 30, muscle_pct: 30, visceral: 6, body_age: null } }));
+  assert.equal(b.priorities[0].domain, "body_comp");
+  assert.match(b.priorities[0].why, /ต้องดูแลจริงจัง/);
+  assert.doesNotMatch(b.priorities[0].why, /แพทย์/);
 });
 
 test("BCA: reuses medical-status bands; stale measurement is flagged; unknown sex is flagged", () => {
