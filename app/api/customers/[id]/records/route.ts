@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
 import { classify, findMetric } from "@/lib/records/catalog";
@@ -77,6 +78,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       if (valErr) throw valErr;
     }
 
+    await recomputeQuietly(params.id, "lab_import");
     return NextResponse.json({ record });
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "unknown" }, { status: 500 });

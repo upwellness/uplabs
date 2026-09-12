@@ -193,6 +193,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | `/api/v1/customers/{id}/labs/compare` | GET | `labs:read` | ตารางเทียบ N รอบล่าสุด |
 | `/api/v1/customers/{id}/overview` | GET | `labs:read` | ภาพรวมทุก factor (longevity snapshot) |
 | `/api/v1/customers/{id}/measurements` | GET · POST | `measurements:*` | BCA |
+| `/api/v1/customers/{id}/assessment` | GET · POST | `assessment:read` / `assessment:write` | **ผลประเมินสุขภาพรวม 7 ด้าน** (UP Health Design เฟส 1) · SPEC-External-API §8.10 |
 | `/api/v1/customers/{id}/supplements` | GET | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
 | `/api/v1/customers/{id}/notes` | GET · POST | `notes:*` | โน้ตโค้ช |
 | `/api/v1/links/invite` | POST | `links:write` | ขอลิงก์สมัคร |
@@ -279,6 +280,14 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **App registry:** `lib/apps-registry.ts` — เพิ่มแอปใหม่ต้องลงทะเบียนที่นี่ + เพิ่มลิงก์ใน `app/v2/_components/Shell.tsx`
 
 ---
+
+### 5.11 UP Health Design — ผลประเมินสุขภาพรวม (เฟส 1 · 12 ก.ย. 2026)
+
+การ์ด "ผลประเมินสุขภาพรวม" บน Customer 360 + `GET/POST /api/customers/[id]/assessment` + External API/MCP `getAssessment`/`runAssessment`
+- **engine:** `lib/health-design/assess.ts` (pure · 10 tests) รวมแล็บ · BCA · CGM · นาฬิกา (Whoop/pulse_readings) · อาหาร (NutriScan) เป็น 7 ด้าน — แต่ละด้านมีไฟสถานะของตัวเอง **ไม่รวมเป็นเลขเดียว** (ต้นเคาะ 12 ก.ย.)
+- **loader:** `lib/health-design/load.ts` ดึง 5 แหล่ง (หน้าต่าง 14 วันสำหรับข้อมูลต่อเนื่อง) → เก็บทุกครั้งใน `health_assessments` (ไม่ทับ) · ประเมินใหม่อัตโนมัติหลังบันทึกแล็บ/BCA/CGM
+- **กฎ:** ไม่มีข้อมูล = `level: null` + อยู่ใน `data_gaps` · เกณฑ์อ้างอิงระบุในโค้ด (ADA · ATP III · KDIGO · Battelino 2019 · AASM · PROT-AGE) · reuse `medical-status` bands, `cgm-metrics`, `bio-age` ไม่เขียนเกณฑ์ซ้ำ · `priorities.why` ไม่ใช้คำว่าโรค
+- **ยังไม่ทำ (เฟสถัดไป):** food log 3 ทาง · ร่างแผน · ฐานประชากร · หน้าลูกค้า — ดู [SPEC-Health-Design.md](./SPEC-Health-Design.md) §8
 
 ## 6. Cross-cutting Rules
 
@@ -420,6 +429,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **UP Health Design เฟส 1** — Assessment Engine 7 ด้าน (`lib/health-design/`) + ตาราง `health_assessments` + การ์ดบน Customer 360 + `/api/customers/[id]/assessment` + External API/MCP `getAssessment`/`runAssessment` + intent `assessment.get` + scope `assessment:*` + trigger หลังบันทึกแล็บ/BCA/CGM · +10 tests (146) · test runner รองรับ `@/` alias แล้ว (`tests/_resolve-ts.mjs`) | _pending_ |
 | 2026-09-12 | **สเปกร่าง UP Health Design** (`docs/SPEC-Health-Design.md`) — ตรวจว่าคำโปรโมต 9 คำจริงแค่ไหนวันนี้ (4 จริง · 3 ครึ่ง · 2 ยังพูดไม่ได้: "ฐานข้อมูลขนาดใหญ่", "realtime") · 6 ชิ้นงาน · 4 เฟส · Q1–Q7 รอเคาะ · Roadmap ข้อ 6 · ยืนยันแล้วว่า OAuth MCP ใช้ได้จริง (connector `OAuth · Claude` อ่านข้อมูลได้) | `0ae4ae5` |
 | 2026-09-12 | **OAuth 2.1 สำหรับ MCP** — discovery (RFC 8414/9728) · dynamic registration · หน้า consent `/oauth/authorize` · token/refresh/revoke · access token = `api_tokens` แถวปกติ · migration `20260912_oauth.sql` · +10 tests · claude.ai / ChatGPT connector ต่อได้ | `3aa21ea` |
 | 2026-09-11 | **MCP server `POST /api/mcp`** — API ทั้งชุดเป็น MCP (Streamable HTTP, stateless, bearer) · tool derive จาก `buildSpec()` (`lib/mcp/tools.ts`) · JSON-RPC core pure (`lib/mcp/protocol.ts`) · handler table typed ด้วย `RouteKey` · +14 tests · `integrations/mcp/README.md` config ต่อ client | `b0d35c2` |

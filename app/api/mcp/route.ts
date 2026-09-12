@@ -32,6 +32,7 @@ import * as measurements from "@/app/api/v1/customers/[id]/measurements/route";
 import * as cgm from "@/app/api/v1/customers/[id]/cgm/route";
 import * as cgmMetrics from "@/app/api/v1/customers/[id]/cgm/metrics/route";
 import * as cgmImport from "@/app/api/v1/customers/[id]/cgm/import/route";
+import * as assessment from "@/app/api/v1/customers/[id]/assessment/route";
 import * as supplements from "@/app/api/v1/customers/[id]/supplements/route";
 import * as notes from "@/app/api/v1/customers/[id]/notes/route";
 
@@ -59,6 +60,8 @@ const HANDLERS: Record<RouteKey, Handler> = {
   "GET /customers/{id}/cgm": cgm.GET,
   "GET /customers/{id}/cgm/metrics": cgmMetrics.GET,
   "POST /customers/{id}/cgm/import": cgmImport.POST,
+  "GET /customers/{id}/assessment": assessment.GET,
+  "POST /customers/{id}/assessment": assessment.POST,
   "GET /customers/{id}/supplements": supplements.GET,
   "GET /customers/{id}/notes": notes.GET,
   "POST /customers/{id}/notes": notes.POST,

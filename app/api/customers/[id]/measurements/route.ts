@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
@@ -75,6 +76,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .select()
       .single();
     if (error) throw error;
+    await recomputeQuietly(params.id, "bca");
     revalidateTag("dashboard");
     return NextResponse.json({ measurement: data });
   } catch (err: any) {

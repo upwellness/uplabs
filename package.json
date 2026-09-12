@@ -9,7 +9,7 @@
     "lint": "next lint",
     "backup": "node scripts/backup-supabase.mjs",
     "docs": "node scripts/build-docs.mjs",
-    "test": "node --experimental-strip-types --test tests/*.test.mts"
+    "test": "node --experimental-strip-types --import ./tests/_register.mjs --test tests/*.test.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",

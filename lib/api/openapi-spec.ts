@@ -324,6 +324,24 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
           responses: { "200": { description: "บันทึกแล้ว — inserted / skipped_existing / rejected" } },
         },
       },
+      "/customers/{id}/assessment": {
+        get: {
+          operationId: "getAssessment",
+          summary: "★ ผลประเมินสุขภาพรวม (UP Health Design) — 7 ด้าน จากแล็บ · BCA · CGM · นาฬิกา · อาหาร",
+          description:
+            "ใช้เมื่อถูกถาม 'สุขภาพโดยรวม / ควรทำอะไรก่อน' · แต่ละด้านมี level good/watch/attention + drivers บอกค่าและแหล่ง · " +
+            "ไม่มีคะแนนรวมเลขเดียว · อ่าน data_gaps + confidence ก่อนสรุป — level null = ไม่มีข้อมูล ไม่ใช่ปกติ · priorities = 3 ด้านที่ควรทำก่อน",
+          parameters: [customerId, { name: "history", in: "query", schema: { type: "boolean" }, description: "true = แนบ 10 ครั้งล่าสุด" }],
+          responses: { "200": { description: "ok" } },
+        },
+        post: {
+          operationId: "runAssessment",
+          summary: "สั่งประเมินสุขภาพรวมใหม่เดี๋ยวนี้",
+          description: "เรียกหลังนำเข้าข้อมูลใหม่ (ไฟล์ CGM, ผลแล็บ) เพื่อให้ผลประเมินสะท้อนข้อมูลล่าสุด · ระบบเก็บทุกครั้งเป็นประวัติ ไม่ทับของเดิม",
+          parameters: [customerId],
+          responses: { "200": { description: "ok" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

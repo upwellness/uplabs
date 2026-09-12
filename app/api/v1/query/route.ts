@@ -8,6 +8,8 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Scope } from "@/lib/api/scopes";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
+import { latestAssessment, runAssessment } from "@/lib/health-design/load";
+import { DOMAIN_LABEL_TH } from "@/lib/health-design/assess";
 import { computeMetrics, TARGETS } from "@/lib/api/cgm-metrics";
 
 export const dynamic = "force-dynamic";
@@ -168,6 +170,11 @@ export async function POST(req: Request) {
       case "measurements.list": {
         const rows = await getMeasurements(customerId!, 12);
         return envelope({ customer, measurements: rows }, rows.length);
+      }
+
+      case "assessment.get": {
+        const stored = (await latestAssessment(customerId!)) ?? (await runAssessment(customerId!, "api"));
+        return envelope({ customer, ...stored, domain_labels: DOMAIN_LABEL_TH }, 1);
       }
 
       case "cgm.metrics": {

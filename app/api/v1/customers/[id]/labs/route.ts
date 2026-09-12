@@ -1,5 +1,6 @@
 import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { getCustomer, getLabRounds } from "@/lib/api/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -96,6 +97,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return apiError("bad_request", "บันทึกค่าแล็บไม่สำเร็จ — ยกเลิกใบตรวจที่เพิ่งสร้างแล้ว");
     }
 
+    await recomputeQuietly(params.id, "lab_import");
     return apiOk({ record_id: (rec as any).id, recorded_at: recordedAt, inserted: rows.length },
       { meta: { token: ctx.token.name, row_count: rows.length } });
   });

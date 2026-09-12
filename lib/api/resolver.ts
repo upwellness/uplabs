@@ -103,6 +103,17 @@ export const INTENTS: IntentDef[] = [
     describe: (_p, n) => `ค่าองค์ประกอบร่างกาย (BCA) ${who(n)}`.trim(),
   },
   {
+    intent: "assessment.get",
+    scope: "assessment:read",
+    needsCustomer: true,
+    keywords: [
+      { k: "ประเมินสุขภาพ", w: 5 }, { k: "ผลประเมิน", w: 4 }, { k: "สุขภาพรวม", w: 4 }, { k: "สุขภาพโดยรวม", w: 4 },
+      { k: "ควรทำอะไรก่อน", w: 4 }, { k: "health design", w: 5 }, { k: "assessment", w: 4 }, { k: "ทุกด้าน", w: 2 },
+      { k: "จุดที่ต้องดูแล", w: 3 }, { k: "สรุปสุขภาพ", w: 3 },
+    ],
+    describe: (_p, n) => `ผลประเมินสุขภาพรวม 7 ด้าน (UP Health Design) ${who(n)}`.trim(),
+  },
+  {
     intent: "cgm.metrics",
     scope: "cgm:read",
     needsCustomer: true,

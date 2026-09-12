@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { parseCgmGrid, summariseRows, normaliseProfileName, MAX_ROWS } from "@/lib/api/cgm-import";
 import { getProfileNames, ensureProfile, insertReadings } from "@/lib/api/cgm-data";
 
@@ -94,6 +95,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const out = await insertReadings(parsed.rows);
     if ("error" in out) return apiError("internal_error", "บันทึกค่า CGM ไม่สำเร็จ");
 
+    if (out.inserted > 0) await recomputeQuietly(params.id, "cgm_import");
     const summary = summariseRows(parsed.rows);
     return apiOk(
       {

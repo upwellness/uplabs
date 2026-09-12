@@ -1,6 +1,6 @@
 # UP Health Design — ระบบประเมินและออกแบบสุขภาพเฉพาะบุคคล
 
-> **Feature Specification · v0.1 · 12 ก.ย. 2026 · สถานะ: ร่างรอ ต้น/จิ้น เคาะ**
+> **Feature Specification · v0.2 · 12 ก.ย. 2026 · สถานะ: เฟส 1 ส่งแล้ว · เฟส 2–4 รอเคาะ Q1 Q2 Q5**
 > เอกสารนี้ต่อยอดจาก [PRD-UPLabs.md](./PRD-UPLabs.md) — ไม่เขียนซ้ำสิ่งที่มีแล้ว แต่ระบุว่า **มีอะไรอยู่แล้ว · ขาดอะไร · จะสร้างอะไร** เพื่อให้คำสัญญาที่จะใช้โปรโมตเป็นจริงทุกคำ
 
 ---
@@ -64,7 +64,7 @@
   data_gaps: [{ source:"wearable", reason:"ไม่เคยเชื่อม" }, { source:"labs", reason:"hs-CRP ไม่มี → PhenoAge ประมาณ" }],
   confidence: "high" | "medium" | "low",                         // กฎใน lib/ ไม่ใช่ LLM
   domains: {
-    metabolic:   { score, drivers:[{metric,value,status,source}], caveats[] },   // HbA1c · FBS · CGM TIR/CV/GMI · food glycemic load
+    metabolic:   { level: good|watch|attention|null, drivers:[{metric,value,level,source}], caveats[] },  // ไม่มี score   // HbA1c · FBS · CGM TIR/CV/GMI · food glycemic load
     body_comp:   { … },   // BCA fat% · visceral · muscle · body-age
     cardio_lipid:{ … },   // LDL/HDL/TG · resting HR · HRV (wearable)
     liver_kidney:{ … },   // ALT/AST/eGFR · uric
@@ -85,10 +85,10 @@
 - **wellness ≠ diagnosis** — `priorities.why` ห้ามใช้คำว่าโรค ใช้ "ค่า X อยู่ในช่วงที่ควรปรึกษาแพทย์"
 
 **Acceptance**
-- [ ] ลูกค้าที่มีแค่แล็บ 1 ใบ → assessment มี `metabolic`, `cardio_lipid`, `liver_kidney`, `health_age` และ `data_gaps` ระบุ bca/cgm/wearable/food
-- [ ] นำเข้า CGM 14 วันครบ → `metabolic.drivers` มี TIR/CV/GMI พร้อม `source:"cgm"` และ `confidence` ขยับขึ้น
-- [ ] ค่า LDL 190 → `priorities[0].domain = cardio_lipid` และ `why` ไม่มีคำว่า "โรค"/"วินิจฉัย"
-- [ ] assessment เดิมไม่ถูกลบเมื่อคำนวณใหม่ (เก็บประวัติ เทียบย้อนหลังได้)
+- [x] ลูกค้าที่มีแค่แล็บ 1 ใบ → assessment มี `metabolic`, `cardio_lipid`, `liver_kidney`, `health_age` และ `data_gaps` ระบุ bca/cgm/wearable/food
+- [x] นำเข้า CGM 14 วันครบ → `metabolic.drivers` มี TIR/CV/GMI พร้อม `source:"cgm"` และ `confidence` ขยับขึ้น
+- [x] ค่า LDL 190 → `priorities[0].domain = cardio_lipid` และ `why` ไม่มีคำว่า "โรค"/"วินิจฉัย"
+- [x] assessment เดิมไม่ถูกลบเมื่อคำนวณใหม่ (เก็บประวัติ เทียบย้อนหลังได้)
 
 ### 3.2 Food Log ครบ 3 ทาง (P0)
 
@@ -195,7 +195,7 @@
 | Q3 | Android wearable: Google Fit ตายสิ้นปี — Health Connect (ต้องมีแอป native) หรือให้อัปโหลดไฟล์ · และ Ottai มี API จริงไหม (ยังไม่พบเอกสารสาธารณะ) | วิศวกรรม (ผม spike 2 วัน) | ไม่บล็อก — v1 ใช้ไฟล์ |
 | Q4 | Food log ทาง LINE: พอร์ต meal-tracker จาก UP Line เข้า uplabs หรือให้ UP Line เขียนเข้า uplabs ผ่าน `logFood` | ต้น | ไม่บล็อก — เริ่มจากหน้าเว็บ + MCP ก่อน |
 | Q5 | ลูกค้าจะมีบัญชีล็อกอินเองไหม (จำเป็นถ้าจะให้ลูกค้าต่อ AI ของตัวเองผ่าน OAuth) หรือใช้ลิงก์ token อย่างเดียว | ต้น | บล็อก §3.6 ครึ่งหลัง |
-| Q6 | น้ำหนักในการรวมคะแนน: Health Score ปัจจุบัน BCA 40/Lab 40/Recency 20 ล็อกไว้ 24 พ.ค. — จะเพิ่ม CGM/food/wearable เข้าสูตรเดิม หรือแยกเป็น domain ไม่รวมเป็นเลขเดียว (ผมเสนอ **ไม่รวมเป็นเลขเดียว** — เลขเดียวซ่อนจุดที่ต้องทำก่อน) | จิ้น (คลินิก) | **บล็อก §3.1** |
+| Q6 | ~~รวมเป็นเลขเดียวหรือแยก domain~~ | **✅ ต้นเคาะ 12 ก.ย. 2026: แยก domain ไม่รวมเลขเดียว** — Health Score เดิม (BCA/Lab/Recency) ยังอยู่ในการ์ด Vital ตามเดิม ไม่ถูกแทนที่ | — |
 | Q7 | จะให้แผนถึงลูกค้าโดยโค้ชไม่ยืนยันได้ไหมในบางกรณี (เช่น ลูกค้าเก่าที่แผนแค่ปรับตัวเลข) | ต้น | ไม่บล็อก — v1 ยืนยันทุกครั้ง |
 
 ---
@@ -204,7 +204,7 @@
 
 | เฟส | ส่งมอบ | เงื่อนไขก่อนเริ่ม | ประมาณ |
 |---|---|---|---|
-| **1 — ประเมินรวม** | §3.1 engine + ตาราง `health_assessments` + แสดงใน Customer 360 + MCP `getAssessment/runAssessment` + trigger จาก lab/cgm/bca import (§3.5 ส่วนแรก) | Q6 เคาะ | 2 สัปดาห์ |
+| **1 — ประเมินรวม** ✅ **ส่งแล้ว 12 ก.ย. 2026** | §3.1 engine + ตาราง `health_assessments` + การ์ดใน Customer 360 + MCP `getAssessment/runAssessment` + intent `assessment.get` + trigger จาก lab/cgm/bca | Q6 เคาะแล้ว: **แยก domain ไม่รวมเลขเดียว** | — |
 | **2 — อาหารครบ 3 ทาง** | §3.2 `food_entries` + พิมพ์เอง + รูปย้อนหลัง (EXIF) + ป้อนเข้า assessment + MCP `logFood/getFoodLog` | Q2 เคาะ | 2 สัปดาห์ |
 | **3 — ร่างแผน** | §3.3 `health_plans` + Plate Planner ต่อเข้า + หน้าโค้ชยืนยัน + ส่งลูกค้าผ่านลิงก์/LINE | เฟส 1 เสร็จ | 2–3 สัปดาห์ |
 | **4 — ฐานอ้างอิง + หน้าลูกค้า** | §3.4 เปอร์เซ็นไทล์ + §3.6 self-serve + wearable summary | Q1 · Q5 เคาะ | 3 สัปดาห์ |
@@ -217,3 +217,4 @@
 | วันที่ | เปลี่ยนอะไร |
 |---|---|
 | 2026-09-12 | ร่างแรก v0.1 — ตรวจสถานะจริงของทุกคำในโปรโมต · แยก 6 ชิ้นงาน · 7 คำถามรอเคาะ |
+| 2026-09-12 | Q6 เคาะ (แยก domain) · **เฟส 1 ส่งแล้ว** — engine `lib/health-design/assess.ts` · ตาราง `health_assessments` · การ์ด 360 · API/MCP/intent · trigger |

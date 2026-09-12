@@ -151,6 +151,8 @@ uplab_<env>_<prefix8>_<secret32>
 | `links:write` | ขอลิงก์สมัคร |
 | `cgm:read` | อ่านค่าน้ำตาลต่อเนื่อง (CGM) ดิบ + ตัวเลขสรุป TIR/CV/GMI |
 | `cgm:write` | นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติ — upsert ไม่เขียนทับ |
+| `assessment:read` | อ่านผลประเมินสุขภาพรวม 7 ด้าน (UP Health Design) |
+| `assessment:write` | สั่งประเมินใหม่เดี๋ยวนี้ |
 
 **หลักการ:** scope เป็น **allow-list** — ไม่ระบุ = ไม่ได้ · ไม่มี scope แบบ `*`
 
@@ -297,6 +299,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `overview.longevity` | "วิเคราะห์ภาพรวมทุก factor ของ X" | `labs:read` |
 | `measurements.list` | "ค่า BCA / น้ำหนักของ X" | `measurements:read` |
 | `cgm.metrics` | `cgm:read` | ✓ | TIR · TBR · CV · GMI 14 วันล่าสุด — "TIR ของ…", "น้ำตาลต่อเนื่อง", "กราฟน้ำตาล", "ottai" |
+| `assessment.get` | `assessment:read` | ✓ | "ประเมินสุขภาพรวมของ X" / "X ควรทำอะไรก่อน" → ผลประเมินล่าสุด (คำนวณให้ถ้ายังไม่มี) |
 | `cgm.import` | `cgm:write` | ✓ | **ไม่ทำเอง** — คืน 400 ชี้ไป `importCgmFile` พร้อมรูป JSON ที่ต้องส่ง เพราะ `/query` รับข้อความ ไม่รับไฟล์ |
 | `supplements.list` | "X กินอาหารเสริมอะไรอยู่" | `supplements:read` |
 | `notes.list` | "โน้ตของ X" | `notes:read` |
@@ -342,6 +345,17 @@ claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไ�
 โค้ด: `lib/oauth/core.ts` (pure, tests) · `lib/oauth/store.ts` (I/O) · `lib/oauth/http.ts` · `app/api/oauth/*` · `app/api/well-known/*`
 สิทธิ์ของ token ที่ได้: `customer_scope` = `all` ถ้าผู้ใช้เป็นแอดมิน ไม่งั้น `owner` — เห็นเท่าที่ตัวเองเห็นในเว็บ ไม่มีทางกว้างกว่า · rate limit 120/นาที
 ใครล็อกอินได้ = ใครก็ตามที่มีบัญชี UP Labs · ไม่มีการอนุมัติจากแอดมินต่อ client (แอดมินเห็นและเพิกถอน token ที่ออกได้ในหน้า API tokens)
+
+### 8.10 Health Assessment — ผลประเมินสุขภาพรวม 7 ด้าน (เพิ่ม 12 ก.ย. 2026 · เฟส 1 ของ SPEC-Health-Design)
+
+| Endpoint | Scope | คืนอะไร |
+|---|---|---|
+| `GET /customers/{id}/assessment[?history=1]` | `assessment:read` | ผลล่าสุดจาก `health_assessments` (คำนวณให้ทันทีถ้ายังไม่มี) · `?history=1` แนบ 10 ครั้งล่าสุด |
+| `POST /customers/{id}/assessment` | `assessment:write` | ประเมินใหม่จากข้อมูลปัจจุบัน แล้วเก็บเป็นแถวใหม่ (ไม่ทับของเดิม) |
+
+รูปผลลัพธ์ (`payload` = `HealthAssessment` ใน `lib/health-design/assess.ts`): `sources_used[]` · `data_gaps[]` · `confidence` + `confidence_reason` · `domains{metabolic, body_comp, cardio_lipid, liver_kidney, recovery, nutrition, health_age}` แต่ละด้านมี `level: good|watch|attention|null` + `drivers[]` (ค่า · แหล่ง · วันที่ · เกณฑ์) + `caveats[]` · `priorities[]` 3 ด้านที่ควรทำก่อน · `disclaimer`
+**ไม่มีคะแนนรวมเลขเดียวโดยตั้งใจ** (ต้นเคาะ 12 ก.ย. 2026) · `level: null` = ไม่มีข้อมูล ไม่ใช่ปกติ · ค่าที่ไม่มีเกณฑ์ทางคลินิก (HRV, RHR, GMI, แคลอรี) มี `level: null` และอยู่ในผลเป็นข้อมูลประกอบเท่านั้น
+ประเมินใหม่อัตโนมัติหลัง: บันทึกแล็บ (API/หน้าเว็บ/คิว lab-inbox) · บันทึก BCA · นำเข้า CGM ที่มีค่าใหม่ — ผ่าน `recomputeQuietly()` ซึ่งไม่ทำให้การเขียนต้นทางล้มเหลว
 
 ---
 

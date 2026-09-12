@@ -60,6 +60,8 @@ export const ROUTE_KEYS = [
   "GET /customers/{id}/cgm",
   "GET /customers/{id}/cgm/metrics",
   "POST /customers/{id}/cgm/import",
+  "GET /customers/{id}/assessment",
+  "POST /customers/{id}/assessment",
   "GET /customers/{id}/supplements",
   "GET /customers/{id}/notes",
   "POST /customers/{id}/notes",

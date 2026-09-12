@@ -9,6 +9,7 @@
  * a record of who approved it and when.
  */
 import { revalidatePath, revalidateTag } from "next/cache";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { getSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageCustomer } from "@/lib/customers/access";
@@ -182,6 +183,7 @@ export async function approveSubmission(
       status: "approved", reviewed_by: uid, reviewed_at: new Date().toISOString(), record_id: recordId,
     }).eq("id", id);
 
+    await recomputeQuietly(customerId, "lab_review");
     revalidateTag("dashboard");
     revalidatePath("/v2/lab-inbox");
     return { ok: true, recordId };

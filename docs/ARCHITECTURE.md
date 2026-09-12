@@ -131,7 +131,9 @@ customers (46 แถว)
 | | `customer_report_html` | รายงาน HTML ส่วนตัว (PII — private) |
 | **องค์ประกอบร่างกาย** | `measurements` (248) | น้ำหนัก ไขมัน กล้ามเนื้อ visceral body-age BMR |
 | **ภูมิแพ้** | `customer_allergy_tests` → `customer_food_allergens` | ผลทดสอบ + รายการอาหารที่แพ้ |
-| **น้ำตาลต่อเนื่อง** | `cgm_profiles` (+ `cgm_readings` 34k, `cgm_meals`) | CGM ต่อ profile · เข้าถึงด้วย passcode |
+| **น้ำตาลต่อเนื่อง** | `cgm_profiles` (+ `cgm_readings` >50k, `cgm_meals`) | CGM ต่อ profile · เข้าถึงด้วย passcode · นำเข้าผ่าน `/api/v1/…/cgm/import` |
+| **ผลประเมินรวม** | `health_assessments` (jsonb `payload`) | UP Health Design — 1 แถวต่อการประเมิน ไม่ทับ · เขียนโดย `lib/health-design/load.ts` เท่านั้น (service role · RLS เปิด ไม่มี policy) |
+| **OAuth (MCP)** | `oauth_clients` · `oauth_codes` · `oauth_refresh_tokens` · `api_tokens.oauth_client_id` | authorization server สำหรับ `/api/mcp` · access token = แถว `api_tokens` |
 | **อุปกรณ์สวมใส่** | `pulse_connections` · `pulse_readings` · `biomarker_readings` · `wearable_connections` · `sync_jobs` | token (เข้ารหัส) + ค่าที่ดึงมา |
 | | `whoop_daily` · `whoop_sleeps` · `whoop_workouts` · `whoop_journal` | ข้อมูล Whoop รายวัน/นอน/ออกกำลัง/บันทึก |
 | | `pulse_intakes` → `pulse_assessments` | แบบสอบถาม → ผลประเมิน |

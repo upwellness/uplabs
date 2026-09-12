@@ -1,5 +1,6 @@
 import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
+import { recomputeQuietly } from "@/lib/health-design/load";
 import { getCustomer, getMeasurements } from "@/lib/api/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -41,6 +42,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const { data, error } = await createAdminClient().from("measurements").insert(row).select("*").single();
     if (error) return apiError("bad_request", "บันทึกค่า BCA ไม่สำเร็จ — ตรวจชื่อฟิลด์ที่ส่งมา");
+    await recomputeQuietly(params.id, "bca");
     return apiOk(data, { meta: { token: ctx.token.name, row_count: 1 } });
   });
 }
