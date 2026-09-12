@@ -16,7 +16,7 @@ UP Labs คือ **แพลตฟอร์มภายในของ UP Welln
 
 **Problem:** ข้อมูลลูกค้ากระจัดกระจาย (ใบแล็บกระดาษ · เครื่องชั่ง BCA · นาฬิกา · CGM · แชท LINE) โค้ชต้องจำเอง → คำแนะนำไม่ต่อเนื่อง พิสูจน์ผลไม่ได้
 
-**Solution:** ศูนย์กลางเดียว = **Customer Profile** ที่ทุกโมดูลเขียนเข้า/อ่านออก + ชั้น AI ช่วยแปลผล + ลิงก์สาธารณะให้ลูกค้ากรอก/เชื่อมข้อมูลเองได้ + **External API** ให้ AI ข้างนอกถามข้อมูลได้ (§10)
+**Solution:** ศูนย์กลางเดียว = **Customer Profile** ที่ทุกโมดูลเขียนเข้า/อ่านออก + ชั้น AI ช่วยแปลผล + ลิงก์สาธารณะให้ลูกค้ากรอก/เชื่อมข้อมูลเองได้ + **External API / MCP** ให้ AI ข้างนอก (รวม AI ของลูกค้าเอง) ถามข้อมูลได้ (§10) · ขั้นถัดไป: [UP Health Design](./SPEC-Health-Design.md) — ประเมินรวมทุกแหล่งแล้วออกแบบแผนเฉพาะบุคคล
 
 **Principles**
 
@@ -410,8 +410,9 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 1. ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1
 2. แก้เส้นทาง wearable (Google Health API หรือ upload) ให้ sync กลับมาได้
 3. Longevity Report ให้เป็นปุ่มเดียวในแอป (ตอนนี้สร้างนอกระบบแล้วอัปโหลด)
-4. **External API v1** (§10) → ต่อยอดเป็น MCP server ให้ Claude/ChatGPT ต่อตรงได้
+4. ~~External API v1 → MCP server~~ ✅ ทำแล้ว (11–12 ก.ย. 2026) — `/api/mcp` + OAuth · claude.ai/ChatGPT ต่อตรงได้
 5. หมุน CGM passcode + ใส่ rate limit
+6. **★ UP Health Design** — ประเมินรวม 5 แหล่ง (แล็บ · BCA · CGM · นาฬิกา · อาหาร) → ร่างแผนเฉพาะบุคคลให้โค้ชยืนยัน → ลูกค้าใช้ผ่านแอปหรือ AI ของตัวเอง · สเปกร่าง: [SPEC-Health-Design.md](./SPEC-Health-Design.md) (รอ ต้น/จิ้น เคาะ Q1–Q7)
 
 ---
 
@@ -419,6 +420,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **สเปกร่าง UP Health Design** (`docs/SPEC-Health-Design.md`) — ตรวจว่าคำโปรโมต 9 คำจริงแค่ไหนวันนี้ (4 จริง · 3 ครึ่ง · 2 ยังพูดไม่ได้: "ฐานข้อมูลขนาดใหญ่", "realtime") · 6 ชิ้นงาน · 4 เฟส · Q1–Q7 รอเคาะ · Roadmap ข้อ 6 · ยืนยันแล้วว่า OAuth MCP ใช้ได้จริง (connector `OAuth · Claude` อ่านข้อมูลได้) | `0ae4ae5` |
 | 2026-09-12 | **OAuth 2.1 สำหรับ MCP** — discovery (RFC 8414/9728) · dynamic registration · หน้า consent `/oauth/authorize` · token/refresh/revoke · access token = `api_tokens` แถวปกติ · migration `20260912_oauth.sql` · +10 tests · claude.ai / ChatGPT connector ต่อได้ | `3aa21ea` |
 | 2026-09-11 | **MCP server `POST /api/mcp`** — API ทั้งชุดเป็น MCP (Streamable HTTP, stateless, bearer) · tool derive จาก `buildSpec()` (`lib/mcp/tools.ts`) · JSON-RPC core pure (`lib/mcp/protocol.ts`) · handler table typed ด้วย `RouteKey` · +14 tests · `integrations/mcp/README.md` config ต่อ client | `b0d35c2` |
 | 2026-09-11 | **GPT importer ปฏิเสธ description > 300 ตัวอักษร** (`submitLabResult` 327 · `importCgmFile` 411) — ตัดให้พอดี ย้าย how-to ไป GPT-INSTRUCTIONS · **แยก `buildSpec()` ออกจาก route เป็น `lib/api/openapi-spec.ts` (บริสุทธิ์ รับ scopes/intents เป็นพารามิเตอร์)** เพื่อให้เทสต์โหลด spec ได้โดยไม่ต้องรัน Next · เพิ่ม 4 เทสต์ปักกฎ importer: description ≤300 · ห้ามมี multipart · operationId ไม่ซ้ำ+มี summary · 3 operation CGM ต้องอยู่ — ทั้งสองข้อแรกเคยพังบน production แล้ว | (คอมมิตนี้) |

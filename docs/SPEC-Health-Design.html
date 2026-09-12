@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UP Health Design — ระบบประเมินและออกแบบสุขภาพเฉพาะบุคคล</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F1E1B; --ink80:#3D3840; --ink60:#5C5660; --ink40:#8A838E; --ink10:#E2DED8;
+    --cream:#F7F4EE; --paper:#fff; --surface:#FBF9F5;
+    --rose:#8C4C4C; --rose-u:#FAF3F2; --well:#396755; --well-u:#F0F8F4;
+    --amber:#C47A2A; --amber-u:#FEFAF3; --sci:#2A7B8F; --sci-u:#EDF7FA;
+    --gold:#C99D2F; --danger:#DC2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:Sarabun,-apple-system,sans-serif;font-size:15px;line-height:1.8}
+  h1,h2,h3,h4{font-family:Kanit,sans-serif;line-height:1.35;margin:0}
+  a{color:var(--rose)}
+  code{background:var(--surface);border:1px solid var(--ink10);border-radius:5px;padding:1px 5px;font-size:.88em;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+  header.top{background:linear-gradient(135deg,var(--rose-u),var(--cream) 45%,var(--well-u));border-bottom:1px solid var(--ink10)}
+  .hero{max-width:1080px;margin:0 auto;padding:38px 20px 30px}
+  .eyebrow{font-family:Kanit;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rose)}
+  h1{font-size:clamp(26px,4.5vw,40px);margin-top:8px}
+  .sub{color:var(--ink60);margin-top:10px;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{background:#fff;border:1px solid var(--ink10);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--ink60)}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink10)}
+  nav.toc .in{max-width:1080px;margin:0 auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto}
+  nav.toc a{white-space:nowrap;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink60);border:1px solid var(--ink10);background:#fff;border-radius:999px;padding:5px 12px}
+  nav.toc a:hover{color:var(--rose);border-color:var(--rose)}
+  section{background:var(--paper);border:1px solid var(--ink10);border-radius:22px;padding:26px 26px 22px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.02),0 20px 40px -34px rgba(140,76,76,.25)}
+  section>h2{font-size:22px;display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:var(--rose);color:#fff;font-size:13px}
+  h3{font-size:16.5px;margin-top:22px;color:var(--ink)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--ink10);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--surface);font-family:Kanit;font-weight:600;font-size:12.5px}
+  tr:nth-child(even) td{background:#FCFBF9}
+  .callout{border-left:4px solid var(--gold);background:var(--amber-u);border-radius:0 14px 14px 0;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-color:var(--danger);background:#FEF2F2}
+  .callout.ok{border-color:var(--well);background:var(--well-u)}
+  .callout b{color:var(--ink)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:14px 0}
+  .card{border:1px solid var(--ink10);border-radius:16px;padding:14px 16px;background:#fff}
+  .card .t{font-family:Kanit;font-weight:600;font-size:14.5px}
+  .card .d{font-size:13px;color:var(--ink60);margin-top:4px}
+  .tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;font-family:Kanit}
+  .t-rose{background:var(--rose-u);color:var(--rose)} .t-well{background:var(--well-u);color:var(--well)}
+  .t-amber{background:var(--amber-u);color:var(--amber)} .t-sci{background:var(--sci-u);color:var(--sci)}
+  footer{max-width:1080px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
+  @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+
+  pre.code{background:var(--surface);border:1px solid var(--ink10);border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.65;margin:14px 0}
+  pre.code code{background:none;border:0;padding:0;font-size:inherit}
+  h4{font-size:14.5px;margin-top:16px;color:var(--ink80)}
+  .genwarn{background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:10px;padding:8px 14px;font-size:12.5px;margin-top:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hero">
+    <div class="eyebrow">Feature Specification · Draft</div>
+    <h1>UP Health Design — ระบบประเมินและออกแบบสุขภาพเฉพาะบุคคล</h1>
+    <p class="sub">รวมแล็บ · BCA · CGM · นาฬิกา · อาหาร เป็นผลประเมินเดียวที่บอกที่มาและช่องว่างของข้อมูล แล้วร่างแผนดูแลให้โค้ชยืนยัน — ใช้ผ่านแอปหรือผ่าน AI ของลูกค้าเองด้วย MCP</p>
+    <div class="meta"></div>
+    <div class="genwarn">ไฟล์นี้ถูกสร้างอัตโนมัติจาก <code>docs/SPEC-Health-Design.md</code> — แก้ที่ .md แล้วรัน <code>npm run docs</code> · <b>ห้ามแก้ .html ตรง ๆ</b> เพราะจะถูกทับ</div>
+  </div>
+</header>
+<nav class="toc"><div class="in"><a href="#s0-คำสัญญาที่จะใช้โปรโมต-และสิ่งที่ต้องเป็นจริงก่อนพูด">คำสัญญาที่จะใช้โปรโมต — และสิ่งที่ต้องเป็นจริงก่อนพูด</a><a href="#s1-problem-statement">Problem Statement</a><a href="#s2-goals">Goals</a><a href="#s3-what-we-build-แยกเป็น-6-ชิ้น">What we build — แยกเป็น 6 ชิ้น</a><a href="#s4-mcp-api-tools-ที่ต้องเพิ่ม-ให้-g5-จริง">MCP / API tools ที่ต้องเพิ่ม (ให้ G5 จริง)</a><a href="#s5-success-metrics">Success Metrics</a><a href="#s6-non-goals-v1">Non-Goals (v1)</a><a href="#s7-open-questions">Open Questions</a><a href="#s8-phasing">Phasing</a><a href="#s9-changelog">Changelog</a></div></nav>
+<div class="wrap">
+<section id="s0-คำสัญญาที่จะใช้โปรโมต-และสิ่งที่ต้องเป็นจริงก่อนพูด"><h2><span class="num">0</span>คำสัญญาที่จะใช้โปรโมต — และสิ่งที่ต้องเป็นจริงก่อนพูด</h2>
+<p>ต้นอยากพูดกับลูกค้าว่า:</p>
+<div class="callout"><i>"เข้ามาอยู่กับเรา มีระบบประเมินและออกแบบการดูแลสุขภาพเฉพาะบุคคล บนฐานข้อมูลขนาดใหญ่ ออกแบบ lifestyle อาหารการกิน ประเมินได้แบบ realtime ใช้ผ่านแอปก็ได้ หรือผ่าน AI ที่คุณถนัดก็ได้ ขั้นตอนไม่ยุ่งยาก"</i></div>
+<p>แยกทีละคำว่า <b>วันนี้จริงแค่ไหน</b> (ตรวจจากโค้ดและฐานข้อมูล 12 ก.ย. 2026):</p>
+<table><thead><tr><th>คำในโปรโมต</th><th>วันนี้</th><th>ต้องทำอะไรถึงพูดได้เต็มปาก</th></tr></thead><tbody><tr><td>"ประเมินสุขภาพจากแล็บ"</td><td>✅ จริง — <code>customer_lab_values</code> + เกณฑ์ <code>lib/medical-status.ts</code> + PhenoAge + คิวตรวจใบแล็บที่ AI อ่าน</td><td>—</td></tr><tr><td>"จาก BCA"</td><td>✅ จริง — <code>measurements</code> + Health Score (BCA 40% · Lab 40% · Recency 20%)</td><td>—</td></tr><tr><td>"จาก CGM"</td><td>✅ จริง — <code>cgm_readings</code> &gt;50,000 ค่า · TIR/CV/GMI ตามเกณฑ์สากล · นำเข้าไฟล์ Ottai ผ่าน API</td><td>ยัง<b>ไม่รวมเข้า Health Score</b> (§3.1)</td></tr><tr><td>"จาก wearable"</td><td>⚠️ ครึ่งเดียว — Whoop OAuth/CSV และ Apple Health export ใช้ได้ · <b>Google Fit ตาย</b> (PRD §12)</td><td>ทางเดินใหม่สำหรับ Android (§7 Q3)</td></tr><tr><td>"จากอาหารที่บันทึก"</td><td>⚠️ แยกส่วน — NutriScan (รูป→มาโคร) และ Food Log มี แต่ไม่มี "พิมพ์เอง" · ไม่มี "เอารูปเก่ามาลงย้อนหลัง" · ไม่ป้อนเข้าการประเมิน</td><td>§3.2</td></tr><tr><td>"ฐานข้อมูลขนาดใหญ่"</td><td>❌ <b>ยังพูดไม่ได้</b> — ลูกค้าในระบบ 104 คน · ข้อมูลของเราไม่ใช่ "ขนาดใหญ่" · ถ้าจะพูด ต้องหมายถึง <b>ฐานอ้างอิงประชากร + เกณฑ์สากล</b> ที่ระบบเทียบให้ (§3.4)</td><td>เลือกแหล่งอ้างอิงและเขียนคำโปรโมตให้ตรงความจริง (§7 Q1)</td></tr><tr><td>"ออกแบบ lifestyle / อาหาร"</td><td>⚠️ มีชิ้นส่วน — Program Designer · Plate Planner (Muscle-Centric) · เมนู LINE 18:00 · ตารางอาหารเสริม</td><td>ยังไม่มี <b>แผนเดียว</b> ที่ถูกสร้างจากผลประเมินแล้วส่งถึงลูกค้า (§3.3)</td></tr><tr><td>"realtime"</td><td>❌ <b>ยังพูดไม่ได้</b> — ทุกแหล่งเป็น batch (อัปโหลดไฟล์/ sync เป็นรอบ)</td><td>นิยามใหม่เป็น <b>"ประเมินใหม่ทันทีที่ข้อมูลใหม่มาถึง"</b> และทำให้ข้อมูลมาถึงถี่ขึ้น (§3.5)</td></tr><tr><td>"ผ่านแอป"</td><td>⚠️ แอปวันนี้เป็นของ<b>โค้ช</b> — ลูกค้าได้แค่ลิงก์ token (<code>/connect</code>, <code>/intake</code>, <code>/r</code>) และ LINE</td><td>หน้าลูกค้าแบบ self-serve (§3.6)</td></tr><tr><td>"ผ่าน AI ที่คุณถนัด"</td><td>✅ <b>จริงแล้ววันนี้</b> — MCP <code>/api/mcp</code> + OAuth · claude.ai / ChatGPT / Claude Code / Cursor / Gemini CLI ต่อได้ · เอกสารฉบับนี้ถูกเขียนโดย Claude ที่อ่านข้อมูลผ่าน connector <code>OAuth · Claude</code></td><td>ขยาย tool ให้ครอบ food/wearable/plan (§4)</td></tr><tr><td>"ขั้นตอนไม่ยุ่งยาก"</td><td>⚠️ วัดไม่ได้ — ยังไม่เคยนับว่าลูกค้าใหม่ 1 คนใช้กี่ขั้น/กี่นาทีกว่าจะเห็นผลประเมินแรก</td><td>นิยาม + วัด (§5)</td></tr></tbody></table>
+<p><b>สรุป:</b> 4 ใน 9 คำพูดได้วันนี้ · 3 คำพูดได้ครึ่งเดียว · 2 คำ ("ฐานข้อมูลขนาดใหญ่", "realtime") <b>ยังพูดไม่ได้</b> และเป็นความเสี่ยงโฆษณาเกินจริงถ้าพูดก่อนทำ</p>
+</section>
+<section id="s1-problem-statement"><h2><span class="num">1</span>Problem Statement</h2>
+<p>โค้ช UP Wellness มีข้อมูลลูกค้า 5 แหล่งอยู่ในระบบแล้ว (แล็บ · BCA · CGM · นาฬิกา · อาหาร) แต่ระบบ<b>ประเมินแยกกัน</b>: Health Score ดูแค่แล็บ+BCA · CGM มีตัวเลขสรุปแต่ไม่ถูกนำไปรวม · อาหารกับนาฬิกาอยู่คนละหน้า → โค้ชยังต้อง "รวมในหัว" แล้วเขียนแผนเอง ผลคือแผนไม่สม่ำเสมอระหว่างโค้ช พิสูจน์ที่มาไม่ได้ และลูกค้าเห็นผลก็ต่อเมื่อโค้ชว่างมาสรุปให้</p>
+<p>ผลกระทบถ้าไม่แก้: คำโปรโมต "ออกแบบเฉพาะบุคคลบนข้อมูล" จะเป็นคำที่ทีมขายพูดแต่ระบบทำไม่ได้ · โค้ชใหม่ (downline) ให้คำแนะนำได้ไม่เท่าโค้ชเก่า · ลูกค้าที่ใช้ CGM/นาฬิกาแล้วไม่เห็นว่าข้อมูลถูกใช้ จะเลิกส่ง</p>
+</section>
+<section id="s2-goals"><h2><span class="num">2</span>Goals</h2>
+<table><thead><tr><th>#</th><th>เป้าหมาย</th><th>วัดยังไง</th></tr></thead><tbody><tr><td>G1</td><td><b>ลูกค้า 1 คนได้ผลประเมินรวมทุกแหล่งหน้าเดียว</b> พร้อมบอกชัดว่าคำนวณจากอะไร ขาดอะไร เชื่อได้แค่ไหน</td><td>ทุกลูกค้าที่มีข้อมูล ≥1 แหล่ง มี Health Design Assessment ที่ระบุ <code>sources_used[]</code> · <code>data_gaps[]</code> · <code>confidence</code></td></tr><tr><td>G2</td><td><b>ทุกข้อมูลที่ลูกค้าส่งมาถูกใช้</b> — ไม่มีแหล่งไหนเข้าระบบแล้วจบอยู่ที่ตารางเดียว</td><td>CGM · food · wearable ปรากฏใน assessment ภายใน 1 ชั่วโมงหลังข้อมูลมาถึง</td></tr><tr><td>G3</td><td><b>แผนดูแลเฉพาะบุคคลออกจากผลประเมิน ไม่ใช่จากความจำโค้ช</b> — โค้ชเป็นคน<b>ยืนยัน/แก้</b> ไม่ใช่คนเขียนจากศูนย์</td><td>≥80% ของแผนที่ส่งลูกค้าเริ่มจากร่างที่ระบบสร้าง (นับจาก <code>plan.origin</code>)</td></tr><tr><td>G4</td><td><b>ลูกค้าใหม่เห็นผลประเมินแรกได้เองภายใน 10 นาที</b> นับจากได้ลิงก์ (มีแล็บหรือ BCA 1 ชุด) โดยโค้ชไม่ต้องแตะ</td><td>เวลาจาก <code>invite.created_at</code> → assessment แรก · เป้า median ≤10 นาที</td></tr><tr><td>G5</td><td><b>ใช้ผ่าน AI ตัวไหนก็ได้เท่ากับใช้ผ่านแอป</b> — ทุกความสามารถของ §3 มี tool ใน MCP</td><td>tool ใน <code>/api/mcp</code> ครอบ 100% ของ capability ใน §3 (ตรวจด้วย test)</td></tr></tbody></table>
+</section>
+<section id="s3-what-we-build-แยกเป็น-6-ชิ้น"><h2><span class="num">3</span>What we build — แยกเป็น 6 ชิ้น</h2>
+<h3>3.1 Assessment Engine — ประเมินรวม 5 แหล่ง (P0)</h3>
+<p>หนึ่ง object ต่อลูกค้าต่อครั้ง: <code>health_assessments</code></p>
+<pre class="code" data-lang=""><code>{
+  customer_id, computed_at, trigger: "lab_import" | "cgm_import" | "food_log" | "wearable_sync" | "manual",
+  sources_used: ["labs","bca","cgm","wearable","food"],        // เฉพาะที่มีข้อมูลจริงในหน้าต่างเวลา
+  data_gaps: [{ source:"wearable", reason:"ไม่เคยเชื่อม" }, { source:"labs", reason:"hs-CRP ไม่มี → PhenoAge ประมาณ" }],
+  confidence: "high" | "medium" | "low",                         // กฎใน lib/ ไม่ใช่ LLM
+  domains: {
+    metabolic:   { score, drivers:[{metric,value,status,source}], caveats[] },   // HbA1c · FBS · CGM TIR/CV/GMI · food glycemic load
+    body_comp:   { … },   // BCA fat% · visceral · muscle · body-age
+    cardio_lipid:{ … },   // LDL/HDL/TG · resting HR · HRV (wearable)
+    liver_kidney:{ … },   // ALT/AST/eGFR · uric
+    recovery:    { … },   // sleep · HRV · strain (wearable) — null ถ้าไม่มี
+    nutrition:   { … },   // โปรตีน/วัน vs เป้า · C:P:F · ความถี่บันทึก — null ถ้าไม่มี
+    health_age:  { phenoage, delta, mode:"measured"|"hybrid" }
+  },
+  priorities: [ { rank, domain, why, evidence:[…] } ],           // 3 อันดับที่ควรทำก่อน
+  disclaimer
+}</code></pre>
+<p><b>กฎที่ล็อกไว้</b></p>
+<ul>
+<li>ตรรกะทั้งหมดใน <code>lib/health-design/assess.ts</code> (pure · มี test) — หน้าเว็บ/API/MCP เรียกตัวเดียวกัน (AGENTS.md ข้อ 1.2)
+</li>
+<li><b>ไม่มีข้อมูล ≠ ปกติ</b> — domain ที่ไม่มีข้อมูลเป็น <code>null</code> + อยู่ใน <code>data_gaps</code> ห้ามให้คะแนนกลาง ๆ
+</li>
+<li>คะแนนย่อยที่มีอยู่แล้ว (Health Score · <code>insight-rules.ts</code> · <code>status-classifier.ts</code> · CGM <code>computeMetrics</code> · PhenoAge) <b>ถูกเรียกใช้ ไม่เขียนใหม่</b>
+</li>
+<li>CGM เข้าเงื่อนไข "เชื่อได้" เมื่อ ≥14 วัน + ≥70% (Battelino 2019) · ต่ำกว่านั้นใช้เป็นแนวโน้ม ห้ามเทียบเกณฑ์ (มีอยู่แล้วใน <code>cgm-metrics.ts</code>)
+</li>
+<li><b>wellness ≠ diagnosis</b> — <code>priorities.why</code> ห้ามใช้คำว่าโรค ใช้ "ค่า X อยู่ในช่วงที่ควรปรึกษาแพทย์"
+</li>
+</ul>
+<p><b>Acceptance</b></p>
+<ul>
+<li>[ ] ลูกค้าที่มีแค่แล็บ 1 ใบ → assessment มี <code>metabolic</code>, <code>cardio_lipid</code>, <code>liver_kidney</code>, <code>health_age</code> และ <code>data_gaps</code> ระบุ bca/cgm/wearable/food
+</li>
+<li>[ ] นำเข้า CGM 14 วันครบ → <code>metabolic.drivers</code> มี TIR/CV/GMI พร้อม <code>source:"cgm"</code> และ <code>confidence</code> ขยับขึ้น
+</li>
+<li>[ ] ค่า LDL 190 → <code>priorities[0].domain = cardio_lipid</code> และ <code>why</code> ไม่มีคำว่า "โรค"/"วินิจฉัย"
+</li>
+<li>[ ] assessment เดิมไม่ถูกลบเมื่อคำนวณใหม่ (เก็บประวัติ เทียบย้อนหลังได้)
+</li>
+</ul>
+<h3>3.2 Food Log ครบ 3 ทาง (P0)</h3>
+<p>รวม NutriScan + Food Log เป็นตาราง <code>food_entries</code> เดียว (customer_id · eaten_at · source · items[] · macros · photo_url · confidence · confirmed_by)</p>
+<table><thead><tr><th>ทาง</th><th>วันนี้</th><th>ทำ</th></tr></thead><tbody><tr><td>ถ่ายรูปตอนนี้</td><td>✅ NutriScan → Gemini Vision</td><td>ผูก <code>customer_id</code> เสมอ + เวลาจากตอนถ่าย</td></tr><tr><td><b>พิมพ์เอง</b> ("ข้าวมันไก่ 1 จาน กาแฟเย็นหวานน้อย")</td><td>❌</td><td>ข้อความ → ประมาณมาโคร (ฐานอาหารไทย + AI) → <b>ให้ลูกค้ากดยืนยัน</b>ก่อนบันทึก</td></tr><tr><td><b>เอารูปเก่ามาลงย้อนหลัง</b></td><td>❌</td><td>อ่านเวลาถ่ายจาก EXIF → เสนอ <code>eaten_at</code> ให้ยืนยัน · ไม่มี EXIF → ถามวัน/มื้อ · <b>ห้ามเดาเวลาเงียบ ๆ</b></td></tr></tbody></table>
+<ul>
+<li>ค่าจาก AI ทุกค่าติดป้าย 🤖 และต้องมีคนกดยืนยัน (memory: <code>feedback_ai_estimate_needs_human_confirm</code>)
+</li>
+<li>ช่องทางส่ง: หน้าลูกค้า (§3.6) · LINE (มีโครงจาก UP Line meal-tracker อยู่แล้ว — ตัดสินใจว่าจะพอร์ตหรือเรียกข้าม §7 Q4) · MCP tool <code>logFood</code>
+</li>
+<li>Acceptance: ส่งรูปเก่า 3 รูปที่มี EXIF ต่างวัน → ได้ 3 entry วันถูกต้องหลังกดยืนยัน · รูปไม่มี EXIF → ระบบถามก่อน ไม่บันทึกเอง
+</li>
+</ul>
+<h3>3.3 Design Engine — ร่างแผนจากผลประเมิน (P0)</h3>
+<p><code>health_plans</code> — 1 แผน active ต่อลูกค้า · สร้างจาก assessment ล่าสุด · <b>โค้ชยืนยันก่อนส่ง</b></p>
+<table><thead><tr><th>ส่วนของแผน</th><th>สร้างจาก</th><th>ใครยืนยัน</th></tr></thead><tbody><tr><td>เป้าหมาย 90 วัน (2–3 ข้อ)</td><td><code>priorities</code></td><td>โค้ช</td></tr><tr><td>อาหาร: โปรตีน/วัน · C:P:F · เมนูตัวอย่าง 7 วัน</td><td>Plate Planner engine (มีแล้ว) + food log ที่ผ่านมา</td><td>โค้ช</td></tr><tr><td>Lifestyle: นอน · เดิน · ฝึกแรงต้าน</td><td>wearable (ถ้ามี) + เกณฑ์สากล</td><td>โค้ช</td></tr><tr><td>อาหารเสริม</td><td>ตารางที่<b>เภสัชกร</b>จัด — ระบบ<b>ไม่</b>เสนอเอง</td><td>เภสัชกร + แพทย์ (PRD §6)</td></tr><tr><td>ตรวจซ้ำเมื่อไร</td><td><code>data_gaps</code> + รอบตรวจมาตรฐาน</td><td>โค้ช</td></tr><tr><td>สัญญาณต้องพบแพทย์</td><td>status "ควรปรึกษาแพทย์"</td><td>อัตโนมัติ ไม่ต้องยืนยัน</td></tr></tbody></table>
+<ul>
+<li><code>plan.origin = "engine" | "coach"</code> และเก็บ diff ว่าโค้ชแก้อะไรจากร่าง → ใช้ปรับ engine (G3)
+</li>
+<li>Acceptance: ลูกค้าที่มี assessment → กด "ร่างแผน" ได้แผนครบ 6 ส่วนใน ≤30 วินาที · ส่วนอาหารเสริมว่างถ้าเภสัชกรยังไม่จัด · ส่งถึงลูกค้าไม่ได้จนกว่าโค้ชกด "ยืนยัน"
+</li>
+</ul>
+<h3>3.4 ฐานอ้างอิง — สิ่งที่ทำให้ "เทียบกับข้อมูลใหญ่" เป็นความจริง (P1)</h3>
+<p>ข้อมูลของเรา 104 คน ไม่ใช่ big data · สิ่งที่ลูกค้าได้ประโยชน์จริงคือ <b>เทียบตัวเองกับประชากรและเกณฑ์สากล</b>:</p>
+<table><thead><tr><th>ชั้น</th><th>แหล่ง</th><th>ใช้ทำอะไร</th></tr></thead><tbody><tr><td>เกณฑ์คลินิก</td><td>ADA · ESC/EAS lipid · KDIGO · Battelino 2019 (CGM) · Levine 2018 (PhenoAge) — มีใน <code>lib/</code> แล้วบางส่วน</td><td>สถานะ ปกติ/ก้ำกึ่ง/ควรพบแพทย์</td></tr><tr><td>เปอร์เซ็นไทล์ประชากร</td><td><b>ต้องเลือก</b> — NHANES (สหรัฐ · เปิด) · Thai NHES (ไทย · ต้องขอ)</td><td>"คุณอยู่ตรงไหนเมื่อเทียบคนอายุ/เพศเดียวกัน"</td></tr><tr><td>กลุ่มของเรา</td><td>ลูกค้า UP Wellness (ไม่ระบุตัวตน · ต้องมี consent)</td><td>"คนที่เริ่มเหมือนคุณ 90 วันถัดมาเป็นยังไง" — ทำได้เมื่อ n พอ (§7 Q1)</td></tr></tbody></table>
+<p><b>คำโปรโมตที่พูดได้ตั้งแต่วันนี้:</b> "เทียบผลของคุณกับเกณฑ์สากลและฐานประชากร" — ไม่ใช่ "เรามีข้อมูลขนาดใหญ่"</p>
+<h3>3.5 "Realtime" = ประเมินใหม่ทันทีที่ข้อมูลมาถึง (P1)</h3>
+<ul>
+<li>ทุกการเขียน labs / measurements / cgm_readings / food_entries / pulse_readings → trigger <code>assess()</code> ใหม่ (queue ไม่ใช่ sync ในคำขอ) → assessment ใหม่ภายใน ≤60 วินาที
+</li>
+<li>ทำให้ข้อมูลมาถึงถี่ขึ้น: Ottai ยังเป็นไฟล์ export (ไม่พบ public API — §7 Q3) · Whoop OAuth ดึงรายวันได้แล้ว · Apple Health ต้องอัปโหลด
+</li>
+<li><b>คำที่พูดได้:</b> "ผลประเมินอัปเดตทันทีที่ข้อมูลใหม่เข้ามา" · <b>คำที่ยังพูดไม่ได้:</b> "ดูน้ำตาลสด ๆ นาทีต่อนาที"
+</li>
+</ul>
+<h3>3.6 หน้าลูกค้า self-serve (P1) + ใช้ผ่าน AI ของตัวเอง (P0 — มีแล้ว ขยาย)</h3>
+<ul>
+<li>ลูกค้าเข้าด้วยลิงก์ token (แบบ <code>/connect</code>, <code>/r</code> ที่มีอยู่) หรือ LINE → เห็น assessment ล่าสุด · แผน · ส่งอาหาร/รูป · อัปโหลดไฟล์ CGM เอง
+</li>
+<li>ลูกค้าที่อยากใช้ AI ตัวเอง: ต่อ <code>/api/mcp</code> ด้วย OAuth (มีแล้ว) — <b>ต้องเพิ่ม role ลูกค้า</b> ที่เห็นเฉพาะตัวเอง (วันนี้ OAuth รับเฉพาะบัญชีโค้ช/แอดมิน — §7 Q5)
+</li>
+</ul>
+</section>
+<section id="s4-mcp-api-tools-ที่ต้องเพิ่ม-ให้-g5-จริง"><h2><span class="num">4</span>MCP / API tools ที่ต้องเพิ่ม (ให้ G5 จริง)</h2>
+<table><thead><tr><th>tool</th><th>scope ใหม่</th><th>ทำอะไร</th></tr></thead><tbody><tr><td><code>getAssessment</code></td><td><code>assessment:read</code></td><td>assessment ล่าสุด + ประวัติ</td></tr><tr><td><code>runAssessment</code></td><td><code>assessment:write</code></td><td>สั่งประเมินใหม่ (เช่นหลังนำเข้าไฟล์)</td></tr><tr><td><code>logFood</code></td><td><code>food:write</code></td><td>พิมพ์/ส่งรูป (base64 หรือ URL) + <code>eaten_at</code></td></tr><tr><td><code>getFoodLog</code></td><td><code>food:read</code></td><td>รายการ + สรุปมาโครต่อวัน</td></tr><tr><td><code>getWearableSummary</code></td><td><code>wearable:read</code></td><td>นอน/HRV/ก้าว รายวัน (จาก <code>pulse_readings</code>/<code>whoop_*</code>)</td></tr><tr><td><code>draftPlan</code> / <code>getPlan</code></td><td><code>plan:write</code> / <code>plan:read</code></td><td>ร่างแผน / อ่านแผน active (ส่งถึงลูกค้ายังต้องโค้ชยืนยันในแอป)</td></tr></tbody></table>
+<p>ทุกตัว derive จาก OpenAPI อัตโนมัติเหมือนเดิม (SPEC-External-API §8.8) — เพิ่ม operation ใน <code>buildSpec()</code> ก็ได้ tool</p>
+</section>
+<section id="s5-success-metrics"><h2><span class="num">5</span>Success Metrics</h2>
+<p>ยังไม่มี baseline สักตัว — <b>สัปดาห์แรกหลังปล่อยคือการวัด baseline</b> ไม่ใช่การตัดสิน</p>
+<table><thead><tr><th>ตัวชี้วัด</th><th>นิยาม</th><th>เป้า (90 วันหลังปล่อย)</th><th>วัดจาก</th></tr></thead><tbody><tr><td>Time-to-first-assessment</td><td>invite → assessment แรก</td><td>median ≤10 นาที</td><td><code>user_invites.created_at</code> vs <code>health_assessments.computed_at</code></td></tr><tr><td>Source coverage</td><td>% ลูกค้า active ที่มี ≥3 แหล่งใน 30 วัน</td><td>≥40%</td><td><code>sources_used</code></td></tr><tr><td>Food log retention</td><td>% ลูกค้าที่บันทึกอาหาร ≥4 วัน/สัปดาห์ ต่อเนื่อง 4 สัปดาห์</td><td>≥30%</td><td><code>food_entries</code></td></tr><tr><td>Plan origin</td><td>% แผนที่เริ่มจาก engine</td><td>≥80%</td><td><code>health_plans.origin</code></td></tr><tr><td>Coach edit distance</td><td>โค้ชแก้กี่ % ของร่าง</td><td>ลดลงทุกเดือน</td><td>diff ที่เก็บ</td></tr><tr><td>AI channel share</td><td>% การอ่าน assessment ผ่าน MCP vs แอป</td><td>รายงานอย่างเดียว ไม่ตั้งเป้า</td><td><code>api_token_logs.user_agent LIKE 'mcp:%'</code></td></tr></tbody></table>
+</section>
+<section id="s6-non-goals-v1"><h2><span class="num">6</span>Non-Goals (v1)</h2>
+<ol>
+<li><b>ไม่วินิจฉัยและไม่แนะนำยา</b> — ค่าเกินเกณฑ์ = "ปรึกษาแพทย์" เท่านั้น
+</li>
+<li><b>ไม่ให้ระบบเสนออาหารเสริมเอง</b> — เภสัชกรจัด ระบบแค่แสดง (กฎเดิม PRD §6)
+</li>
+<li><b>ไม่ทำ streaming CGM นาทีต่อนาที</b> — ไม่มีแหล่งข้อมูลที่ให้ได้ (Ottai = ไฟล์)
+</li>
+<li><b>ไม่ทำแอป native</b> — เว็บ + LINE + MCP พอสำหรับ "ใช้ผ่านแอป" ในความหมายลูกค้า
+</li>
+<li><b>ไม่เทรนโมเดลของเราเอง</b> จากข้อมูล 104 คน — ใช้กฎ + เกณฑ์ + LLM ที่ผู้ใช้ถือคีย์เอง (BYO) ตามเดิม
+</li>
+<li><b>ไม่เปิดข้อมูลรวมของลูกค้า (cohort)</b> จนกว่ามี consent เฉพาะและ n ที่ไม่ระบุตัวตนได้
+</li>
+</ol>
+</section>
+<section id="s7-open-questions"><h2><span class="num">7</span>Open Questions</h2>
+<table><thead><tr><th>#</th><th>คำถาม</th><th>ใครตอบ</th><th>บล็อกไหม</th></tr></thead><tbody><tr><td>Q1</td><td>ฐานเปอร์เซ็นไทล์ประชากรใช้อะไร — NHANES (ได้เลย แต่เป็นคนอเมริกัน) หรือขอ Thai NHES (ตรงกว่า ใช้เวลา) · และคำโปรโมต "ฐานข้อมูลขนาดใหญ่" จะเปลี่ยนเป็นคำไหน</td><td>ต้น + จิ้น</td><td><b>บล็อก §3.4 และการตลาด</b></td></tr><tr><td>Q2</td><td>PDPA: อาหาร/รูปอาหาร/ข้อมูลนาฬิกาเป็นข้อมูลอ่อนไหวมาตรา 26 — consent ปัจจุบัน (<code>/intake</code>, <code>/connect</code>) ครอบการเก็บรูปและการเทียบ cohort ไหม</td><td>ต้น (+ ที่ปรึกษากฎหมาย)</td><td><b>บล็อก §3.2 / §3.4</b></td></tr><tr><td>Q3</td><td>Android wearable: Google Fit ตายสิ้นปี — Health Connect (ต้องมีแอป native) หรือให้อัปโหลดไฟล์ · และ Ottai มี API จริงไหม (ยังไม่พบเอกสารสาธารณะ)</td><td>วิศวกรรม (ผม spike 2 วัน)</td><td>ไม่บล็อก — v1 ใช้ไฟล์</td></tr><tr><td>Q4</td><td>Food log ทาง LINE: พอร์ต meal-tracker จาก UP Line เข้า uplabs หรือให้ UP Line เขียนเข้า uplabs ผ่าน <code>logFood</code></td><td>ต้น</td><td>ไม่บล็อก — เริ่มจากหน้าเว็บ + MCP ก่อน</td></tr><tr><td>Q5</td><td>ลูกค้าจะมีบัญชีล็อกอินเองไหม (จำเป็นถ้าจะให้ลูกค้าต่อ AI ของตัวเองผ่าน OAuth) หรือใช้ลิงก์ token อย่างเดียว</td><td>ต้น</td><td>บล็อก §3.6 ครึ่งหลัง</td></tr><tr><td>Q6</td><td>น้ำหนักในการรวมคะแนน: Health Score ปัจจุบัน BCA 40/Lab 40/Recency 20 ล็อกไว้ 24 พ.ค. — จะเพิ่ม CGM/food/wearable เข้าสูตรเดิม หรือแยกเป็น domain ไม่รวมเป็นเลขเดียว (ผมเสนอ <b>ไม่รวมเป็นเลขเดียว</b> — เลขเดียวซ่อนจุดที่ต้องทำก่อน)</td><td>จิ้น (คลินิก)</td><td><b>บล็อก §3.1</b></td></tr><tr><td>Q7</td><td>จะให้แผนถึงลูกค้าโดยโค้ชไม่ยืนยันได้ไหมในบางกรณี (เช่น ลูกค้าเก่าที่แผนแค่ปรับตัวเลข)</td><td>ต้น</td><td>ไม่บล็อก — v1 ยืนยันทุกครั้ง</td></tr></tbody></table>
+</section>
+<section id="s8-phasing"><h2><span class="num">8</span>Phasing</h2>
+<table><thead><tr><th>เฟส</th><th>ส่งมอบ</th><th>เงื่อนไขก่อนเริ่ม</th><th>ประมาณ</th></tr></thead><tbody><tr><td><b>1 — ประเมินรวม</b></td><td>§3.1 engine + ตาราง <code>health_assessments</code> + แสดงใน Customer 360 + MCP <code>getAssessment/runAssessment</code> + trigger จาก lab/cgm/bca import (§3.5 ส่วนแรก)</td><td>Q6 เคาะ</td><td>2 สัปดาห์</td></tr><tr><td><b>2 — อาหารครบ 3 ทาง</b></td><td>§3.2 <code>food_entries</code> + พิมพ์เอง + รูปย้อนหลัง (EXIF) + ป้อนเข้า assessment + MCP <code>logFood/getFoodLog</code></td><td>Q2 เคาะ</td><td>2 สัปดาห์</td></tr><tr><td><b>3 — ร่างแผน</b></td><td>§3.3 <code>health_plans</code> + Plate Planner ต่อเข้า + หน้าโค้ชยืนยัน + ส่งลูกค้าผ่านลิงก์/LINE</td><td>เฟส 1 เสร็จ</td><td>2–3 สัปดาห์</td></tr><tr><td><b>4 — ฐานอ้างอิง + หน้าลูกค้า</b></td><td>§3.4 เปอร์เซ็นไทล์ + §3.6 self-serve + wearable summary</td><td>Q1 · Q5 เคาะ</td><td>3 สัปดาห์</td></tr><tr><td><b>พร้อมโปรโมตเต็มประโยค</b></td><td>หลังเฟส 3 (คำว่า "ฐานข้อมูลขนาดใหญ่" ใช้ได้หลังเฟส 4 ในความหมาย §3.4 เท่านั้น)</td><td></td><td>~2.5 เดือน</td></tr></tbody></table>
+</section>
+<section id="s9-changelog"><h2><span class="num">9</span>Changelog</h2>
+<table><thead><tr><th>วันที่</th><th>เปลี่ยนอะไร</th></tr></thead><tbody><tr><td>2026-09-12</td><td>ร่างแรก v0.1 — ตรวจสถานะจริงของทุกคำในโปรโมต · แยก 6 ชิ้นงาน · 7 คำถามรอเคาะ</td></tr></tbody></table>
+</section>
+</div>
+<footer>UP Labs · UP Health Design — ระบบประเมินและออกแบบสุขภาพเฉพาะบุคคล · ต่อยอดจาก <a href="./PRD-UPLabs.html">PRD-UPLabs.html</a> · <a href="./SPEC-External-API.html">SPEC-External-API.html</a> — generate จาก <code>SPEC-Health-Design.md</code> ห้ามแก้ .html ตรง ๆ</footer>
+</body>
+</html>
