@@ -282,7 +282,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **ผู้ใช้:** `/v2/admin/users` — สร้าง/แก้ role/ผูก downline/รีเซ็ตรหัส/มอบหมายลูกค้า
 - **Backup/Restore ทั้งฐาน (ปรับใหม่ 13 ก.ย. 2026):** `/v2/admin/backup` (เมนู Admin · สำรอง/กู้คืน)
   - **ทุกตารางจากฐานจริง** ผ่าน RPC `backup_catalog()` (67 ตาราง · primary key จริง · FK parents) — ไม่มีรายชื่อ hard-code อีก · DDL อยู่ใน `supabase/migrations/` ไม่ได้อยู่ใน snapshot
-  - **Snapshot อัตโนมัติทุกคืน 03:00** (Vercel cron → `/api/admin/backup/cron` + `CRON_SECRET`) → Storage bucket ส่วนตัว `db-backups` (gzip) · เก็บ 30 ชุดล่าสุด · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว
+  - **Snapshot อัตโนมัติทุกคืน 03:00** (Vercel cron → `/api/admin/backup/cron` + `CRON_SECRET`) → Storage bucket ส่วนตัว `db-backups` (gzip) · เก็บ 14 ชุดล่าสุด (~31 MB/ชุด · driver_logs ของโปรเจกต์อื่นกิน 45 MB) · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว
   - **ดาวน์โหลดทันที** ทั้งฐานหรือเลือกตาราง (`POST /api/admin/backup`) · รวม auth users (export อย่างเดียว)
   - **กู้คืน** จาก snapshot ในระบบหรือไฟล์ที่อัปโหลด (รับไฟล์รุ่นเก่าด้วย) · **dry run ก่อนเสมอ** · เรียงตารางแม่ก่อนลูก · upsert บน PK จริง (composite ได้) · โหมด *แทนที่* ล้างตารางก่อน (ไม่ CASCADE — ตารางที่ถูกอ้างอิงจะปฏิเสธ = ปลอดภัย) ต้องพิมพ์ `REPLACE` · ตัดคอลัมน์ที่ฐานปัจจุบันไม่มี · reset sequences หลังกู้ · ใช้ session จริงเท่านั้น (view-as เข้าไม่ได้)
   - โค้ด: `lib/backup/snapshot.ts` (pure · 4 tests) · `lib/backup/engine.ts` · `scripts/backup-supabase.mjs` (CLI ใช้ RPC เดียวกัน)

@@ -222,7 +222,7 @@
 <li><b>Backup/Restore ทั้งฐาน (ปรับใหม่ 13 ก.ย. 2026):</b> <code>/v2/admin/backup</code> (เมนู Admin · สำรอง/กู้คืน)
 <ul>
 <li><b>ทุกตารางจากฐานจริง</b> ผ่าน RPC <code>backup_catalog()</code> (67 ตาราง · primary key จริง · FK parents) — ไม่มีรายชื่อ hard-code อีก · DDL อยู่ใน <code>supabase/migrations/</code> ไม่ได้อยู่ใน snapshot</li>
-<li><b>Snapshot อัตโนมัติทุกคืน 03:00</b> (Vercel cron → <code>/api/admin/backup/cron</code> + <code>CRON_SECRET</code>) → Storage bucket ส่วนตัว <code>db-backups</code> (gzip) · เก็บ 30 ชุดล่าสุด · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว</li>
+<li><b>Snapshot อัตโนมัติทุกคืน 03:00</b> (Vercel cron → <code>/api/admin/backup/cron</code> + <code>CRON_SECRET</code>) → Storage bucket ส่วนตัว <code>db-backups</code> (gzip) · เก็บ 14 ชุดล่าสุด (~31 MB/ชุด · driver_logs ของโปรเจกต์อื่นกิน 45 MB) · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว</li>
 <li><b>ดาวน์โหลดทันที</b> ทั้งฐานหรือเลือกตาราง (<code>POST /api/admin/backup</code>) · รวม auth users (export อย่างเดียว)</li>
 <li><b>กู้คืน</b> จาก snapshot ในระบบหรือไฟล์ที่อัปโหลด (รับไฟล์รุ่นเก่าด้วย) · <b>dry run ก่อนเสมอ</b> · เรียงตารางแม่ก่อนลูก · upsert บน PK จริง (composite ได้) · โหมด <i>แทนที่</i> ล้างตารางก่อน (ไม่ CASCADE — ตารางที่ถูกอ้างอิงจะปฏิเสธ = ปลอดภัย) ต้องพิมพ์ <code>REPLACE</code> · ตัดคอลัมน์ที่ฐานปัจจุบันไม่มี · reset sequences หลังกู้ · ใช้ session จริงเท่านั้น (view-as เข้าไม่ได้)</li>
 <li>โค้ด: <code>lib/backup/snapshot.ts</code> (pure · 4 tests) · <code>lib/backup/engine.ts</code> · <code>scripts/backup-supabase.mjs</code> (CLI ใช้ RPC เดียวกัน)</li>

@@ -106,7 +106,7 @@ export function BackupClient() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-head text-[16px] font-extrabold text-ink">Snapshot ในระบบ</h2>
-            <p className="font-thai text-[12px] text-ink-60">อัตโนมัติทุกคืน 03:00 (เก็บ 30 ชุดล่าสุด) · ที่กดเก็บเองไม่ถูกลบอัตโนมัติ · ทั้งฐาน {totals ? `${totals.tables} ตาราง · ${totals.rows.toLocaleString()} แถว` : "…"}</p>
+            <p className="font-thai text-[12px] text-ink-60">อัตโนมัติทุกคืน 03:00 (เก็บ 14 ชุดล่าสุด) · ที่กดเก็บเองไม่ถูกลบอัตโนมัติ · ทั้งฐาน {totals ? `${totals.tables} ตาราง · ${totals.rows.toLocaleString()} แถว` : "…"}</p>
           </div>
           <Button variant="rose" size="sm" onClick={snapshotNow} disabled={!!busy}>{busy === "snapshot" ? "กำลังเก็บ…" : "📸 เก็บ snapshot ตอนนี้"}</Button>
         </div>

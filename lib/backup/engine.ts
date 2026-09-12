@@ -15,7 +15,7 @@ import {
 } from "./snapshot";
 
 export const BUCKET = "db-backups";
-export const KEEP_SNAPSHOTS = 30;
+export const KEEP_SNAPSHOTS = 14; // 31 MB/snapshot gz (driver_logs alone is 45 MB raw) — 30 would eat the 1 GB Storage tier
 const PAGE = 1000;
 const CHUNK = 500;
 
