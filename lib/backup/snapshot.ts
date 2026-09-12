@@ -8,6 +8,20 @@
  */
 
 export const SNAPSHOT_FORMAT = "uplabs-snapshot";
+
+/**
+ * Tables that live in the same Supabase project but belong to OTHER apps (an old
+ * CRM, a driver-log tool, a warm-lead pipeline …). None is referenced anywhere in this
+ * repo, none has a foreign key to `customers`. They are skipped by the nightly snapshot
+ * and by default in the admin page — `driver_logs` alone is 45 MB of embedded files —
+ * but can be included on demand. Restore never touches a table that is not in the file.
+ */
+export const FOREIGN_TABLES: readonly string[] = [
+  "aw_prospects", "budgets", "call_logs", "categories", "contact_status", "contacts", "driver_logs", "leads",
+  "link_hub", "losmtd", "metabolic_leads", "symbols", "transactions", "user_profiles",
+  "warm_content_touchpoints", "warm_lead_interactions", "warm_lead_segments", "warm_lead_tags", "warm_lead_tasks", "warm_leads",
+];
+export const isForeignTable = (name: string) => FOREIGN_TABLES.includes(name);
 export const SNAPSHOT_VERSION = 2;
 
 export interface CatalogEntry { table_name: string; est_rows: number; pk_columns: string[]; fk_parents: string[]; columns: string[]; exact_rows?: number | null }

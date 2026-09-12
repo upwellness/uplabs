@@ -3,14 +3,14 @@
  *
  *   catalog  → backup_catalog() RPC (every public table, real PKs) + exact counts
  *   dump     → paged select * per table (PostgREST caps a page at 1,000 rows)
- *   store    → private Storage bucket `db-backups`, gzip, 30 most recent kept
+ *   store    → private Storage bucket `db-backups`, gzip, 14 most recent kept (UP Labs tables only)
  *   restore  → parents-first, upsert on the real PK (replace mode clears first),
  *              sequences reset afterwards
  */
 import { gzipSync, gunzipSync } from "node:zlib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  orderTables, parseSnapshot, planRestore, projectRow, snapshotFilename, SNAPSHOT_FORMAT, SNAPSHOT_VERSION,
+  orderTables, parseSnapshot, planRestore, projectRow, snapshotFilename, isForeignTable, SNAPSHOT_FORMAT, SNAPSHOT_VERSION,
   type CatalogEntry, type Snapshot, type RestoreMode, type RestorePlan,
 } from "./snapshot";
 
@@ -45,10 +45,11 @@ export async function dumpTable(name: string): Promise<{ rows: Record<string, un
   return { rows: all };
 }
 
-export async function buildSnapshot(opts: { tables?: string[] | null; createdBy: string; includeAuthUsers?: boolean }): Promise<Snapshot> {
+/** `tables` omitted = every UP Labs table; other projects' tables only when `includeForeign` (or named explicitly). */
+export async function buildSnapshot(opts: { tables?: string[] | null; createdBy: string; includeAuthUsers?: boolean; includeForeign?: boolean }): Promise<Snapshot> {
   const catalog = await getCatalog(false);
   const order = orderTables(catalog);
-  const wanted = new Set(opts.tables?.length ? opts.tables : order);
+  const wanted = new Set(opts.tables?.length ? opts.tables : order.filter((t) => opts.includeForeign || !isForeignTable(t)));
   const tables: Snapshot["tables"] = {};
   let rows = 0;
   for (const t of order) {

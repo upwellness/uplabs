@@ -13,10 +13,11 @@ export async function GET() {
 }
 
 /** POST — take a full snapshot now and keep it in Storage (label "manual" — never pruned). */
-export async function POST() {
+export async function POST(req: Request) {
   const g = await requireBackupAdmin(); if (g.res) return g.res;
+  const body = await req.json().catch(() => ({}));
   try {
-    const snap = await buildSnapshot({ createdBy: g.session!.profile.email ?? g.session!.user.id, includeAuthUsers: true });
+    const snap = await buildSnapshot({ createdBy: g.session!.profile.email ?? g.session!.user.id, includeAuthUsers: true, includeForeign: body?.includeForeign === true });
     const stored = await storeSnapshot(snap, "manual");
     return NextResponse.json({ stored, totals: snap.totals });
   } catch (e: any) { return NextResponse.json({ error: e?.message ?? "snapshot failed" }, { status: 500 }); }

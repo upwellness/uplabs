@@ -282,7 +282,8 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **ผู้ใช้:** `/v2/admin/users` — สร้าง/แก้ role/ผูก downline/รีเซ็ตรหัส/มอบหมายลูกค้า
 - **Backup/Restore ทั้งฐาน (ปรับใหม่ 13 ก.ย. 2026):** `/v2/admin/backup` (เมนู Admin · สำรอง/กู้คืน)
   - **ทุกตารางจากฐานจริง** ผ่าน RPC `backup_catalog()` (67 ตาราง · primary key จริง · FK parents) — ไม่มีรายชื่อ hard-code อีก · DDL อยู่ใน `supabase/migrations/` ไม่ได้อยู่ใน snapshot
-  - **Snapshot อัตโนมัติทุกคืน 03:00** (Vercel cron → `/api/admin/backup/cron` + `CRON_SECRET`) → Storage bucket ส่วนตัว `db-backups` (gzip) · เก็บ 14 ชุดล่าสุด (~31 MB/ชุด · driver_logs ของโปรเจกต์อื่นกิน 45 MB) · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว
+  - **ตารางของโปรเจกต์อื่น 20 ตาราง** (`FOREIGN_TABLES` ใน `lib/backup/snapshot.ts`: driver_logs · losmtd · budgets · contacts · warm_* ฯลฯ — ไม่มีโค้ดในนี้อ้างถึง ไม่มี FK ถึง customers) **ถูกข้ามใน snapshot อัตโนมัติและค่าเริ่มต้นของหน้า** · ติ๊ก "รวมตารางของโปรเจกต์อื่น" ได้เมื่อต้องการ · แสดงสีเทาในรายการ
+  - **Snapshot อัตโนมัติทุกคืน 03:00** (Vercel cron → `/api/admin/backup/cron` + `CRON_SECRET`) → Storage bucket ส่วนตัว `db-backups` (gzip) · เก็บ 14 ชุดล่าสุด (เฉพาะตาราง UP Labs ~3 MB/ชุด · ถ้ารวมโปรเจกต์อื่น ~31 MB เพราะ driver_logs 45 MB) · ชุดที่กด "เก็บตอนนี้" (manual) ไม่ถูกลบอัตโนมัติ · ดาวน์โหลด/ลบ/กู้คืนจากหน้าเดียว
   - **ดาวน์โหลดทันที** ทั้งฐานหรือเลือกตาราง (`POST /api/admin/backup`) · รวม auth users (export อย่างเดียว)
   - **กู้คืน** จาก snapshot ในระบบหรือไฟล์ที่อัปโหลด (รับไฟล์รุ่นเก่าด้วย) · **dry run ก่อนเสมอ** · เรียงตารางแม่ก่อนลูก · upsert บน PK จริง (composite ได้) · โหมด *แทนที่* ล้างตารางก่อน (ไม่ CASCADE — ตารางที่ถูกอ้างอิงจะปฏิเสธ = ปลอดภัย) ต้องพิมพ์ `REPLACE` · ตัดคอลัมน์ที่ฐานปัจจุบันไม่มี · reset sequences หลังกู้ · ใช้ session จริงเท่านั้น (view-as เข้าไม่ได้)
   - โค้ด: `lib/backup/snapshot.ts` (pure · 4 tests) · `lib/backup/engine.ts` · `scripts/backup-supabase.mjs` (CLI ใช้ RPC เดียวกัน)
@@ -454,6 +455,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | _pending_ |
 | 2026-09-13 | **Backup/Restore ทั้งฐาน** — RPC `backup_catalog/clear_table/reset_sequences` + bucket `db-backups` · snapshot อัตโนมัติทุกคืน (cron) + manual · กู้คืน dry-run → upsert/replace ตาม PK จริงเรียง FK · หน้า `/v2/admin/backup` เขียนใหม่ · เมนู Admin · ลบ `lib/backup/tables.ts` (15 ตาราง hard-code) · +4 tests (161) | `e0ccd4e` |
 | 2026-09-12 | **UP Health Design เฟส 4** — เปอร์เซ็นไทล์ NHANES 2017–2020 (`scripts/build-reference.py` · `lib/health-design/reference.ts` · `driver.reference`) · หน้าลูกค้า `/my/[token]` (ประเมิน · แผน · บันทึกอาหาร · อัปโหลด CGM · `customers.portal_token`) · `getWearableSummary` + scope `wearable:read` · CGM import flow แยกเป็น `lib/api/cgm-import-flow.ts` · +1 test (157) | `b5b8c80` |
 | 2026-09-12 | **UP Health Design เฟส 3 — แผนดูแล 90 วัน** · `lib/health-design/plan.ts` + `plan-store.ts` · ตาราง `health_plans` · การ์ด PlanCard (ร่าง→แก้→ยืนยัน→ส่งลิงก์/LINE) · `/r/plan/[token]` · External API/MCP `getPlan`/`draftPlan` + scope `plan:*` + intent `plan.get` · NutriScan เพิ่มปุ่มเลือกจากอัลบั้ม (มือถือเคยบังคับกล้อง) · +4 tests (156) | `062f62e` |

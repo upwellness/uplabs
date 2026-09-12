@@ -4,7 +4,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { orderTables, parseSnapshot, planRestore, projectRow, snapshotFilename, type CatalogEntry } from "../lib/backup/snapshot.ts";
+import { orderTables, parseSnapshot, planRestore, projectRow, snapshotFilename, isForeignTable, FOREIGN_TABLES, type CatalogEntry } from "../lib/backup/snapshot.ts";
 
 const cat = (name: string, parents: string[] = [], pk: string[] = ["id"], columns = ["id", "customer_id", "value"]): CatalogEntry =>
   ({ table_name: name, est_rows: 0, pk_columns: pk, fk_parents: parents, columns });
@@ -65,4 +65,10 @@ test("planRestore: live catalog decides pk/order; missing tables and empty table
 test("projectRow drops columns the live table lacks; filename is sortable", () => {
   assert.deepEqual(projectRow({ id: 1, gone: 2, name: "x" }, ["id", "name"]), { id: 1, name: "x" });
   assert.equal(snapshotFilename("2026-09-13T03:00:12.000Z"), "uplabs_20260913_030012.json");
+});
+
+test("foreign-table list: other projects' tables are named, UP Labs tables are not", () => {
+  for (const t of ["driver_logs", "losmtd", "budgets", "warm_leads", "contacts"]) assert.ok(isForeignTable(t), t);
+  for (const t of ["customers", "customer_lab_values", "cgm_readings", "health_assessments", "health_plans", "api_tokens", "oauth_clients", "nutriscan_scans", "whoop_daily", "biomarker_readings", "wearable_connections", "profiles"]) assert.ok(!isForeignTable(t), t);
+  assert.equal(new Set(FOREIGN_TABLES).size, FOREIGN_TABLES.length);
 });

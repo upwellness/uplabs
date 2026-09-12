@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { formatBytes, type CatalogEntry, type RestorePlan } from "@/lib/backup/snapshot";
+import { formatBytes, isForeignTable, type CatalogEntry, type RestorePlan } from "@/lib/backup/snapshot";
 
 interface Stored { name: string; created_at: string; bytes: number }
 interface Report { dry_run: boolean; mode: string; snapshot: { created_at: string; created_by: string; version: number; totals: { tables: number; rows: number } }; plan: RestorePlan; results: { table: string; cleared?: number; written: number; errors: string[] }[]; sequences_reset: number; ok: boolean }
@@ -29,6 +29,7 @@ export function BackupClient() {
   const [source, setSource] = useState<{ kind: "stored"; name: string } | { kind: "file"; file: File } | null>(null);
   const [mode, setMode] = useState<"upsert" | "replace">("upsert");
   const [onlySelected, setOnlySelected] = useState(false);
+  const [includeForeign, setIncludeForeign] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [report, setReport] = useState<Report | null>(null);
 
@@ -51,7 +52,7 @@ export function BackupClient() {
   const downloadNow = async () => {
     setBusy("download"); setMsg(null);
     try {
-      const r = await fetch("/api/admin/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tables: selected.size ? [...selected] : null, includeAuthUsers: true }) });
+      const r = await fetch("/api/admin/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tables: selected.size ? [...selected] : null, includeAuthUsers: true, includeForeign }) });
       if (!r.ok) throw new Error((await r.json()).error ?? "backup failed");
       const blob = await r.blob(); const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "uplabs_snapshot.json";
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
@@ -62,7 +63,7 @@ export function BackupClient() {
   const snapshotNow = async () => {
     setBusy("snapshot"); setMsg(null);
     try {
-      const r = await fetch("/api/admin/backup/snapshots", { method: "POST" }); const j = await r.json();
+      const r = await fetch("/api/admin/backup/snapshots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ includeForeign }) }); const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "snapshot failed");
       setMsg({ tone: "ok", text: `เก็บ snapshot แล้ว: ${j.stored.name} · ${j.totals.tables} ตาราง · ${j.totals.rows.toLocaleString()} แถว · ${formatBytes(j.stored.bytes)} (บีบอัด)` });
       await load();
@@ -106,7 +107,7 @@ export function BackupClient() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-head text-[16px] font-extrabold text-ink">Snapshot ในระบบ</h2>
-            <p className="font-thai text-[12px] text-ink-60">อัตโนมัติทุกคืน 03:00 (เก็บ 14 ชุดล่าสุด) · ที่กดเก็บเองไม่ถูกลบอัตโนมัติ · ทั้งฐาน {totals ? `${totals.tables} ตาราง · ${totals.rows.toLocaleString()} แถว` : "…"}</p>
+            <p className="font-thai text-[12px] text-ink-60">อัตโนมัติทุกคืน 03:00 (เก็บ 14 ชุดล่าสุด · เฉพาะตาราง UP Labs) · ที่กดเก็บเองไม่ถูกลบอัตโนมัติ · ทั้งฐาน {totals ? `${totals.tables} ตาราง · ${totals.rows.toLocaleString()} แถว` : "…"}</p>
           </div>
           <Button variant="rose" size="sm" onClick={snapshotNow} disabled={!!busy}>{busy === "snapshot" ? "กำลังเก็บ…" : "📸 เก็บ snapshot ตอนนี้"}</Button>
         </div>
@@ -132,7 +133,8 @@ export function BackupClient() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-head text-[16px] font-extrabold text-ink">ตารางทั้งหมด (จากฐานจริง)</h2>
-            <p className="font-thai text-[12px] text-ink-60">เรียงตามลำดับที่กู้คืนได้ปลอดภัย (ตารางแม่ก่อน) · ไม่เลือก = ทั้งหมด · โครงสร้างตาราง (DDL) อยู่ใน <code>supabase/migrations/</code> ไม่ได้อยู่ในไฟล์นี้</p>
+            <p className="font-thai text-[12px] text-ink-60">เรียงตามลำดับที่กู้คืนได้ปลอดภัย (ตารางแม่ก่อน) · ไม่เลือก = ทุกตารางของ UP Labs · โครงสร้างตาราง (DDL) อยู่ใน <code>supabase/migrations/</code> ไม่ได้อยู่ในไฟล์นี้</p>
+            <label className="mt-1 flex items-center gap-2 font-thai text-[12px] text-ink-60"><input type="checkbox" checked={includeForeign} onChange={(e) => setIncludeForeign(e.target.checked)} className="accent-rose" />รวมตารางของโปรเจกต์อื่นที่ปนอยู่ในฐาน (สีเทา · {catalog.filter((c) => isForeignTable(c.table_name)).length} ตาราง · driver_logs อย่างเดียว 45 MB)</label>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={!selected.size}>ล้างที่เลือก</Button>
@@ -141,9 +143,9 @@ export function BackupClient() {
         </div>
         <div className="mt-4 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
           {ordered.map((c) => (
-            <label key={c.table_name} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${selected.has(c.table_name) ? "border-rose bg-rose-ultra" : "border-ink-10 hover:bg-ink-5"}`}>
+            <label key={c.table_name} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${selected.has(c.table_name) ? "border-rose bg-rose-ultra" : isForeignTable(c.table_name) ? "border-ink-5 bg-ink-5 opacity-60" : "border-ink-10 hover:bg-ink-5"}`} title={isForeignTable(c.table_name) ? "ตารางของโปรเจกต์อื่น — ไม่อยู่ใน snapshot อัตโนมัติ" : undefined}>
               <input type="checkbox" checked={selected.has(c.table_name)} onChange={() => toggle(c.table_name)} className="h-3.5 w-3.5 accent-rose" />
-              <span className="font-mono text-ink">{c.table_name}</span>
+              <span className={`font-mono ${isForeignTable(c.table_name) ? "text-ink-40" : "text-ink"}`}>{c.table_name}</span>
               <span className="ml-auto text-ink-40">{c.exact_rows == null ? "?" : c.exact_rows.toLocaleString()}</span>
               {c.pk_columns.length === 0 && <span className="text-[10px] text-status-caution" title="ไม่มี primary key — restore จะ insert อย่างเดียว">no PK</span>}
             </label>
