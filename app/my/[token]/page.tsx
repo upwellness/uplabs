@@ -7,9 +7,10 @@ import { PortalTools } from "./PortalTools";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const LEVEL_TH: Record<Level, { label: string; dot: string }> = {
-  good: { label: "อยู่ในเกณฑ์ดี", dot: "#3E7C59" }, watch: { label: "ควรติดตาม", dot: "#C9922B" }, attention: { label: "ควรปรึกษาแพทย์/ดูแลจริงจัง", dot: "#B4413C" },
-};
+const DOT: Record<Level, string> = { good: "#3E7C59", watch: "#C9922B", attention: "#B4413C" };
+const CLINICAL = new Set<DomainKey>(["metabolic", "cardio_lipid", "liver_kidney"]);
+// Same split as the engine's priorities: lab domains escalate to a doctor, the rest are lifestyle work.
+const levelLabel = (k: DomainKey, l: Level) => (l === "good" ? "อยู่ในเกณฑ์ดี" : l === "watch" ? "ควรติดตาม" : CLINICAL.has(k) ? "ควรปรึกษาแพทย์" : "ต้องดูแลจริงจัง");
 const SOURCE_TH: Record<string, string> = { labs: "ผลเลือด", bca: "เครื่องชั่ง BCA", cgm: "เซ็นเซอร์น้ำตาล", wearable: "นาฬิกา", food: "บันทึกอาหาร", labs_panel: "ผลเลือด", health_age: "อายุสุขภาพ" };
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "");
 
@@ -46,12 +47,12 @@ export default async function PortalPage({ params }: { params: { token: string }
                 const level: Level | null = k === "health_age" ? a.domains.health_age.level : (a.domains[k] as any).level;
                 const sub = k === "health_age"
                   ? (a.domains.health_age.phenoage != null ? `${a.domains.health_age.phenoage} ปี (อายุจริง ${a.domains.health_age.chrono_age})` : "ยังคำนวณไม่ได้")
-                  : level ? LEVEL_TH[level].label : "ยังไม่มีข้อมูล";
+                  : level ? levelLabel(k, level) : "ยังไม่มีข้อมูล";
                 return (
                   <li key={k} className="rounded-xl border border-ink-10 p-3">
                     <div className="font-thai text-[12px] font-semibold text-ink">{DOMAIN_LABEL_TH[k]}</div>
                     <div className="mt-1 flex items-center gap-1.5 font-thai text-[12px] text-ink-60">
-                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: level ? LEVEL_TH[level].dot : "#c4c0b8" }} aria-hidden />{sub}
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: level ? DOT[level] : "#c4c0b8" }} aria-hidden />{sub}
                     </div>
                   </li>
                 );
