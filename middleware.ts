@@ -34,6 +34,8 @@ const PUBLIC_PATHS = [
   "/.well-known",             // OAuth discovery (RFC 8414 / 9728) — rewritten to /api/well-known
   "/api/well-known",
   "/api/oauth",               // OAuth register / token / revoke — client-authenticated, no session
+  "/my",                      // customer portal /my/<token> — token-gated, no session (SPEC-Health-Design §3.6)
+  "/api/my",
   "/oauth/authorize",         // consent page checks the session itself so the query string survives the login round-trip
 ];
 

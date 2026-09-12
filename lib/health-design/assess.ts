@@ -21,6 +21,7 @@ import { bandBodyFat, bandMusclePct, bandVisceralFat, bandBMI, classifyBodyAge, 
 import { computePhenoAge, estimatePhenoAge, phenoPrefillFromLabs, PHENO_DEFAULT_UNITS, type PhenoInput } from "@/lib/bio-age";
 import { deriveBMI } from "@/lib/bca-derive";
 import { TARGETS, type CgmMetrics } from "@/lib/api/cgm-metrics";
+import { percentileOf, type Percentile } from "./reference";
 
 export const ENGINE_VERSION = "1.0.0";
 
@@ -66,6 +67,8 @@ export interface Driver {
   metric: string; label_th: string; value: number | string; unit?: string | null;
   /** null = informational (no guideline threshold behind it) */
   level: Level | null; source: Source; recorded_at?: string | null; note?: string;
+  /** position among people of the same sex and age band in the population reference (§3.4) — never a health verdict */
+  reference?: Percentile | null;
 }
 export interface Domain {
   level: Level | null;          // worst driver level; null when nothing measured
@@ -359,6 +362,19 @@ export function assess(input: AssessInput): HealthAssessment {
 
   if (sources_used.length === 0) caveats.push("ยังไม่มีข้อมูล — ประเมินอะไรไม่ได้");
   for (const key of ["metabolic", "body_comp", "cardio_lipid", "liver_kidney", "recovery", "nutrition"] as const) caveats.push(...domains[key].caveats.map((c) => `${DOMAIN_LABEL_TH[key]}: ${c}`));
+
+  // Population position for every lab / BMI driver that the reference table covers.
+  for (const key of ["metabolic", "body_comp", "cardio_lipid", "liver_kidney"] as const) {
+    for (const d of domains[key].drivers) {
+      if ((d.source === "labs" || d.metric === "bmi") && typeof d.value === "number") {
+        const r = percentileOf(d.metric, d.value, input.customer.gender, input.customer.age);
+        if (r) d.reference = r;
+      }
+    }
+  }
+  if (input.customer.gender && input.customer.age != null && input.customer.age >= 20 && m.size) {
+    caveats.push("เปอร์เซ็นไทล์อ้างอิงมาจากประชากรสหรัฐ (NHANES 2017–2020) — ใช้ดูตำแหน่งเทียบคนวัยเดียวกัน ไม่ใช่เกณฑ์สุขภาพ · จะเปลี่ยนเป็นฐานคนไทยเมื่อได้ข้อมูล");
+  }
   caveats.push("สิ่งที่ไม่ได้วัดไม่ได้แปลว่าปกติ — ดู data_gaps ประกอบทุกครั้ง");
 
   return {

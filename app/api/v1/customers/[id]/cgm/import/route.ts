@@ -1,9 +1,8 @@
-import * as XLSX from "xlsx";
 import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
+import { normaliseProfileName, MAX_ROWS } from "@/lib/api/cgm-import";
+import { gridFromFile, importCgmForCustomer } from "@/lib/api/cgm-import-flow";
 import { recomputeQuietly } from "@/lib/health-design/load";
-import { parseCgmGrid, summariseRows, normaliseProfileName, MAX_ROWS } from "@/lib/api/cgm-import";
-import { getProfileNames, ensureProfile, insertReadings } from "@/lib/api/cgm-data";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -17,16 +16,8 @@ const MAX_BYTES = 5 * 1024 * 1024;
  *   multipart/form-data   file=<xlsx|csv>  [profile_name=…]
  *   application/json      { rows: [[time, glucose], …], profile_name?: "…" }   (for callers that already parsed)
  *
- * Which profile the rows go to, in order:
- *   1. `profile_name` in the request — must already be one of the customer's profiles,
- *      OR the customer must have none yet (then it is created). A token cannot invent a
- *      second profile for a customer who already has one; that is how readings for two
- *      people ended up under one name in the past.
- *   2. the customer's first existing profile
- *   3. the customer's display name (new profile, created and attached)
- *
- * Re-uploading the same file is safe: rows already in the table are skipped, never
- * overwritten, and the response says how many were new.
+ * Profile rule and the write itself live in lib/api/cgm-import-flow.ts (shared with the
+ * customer portal). Re-uploading the same file is safe: existing rows are skipped.
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   return withApi(req, async (ctx) => {
@@ -36,11 +27,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (scoped) return scoped;
     ctx.customerId = params.id;
 
-    const cust = await getProfileNames(params.id);
-    if (!cust) return apiError("not_found", "ไม่พบลูกค้ารายนี้");
-
-    // ── read the payload into a cell grid ─────────────────────────────────────────
-    let grid: unknown[][];
+    let grid: unknown[][] | null = null;
     let requested: string | null = null;
     let filename: string | null = null;
     const ctype = req.headers.get("content-type") ?? "";
@@ -53,13 +40,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       if (file.size > MAX_BYTES) return apiError("bad_request", "ไฟล์เกิน 5 MB");
       filename = file.name;
       requested = normaliseProfileName(fd.get("profile_name"));
-      const buf = Buffer.from(await file.arrayBuffer());
-      let wb: XLSX.WorkBook;
-      try { wb = XLSX.read(buf, { type: "buffer", cellDates: false, raw: true }); }
-      catch { return apiError("bad_request", "เปิดไฟล์ไม่ได้ — ต้องเป็น .xlsx หรือ .csv"); }
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      if (!ws) return apiError("bad_request", "ไฟล์ไม่มีชีต");
-      grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, blankrows: false }) as unknown[][];
+      grid = gridFromFile(Buffer.from(await file.arrayBuffer()));
+      if (!grid) return apiError("bad_request", "เปิดไฟล์ไม่ได้ — ต้องเป็น .xlsx หรือ .csv ที่มีชีต");
     } else {
       let body: any;
       try { body = await req.json(); } catch { return apiError("bad_request", "ส่ง multipart (file=…) หรือ JSON {rows:[[time,glucose],…]}"); }
@@ -69,53 +51,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       grid = [["Time", "Glucose mg/dL"], ...body.rows];
     }
 
-    // ── decide the profile name ───────────────────────────────────────────────────
-    let profile: string;
-    if (requested) {
-      if (cust.profiles.length > 0 && !cust.profiles.includes(requested)) {
-        return apiError("bad_request",
-          `ลูกค้ารายนี้มีโปรไฟล์ CGM อยู่แล้ว (${cust.profiles.join(", ")}) — ต้องใช้ชื่อเดิม ไม่สร้างชื่อใหม่ซ้อน`,
-          { existing_profiles: cust.profiles });
-      }
-      profile = requested;
-    } else {
-      profile = cust.profiles[0] ?? normaliseProfileName(cust.name) ?? params.id.slice(0, 8);
-    }
-
-    // ── parse (pure) ──────────────────────────────────────────────────────────────
-    const parsed = parseCgmGrid(grid, profile);
-    if (!parsed.ok) {
-      return apiError("bad_request", parsed.error!, {
-        parsed_rows: parsed.rows.length, rejected: parsed.rejected.slice(0, 20), header_row: parsed.header_row,
-      });
-    }
-
-    // ── write ─────────────────────────────────────────────────────────────────────
-    await ensureProfile(params.id, profile);
-    const out = await insertReadings(parsed.rows);
-    if ("error" in out) return apiError("internal_error", "บันทึกค่า CGM ไม่สำเร็จ");
-
-    if (out.inserted > 0) await recomputeQuietly(params.id, "cgm_import");
-    const summary = summariseRows(parsed.rows);
-    return apiOk(
-      {
-        customer: { id: params.id, name: cust.name },
-        profile_name: profile,
-        profile_created: !cust.profiles.includes(profile),
-        file: filename,
-        unit_in_file: parsed.unit,
-        parsed: summary,
-        inserted: out.inserted,
-        skipped_existing: out.skipped_existing,
-        duplicates_in_file: parsed.duplicates_in_file,
-        rejected_count: parsed.rejected.length,
-        rejected: parsed.rejected.slice(0, 20),
-        next: `GET /api/v1/customers/${params.id}/cgm/metrics?from=${summary.first?.slice(0, 10)}&to=${summary.last?.slice(0, 10)}`,
-        message: out.inserted === 0
-          ? "ทุกค่าในไฟล์มีอยู่ในระบบแล้ว ไม่มีอะไรใหม่"
-          : `บันทึกใหม่ ${out.inserted.toLocaleString()} ค่า (ข้ามที่มีอยู่แล้ว ${out.skipped_existing.toLocaleString()})`,
-      },
-      { meta: { token: ctx.token.name, row_count: out.inserted } },
-    );
+    const out = await importCgmForCustomer(params.id, grid, requested, filename);
+    if (!out.ok) return apiError(out.status === 404 ? "not_found" : out.status === 500 ? "internal_error" : "bad_request", out.error, out.extra);
+    if ((out.result.inserted as number) > 0) await recomputeQuietly(params.id, "cgm_import");
+    return apiOk(out.result, { meta: { token: ctx.token.name, row_count: out.result.inserted as number } });
   });
 }

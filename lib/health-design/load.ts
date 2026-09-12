@@ -8,16 +8,12 @@ import { getCustomer, ageFrom } from "@/lib/api/data";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
 import { computeMetrics } from "@/lib/api/cgm-metrics";
 import { foodWindow } from "@/lib/food/store";
+import { wearableWindow } from "./wearable";
 import { assess, ENGINE_VERSION, type AssessInput, type HealthAssessment, type LabPoint, type WearableSummary, type FoodSummary } from "./assess";
 
 export type Trigger = "manual" | "lab_import" | "lab_review" | "bca" | "cgm_import" | "wearable_sync" | "food_log" | "api";
 
 const WINDOW_DAYS = 14;
-
-const avg = (xs: (number | null | undefined)[]): number | null => {
-  const v = xs.filter((x): x is number => typeof x === "number" && Number.isFinite(x));
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-};
 
 export async function loadInput(customerId: string): Promise<AssessInput | null> {
   const admin = createAdminClient();
@@ -50,32 +46,7 @@ export async function loadInput(customerId: string): Promise<AssessInput | null>
     }
   }
 
-  // Wearable — Whoop daily first (richest), else generic pulse_readings
-  let wearable: WearableSummary | null = null;
-  const { data: whoop } = await admin.from("whoop_daily")
-    .select("cycle_date, recovery, rhr, hrv, asleep_min").eq("customer_id", customerId)
-    .gte("cycle_date", since).order("cycle_date", { ascending: false }).limit(WINDOW_DAYS);
-  if (whoop && whoop.length) {
-    const w = whoop as any[];
-    wearable = {
-      source: "Whoop", days: w.length, from: w[w.length - 1].cycle_date, to: w[0].cycle_date,
-      avg_sleep_min: avg(w.map((x) => x.asleep_min)), avg_hrv: avg(w.map((x) => x.hrv)), avg_rhr: avg(w.map((x) => x.rhr)),
-      avg_steps: null, avg_recovery_pct: avg(w.map((x) => x.recovery)),
-    };
-  } else {
-    const { data: pr } = await admin.from("pulse_readings").select("recorded_at, metric_type, value")
-      .eq("customer_id", customerId).gte("recorded_at", `${since}T00:00:00Z`).order("recorded_at", { ascending: false }).limit(2000);
-    if (pr && pr.length) {
-      const by = (t: string) => (pr as any[]).filter((x) => x.metric_type === t).map((x) => Number(x.value));
-      const days = new Set((pr as any[]).map((x) => String(x.recorded_at).slice(0, 10)));
-      const sorted = [...days].sort();
-      wearable = {
-        source: "wearable", days: days.size, from: sorted[0], to: sorted[sorted.length - 1],
-        avg_sleep_min: avg(by("sleep_minutes")), avg_hrv: avg(by("hrv_rmssd")), avg_rhr: avg(by("rhr")),
-        avg_steps: avg(by("steps")), avg_recovery_pct: null,
-      };
-    }
-  }
+  const wearable = (await wearableWindow(customerId, WINDOW_DAYS, since)).summary;
 
   // Food — the food log (nutriscan_scans by eaten_at), summarised over logged days only
   let food: FoodSummary | null = null;

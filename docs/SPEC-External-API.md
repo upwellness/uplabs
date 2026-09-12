@@ -154,6 +154,7 @@ uplab_<env>_<prefix8>_<secret32>
 | `food:read` | อ่านบันทึกอาหาร + สรุปรายวัน (เฉลี่ยเฉพาะวันที่บันทึก) |
 | `food:write` | บันทึกมื้ออาหารที่คนยืนยันตัวเลขแล้ว (`confirmed: true` บังคับ) |
 | `assessment:read` | อ่านผลประเมินสุขภาพรวม 7 ด้าน (UP Health Design) |
+| `wearable:read` | อ่านข้อมูลนาฬิกา (นอน · HRV · RHR · ก้าว · recovery) รายวัน + เฉลี่ย |
 | `plan:read` | อ่านแผนดูแล 90 วัน (ร่าง = `is_draft:true` ห้ามบอกลูกค้าว่าเป็นแผนจริง) |
 | `plan:write` | ร่างแผนใหม่จากผลประเมินล่าสุด — **ยืนยัน/ส่งทำได้เฉพาะโค้ชในแอป** |
 | `assessment:write` | สั่งประเมินใหม่เดี๋ยวนี้ |
@@ -386,6 +387,16 @@ claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไ�
 โครงแผน (`lib/health-design/plan.ts` · pure · 4 tests): `goal` (loss/longevity/muscle — จาก `plate_plan_config` ถ้ามี ไม่งั้นจากองค์ประกอบร่างกาย) · `goals_90d[]` (จาก priorities · เป้า = ขอบบนของแบนด์ที่อ้างอิง) · `nutrition` (เป้า kcal/P/C/F จาก Plate Planner `calcTargets` + เมนู 7 วัน `buildPlan` — ว่างถ้าไม่มีน้ำหนัก/ส่วนสูง) · `lifestyle[]` (นอน AASM · ก้าว Tudor-Locke · แรงต้าน WHO 2020 · +บันทึกอาหาร/CGM ถ้าขาด) · `supplements` = ตาราง `supplement_schedule` ของเภสัชกร **ระบบไม่เสนอเอง** (test บังคับว่าไม่มีชื่อสินค้าใน engine) · `retest[]` (ค่าที่ขาด 30 วัน · ด้านคลินิกที่ติดธง 90 วัน · BCA 30 วัน) · `doctor_flags[]` (driver ระดับ attention ในด้านคลินิก)
 วงจรในแอป (`/api/customers/[id]/plan` session): `draft` → โค้ชแก้ goals/lifestyle/retest + โน้ต → `confirm` (เก็บ `final` + `edits` diff + `share_token`) → `send` via `link` หรือ `line` (push ข้อความ + ลิงก์เข้ากลุ่ม LINE ที่ผูกลูกค้า) → ลูกค้าเปิด `/r/plan/<token>` (อ่านได้เฉพาะแผนที่ `sent_at` แล้ว)
 ตาราง `health_plans` (migration `20260912_health_plans.sql`) · การ์ด "แผนดูแล 90 วัน" บน Customer 360
+
+### 8.13 Wearable + ฐานอ้างอิงประชากร (เพิ่ม 12 ก.ย. 2026 · เฟส 4)
+
+| Endpoint | Scope | คืนอะไร |
+|---|---|---|
+| `GET /customers/{id}/wearable?days=14` | `wearable:read` | `daily[]` (นอน · HRV · RHR · ก้าว · recovery · strain) + `summary` เฉลี่ยเฉพาะวันที่มีข้อมูล · Whoop ก่อน ไม่งั้น `pulse_readings` · **ไม่ให้เกรด** — assessment เป็นคนตัดสิน |
+
+**เปอร์เซ็นไทล์อ้างอิง** — driver ทุกตัวจากแล็บ + BMI ใน `getAssessment` มี `reference: { percentile, band, n, source, note }` = ตำแหน่งเทียบเพศ/ช่วงอายุเดียวกัน (20–39 · 40–59 · 60+) ใน **NHANES 2017–March 2020 (สหรัฐ · CDC public domain)** — คำนวณจาก microdata ด้วย `scripts/build-reference.py` (survey-weighted · เก็บเฉพาะ p5–p95 ใน `lib/health-design/reference/`) · **บอกตำแหน่ง ไม่ใช่เกณฑ์สุขภาพ** · caveat ใน assessment บอกทุกครั้งว่าเป็นประชากรสหรัฐ · เปลี่ยนเป็น Thai NHES เมื่อได้ข้อมูล (SPEC-Health-Design Q1)
+
+**Customer portal `/my/<token>`** (ไม่ใช่ External API — token ต่อลูกค้าที่โค้ชสร้างจากการ์ดผลประเมิน): ลูกค้าดูผลประเมินภาษาคน · เปิดแผนที่โค้ชส่งแล้ว · บันทึกอาหาร (รูป/อัลบั้ม/พิมพ์ → AI ประมาณด้วย **คีย์ฝั่งเซิร์ฟเวอร์ — ข้อยกเว้น BYO ข้อที่ 2** จำกัด 40 ครั้ง/วัน/ลูกค้า → ยืนยันก่อนบันทึก) · อัปโหลดไฟล์ Ottai เอง (`lib/api/cgm-import-flow.ts` ตัวเดียวกับ API) · `customers.portal_token` หมุนได้ · `portal_first_opened_at` วัด G4
 
 ---
 

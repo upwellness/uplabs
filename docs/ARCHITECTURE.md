@@ -133,6 +133,7 @@ customers (46 แถว)
 | **ภูมิแพ้** | `customer_allergy_tests` → `customer_food_allergens` | ผลทดสอบ + รายการอาหารที่แพ้ |
 | **น้ำตาลต่อเนื่อง** | `cgm_profiles` (+ `cgm_readings` >50k, `cgm_meals`) | CGM ต่อ profile · เข้าถึงด้วย passcode · นำเข้าผ่าน `/api/v1/…/cgm/import` |
 | **อาหาร (food log)** | `nutriscan_scans` (+ `eaten_at` · `time_known` · `source` · `estimated_by` · `confirmed_at/by` · `edited` · `items`) | 3 ทาง: รูป · พิมพ์ · รูปเก่า (EXIF) · ทุกแถวมีคนยืนยันตัวเลขก่อนเก็บ · เขียนผ่าน `lib/food/store.ts` |
+| **portal ลูกค้า** | `customers.portal_token` · `portal_first_opened_at` | `/my/<token>` token-gated ไม่มีบัญชี · หมุนได้ |
 | **แผนดูแล** | `health_plans` (draft/final jsonb · edits · share_token · sent_at) | ร่างจาก assessment · โค้ชยืนยันก่อนส่ง · `/r/plan/<token>` อ่านได้เมื่อ sent |
 | **ผลประเมินรวม** | `health_assessments` (jsonb `payload`) | UP Health Design — 1 แถวต่อการประเมิน ไม่ทับ · เขียนโดย `lib/health-design/load.ts` เท่านั้น (service role · RLS เปิด ไม่มี policy) |
 | **OAuth (MCP)** | `oauth_clients` · `oauth_codes` · `oauth_refresh_tokens` · `api_tokens.oauth_client_id` | authorization server สำหรับ `/api/mcp` · access token = แถว `api_tokens` |

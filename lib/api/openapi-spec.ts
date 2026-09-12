@@ -410,6 +410,15 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
           responses: { "200": { description: "ร่างแล้ว — รอโค้ชยืนยัน" } },
         },
       },
+      "/customers/{id}/wearable": {
+        get: {
+          operationId: "getWearableSummary",
+          summary: "ข้อมูลนาฬิกา/อุปกรณ์สวมใส่ — นอน · HRV · ชีพจรพัก · ก้าว · recovery รายวัน",
+          description: "ค่าเริ่มต้น 14 วัน · Whoop ก่อน ไม่งั้น Apple Health/Google Fit · ค่าเฉลี่ยคิดเฉพาะวันที่มีข้อมูล · HRV/RHR ไม่มีเกณฑ์กลาง ให้เทียบกับตัวเองย้อนหลัง · ไม่มีข้อมูล = ยังไม่ได้เชื่อม ไม่ใช่ปกติ",
+          parameters: [customerId, { name: "days", in: "query", schema: { type: "integer", default: 14, maximum: 90 } }],
+          responses: { "200": { description: "ok" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

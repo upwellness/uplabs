@@ -163,3 +163,23 @@ test("core-panel gaps are listed by metric; the closing caveat always warns abou
   assert.match(a.caveats[a.caveats.length - 1], /ไม่ได้แปลว่าปกติ/);
   assert.equal(fromStatus("caution"), "watch"); assert.equal(fromStatus("danger"), "attention"); assert.equal(fromStatus("optimal"), "good");
 });
+
+test("population reference: percentile position from NHANES cells, attached to lab/BMI drivers, never to CGM/wearable", async () => {
+  const { percentileOf, ageBand, REFERENCE_METRICS } = await import("../lib/health-design/reference.ts");
+  assert.equal(ageBand(19), null); assert.equal(ageBand(45), "40-59"); assert.equal(ageBand(60), "60+");
+  const r = percentileOf("hba1c", 5.7, "female", 65)!;                 // 5.7 is the female 60+ median in the built table
+  assert.ok(r.percentile >= 45 && r.percentile <= 55, String(r.percentile));
+  assert.match(r.note, /สหรัฐ/); assert.ok(r.n > 100);
+  assert.ok(percentileOf("hba1c", 9.9, "female", 65)!.percentile >= 95);
+  assert.ok(percentileOf("hba1c", 4.0, "female", 65)!.percentile <= 5);
+  assert.equal(percentileOf("hba1c", 5.7, null, 65), null);
+  assert.equal(percentileOf("hba1c", 5.7, "female", 15), null);
+  assert.equal(percentileOf("cgm_tir", 90, "female", 65), null);
+  assert.ok(REFERENCE_METRICS.includes("ldl") && REFERENCE_METRICS.includes("bmi"));
+  const a = assess(base({ labs: [lab("ldl", 117)], measurement: { recorded_at: TODAY, weight: 80, fat_pct: 20, muscle_pct: 36, visceral: 5, body_age: null } }));
+  const ldl = a.domains.cardio_lipid.drivers.find((d) => d.metric === "ldl")!;
+  assert.ok(ldl.reference && ldl.reference.percentile >= 45 && ldl.reference.percentile <= 55);   // male 40–59 median 117
+  assert.ok(a.domains.body_comp.drivers.find((d) => d.metric === "bmi")!.reference);
+  assert.equal(a.domains.body_comp.drivers.find((d) => d.metric === "fat_pct")!.reference, undefined);
+  assert.ok(a.caveats.some((c) => c.includes("NHANES")));
+});

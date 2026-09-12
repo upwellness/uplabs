@@ -194,6 +194,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 | `/api/v1/customers/{id}/overview` | GET | `labs:read` | ภาพรวมทุก factor (longevity snapshot) |
 | `/api/v1/customers/{id}/measurements` | GET · POST | `measurements:*` | BCA |
 | `/api/v1/customers/{id}/food` · `/api/v1/food/photo-date` | GET · POST | `food:read` / `food:write` | **บันทึกอาหาร 3 ทาง** + สรุปรายวัน · EXIF date จากรูปเก่า · SPEC-External-API §8.11 |
+| `/api/v1/customers/{id}/wearable` | GET | `wearable:read` | นาฬิการายวัน + เฉลี่ย · SPEC-External-API §8.13 |
 | `/api/v1/customers/{id}/plan` | GET · POST | `plan:read` / `plan:write` | **แผนดูแล 90 วัน** — อ่าน / ร่าง (ยืนยัน+ส่งเฉพาะในแอป) · SPEC-External-API §8.12 |
 | `/api/v1/customers/{id}/assessment` | GET · POST | `assessment:read` / `assessment:write` | **ผลประเมินสุขภาพรวม 7 ด้าน** (UP Health Design เฟส 1) · SPEC-External-API §8.10 |
 | `/api/v1/customers/{id}/supplements` | GET | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
@@ -285,6 +286,13 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **App registry:** `lib/apps-registry.ts` — เพิ่มแอปใหม่ต้องลงทะเบียนที่นี่ + เพิ่มลิงก์ใน `app/v2/_components/Shell.tsx`
 
 ---
+
+### 5.13 UP Health Design — ฐานอ้างอิง + หน้าลูกค้า (เฟส 4 · 12 ก.ย. 2026)
+
+- **เปอร์เซ็นไทล์ประชากร** `lib/health-design/reference.ts` + ตาราง NHANES 2017–2020 (สร้างด้วย `scripts/build-reference.py` จาก microdata CDC · เก็บเฉพาะ aggregate) → `driver.reference` ในผลประเมิน + แสดง P-value ในการ์ด · ประชากรสหรัฐ ติดป้ายทุกจุด · **ไม่ใช่เกณฑ์สุขภาพ**
+- **หน้าลูกค้า `/my/[token]`** (public · token ต่อลูกค้า · `customers.portal_token`): ผลประเมินภาษาคน · แผน (ถ้าส่งแล้ว) · บันทึกอาหาร 3 ทาง + ยืนยันก่อนบันทึก · อัปโหลด Ottai เอง · โค้ชสร้าง/หมุนลิงก์จากปุ่ม "ลิงก์ลูกค้า" ในการ์ดผลประเมิน
+- ⚠️ **ข้อยกเว้น BYO-key ข้อที่ 2:** `/api/my/[token]/food` step `estimate` ใช้ `GEMINI_API_KEY` ฝั่งเซิร์ฟเวอร์ (ลูกค้าไม่มีคีย์) · จำกัด 40 ครั้ง/วัน/ลูกค้า · ปิดได้ด้วยการถอด env
+- **wearable:** `lib/health-design/wearable.ts` แยกจาก loader + `getWearableSummary`
 
 ### 5.12 UP Health Design — แผนดูแล 90 วัน (เฟส 3 · 12 ก.ย. 2026)
 
@@ -404,7 +412,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 1. ไม่เป็นเวชระเบียนโรงพยาบาล (EMR) และไม่วินิจฉัยโรค
 2. ไม่ทำ e-commerce / ตะกร้าสินค้าในระบบนี้
-3. ไม่เก็บคีย์ AI ของผู้ใช้ไว้บนเซิร์ฟเวอร์ (BYO เท่านั้น)
+3. ไม่เก็บคีย์ AI ของผู้ใช้ไว้บนเซิร์ฟเวอร์ (BYO เท่านั้น — ยกเว้น 2 จุดที่ใช้คีย์ระบบ: UP Pulse `lib/pulse/gemini.ts` และ portal ลูกค้า `/api/my/[token]/food` จำกัด 40/วัน)
 4. ไม่เปิดข้อมูลลูกค้าข้ามสายงานที่ไม่ใช่ downline ของตัวเอง
 5. ไม่ทำแอปมือถือ native (ยัง) — เป็นเว็บ responsive
 6. **ไม่ฝัง LLM ไว้ใน External API** — เราส่งข้อมูล ผู้เรียกคิดเอง (§10)
@@ -441,6 +449,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-12 | **UP Health Design เฟส 4** — เปอร์เซ็นไทล์ NHANES 2017–2020 (`scripts/build-reference.py` · `lib/health-design/reference.ts` · `driver.reference`) · หน้าลูกค้า `/my/[token]` (ประเมิน · แผน · บันทึกอาหาร · อัปโหลด CGM · `customers.portal_token`) · `getWearableSummary` + scope `wearable:read` · CGM import flow แยกเป็น `lib/api/cgm-import-flow.ts` · +1 test (157) | _pending_ |
 | 2026-09-12 | **UP Health Design เฟส 3 — แผนดูแล 90 วัน** · `lib/health-design/plan.ts` + `plan-store.ts` · ตาราง `health_plans` · การ์ด PlanCard (ร่าง→แก้→ยืนยัน→ส่งลิงก์/LINE) · `/r/plan/[token]` · External API/MCP `getPlan`/`draftPlan` + scope `plan:*` + intent `plan.get` · NutriScan เพิ่มปุ่มเลือกจากอัลบั้ม (มือถือเคยบังคับกล้อง) · +4 tests (156) | `062f62e` |
 | 2026-09-12 | **UP Health Design เฟส 2 — Food log 3 ทาง** · `nutriscan_scans` + `eaten_at/time_known/source/estimated_by/confirmed_*/edited/items` (migration `20260912_food_log.sql`) · NutriScan เลิก auto-save → แผงยืนยัน + `POST /api/nutriscan/save` · EXIF date จากรูปเก่า (`lib/food/entries.ts` parser ไม่ใช้ dependency) · External API/MCP `getFoodLog` `logFood` `readFoodPhotoDate` + scope `food:*` + intent `food.list` · Assessment อ่าน food log แล้ว · +6 tests (152) | `6be246f` |
 | 2026-09-12 | **UP Health Design เฟส 1** — Assessment Engine 7 ด้าน (`lib/health-design/`) + ตาราง `health_assessments` + การ์ดบน Customer 360 + `/api/customers/[id]/assessment` + External API/MCP `getAssessment`/`runAssessment` + intent `assessment.get` + scope `assessment:*` + trigger หลังบันทึกแล็บ/BCA/CGM · +10 tests (146) · test runner รองรับ `@/` alias แล้ว (`tests/_resolve-ts.mjs`) | `28d1115` |
