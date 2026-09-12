@@ -43,7 +43,7 @@ test("a full draft: goals from priorities, Plate Planner targets + 7 sample days
   assert.ok(p.doctor_flags.some((f) => f.metric === "alt_sgpt"));
   assert.ok(p.retest.some((r) => r.when_days === 90 && /ALT/.test(r.what)));
   assert.ok(p.retest.some((r) => r.what === "ชั่ง BCA" && r.when_days === 30));
-  assert.ok(p.retest.some((r) => /ตรวจเพิ่ม/.test(r.what) && /hs_crp/.test(r.what)));
+  assert.ok(p.retest.some((r) => /ตรวจเพิ่ม/.test(r.what) && /hs-CRP/.test(r.what)));
 });
 
 test("supplements are the pharmacist's schedule or an explicit 'none' — the engine never proposes any", () => {

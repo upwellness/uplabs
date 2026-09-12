@@ -158,8 +158,8 @@ test("confidence: high needs fresh labs + fresh BCA + continuous data; stale lab
 test("core-panel gaps are listed by metric; the closing caveat always warns about unmeasured things", () => {
   const a = assess(base({ labs: [lab("hba1c", 5.2)] }));
   const gap = a.data_gaps.find((g) => g.source === "labs_panel")!;
-  assert.match(gap.reason, /ldl/); assert.match(gap.reason, /hs_crp/);
-  assert.ok(!gap.reason.includes("hba1c"));
+  assert.match(gap.reason, /LDL/); assert.match(gap.reason, /hs-CRP/);
+  assert.ok(!gap.reason.includes("HbA1c"));
   assert.match(a.caveats[a.caveats.length - 1], /ไม่ได้แปลว่าปกติ/);
   assert.equal(fromStatus("caution"), "watch"); assert.equal(fromStatus("danger"), "attention"); assert.equal(fromStatus("optimal"), "good");
 });

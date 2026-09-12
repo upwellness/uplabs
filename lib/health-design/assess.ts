@@ -105,6 +105,12 @@ export const DOMAIN_LABEL_TH: Record<DomainKey, string> = {
   health_age: "อายุสุขภาพ",
 };
 
+/** The panel every customer should have at least once — keys as stored in customer_lab_values. */
+export const CORE_PANEL_TH: Record<string, string> = {
+  hba1c: "HbA1c", fbs: "น้ำตาลอดอาหาร (FBS)", ldl: "LDL", hdl: "HDL", triglyceride: "ไตรกลีเซอไรด์",
+  alt_sgpt: "ALT (ตับ)", creatinine: "ครีอะตินิน (ไต)", egfr: "eGFR (ไต)", hs_crp: "hs-CRP (การอักเสบ)",
+};
+
 export const DISCLAIMER =
   "ผลประเมินนี้ใช้เพื่อการดูแลเชิงป้องกันและชะลอวัย ไม่ใช่การวินิจฉัย · ค่าที่อยู่ในช่วง 'ควรปรึกษาแพทย์' ให้แพทย์เป็นผู้ตรวจเพิ่มและสรุป · สิ่งที่ไม่ได้วัดไม่ได้แปลว่าปกติ";
 
@@ -338,9 +344,8 @@ export function assess(input: AssessInput): HealthAssessment {
   const labAgeDays = latestLab ? daysBetween(latestLab, input.today) : null;
   const caveats: string[] = [];
   if (labAgeDays != null && labAgeDays > 180) caveats.push(`ผลแล็บล่าสุดอายุ ${labAgeDays} วัน — ค่าอาจไม่สะท้อนปัจจุบัน`);
-  const corePanel = ["hba1c", "fbs", "ldl", "hdl", "triglyceride", "alt_sgpt", "creatinine", "egfr", "hs_crp"];
-  const missingCore = m.size ? corePanel.filter((k) => !m.has(k)) : [];
-  if (missingCore.length) gaps.push({ source: "labs_panel", reason: `ยังไม่เคยตรวจ: ${missingCore.join(", ")}` });
+  const missingCore = m.size ? Object.keys(CORE_PANEL_TH).filter((k) => !m.has(k)) : [];
+  if (missingCore.length) gaps.push({ source: "labs_panel", reason: `ยังไม่เคยตรวจ: ${missingCore.map((k) => CORE_PANEL_TH[k]).join(", ")}` });
   if (domains.health_age.phenoage == null && m.size) gaps.push({ source: "health_age", reason: domains.health_age.caveats[0] ?? "คำนวณอายุสุขภาพไม่ได้" });
 
   // confidence — explicit rule so the word means the same thing every time
