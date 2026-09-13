@@ -462,8 +462,8 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
-| 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | _pending_ |
-| 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | _pending_ |
+| 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | `e39c988` |
+| 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | `1e65da6` |
 | 2026-09-13 | **Backup/Restore ทั้งฐาน** — RPC `backup_catalog/clear_table/reset_sequences` + bucket `db-backups` · snapshot อัตโนมัติทุกคืน (cron) + manual · กู้คืน dry-run → upsert/replace ตาม PK จริงเรียง FK · หน้า `/v2/admin/backup` เขียนใหม่ · เมนู Admin · ลบ `lib/backup/tables.ts` (15 ตาราง hard-code) · +4 tests (161) | `e0ccd4e` |
 | 2026-09-12 | **UP Health Design เฟส 4** — เปอร์เซ็นไทล์ NHANES 2017–2020 (`scripts/build-reference.py` · `lib/health-design/reference.ts` · `driver.reference`) · หน้าลูกค้า `/my/[token]` (ประเมิน · แผน · บันทึกอาหาร · อัปโหลด CGM · `customers.portal_token`) · `getWearableSummary` + scope `wearable:read` · CGM import flow แยกเป็น `lib/api/cgm-import-flow.ts` · +1 test (157) | `b5b8c80` |
 | 2026-09-12 | **UP Health Design เฟส 3 — แผนดูแล 90 วัน** · `lib/health-design/plan.ts` + `plan-store.ts` · ตาราง `health_plans` · การ์ด PlanCard (ร่าง→แก้→ยืนยัน→ส่งลิงก์/LINE) · `/r/plan/[token]` · External API/MCP `getPlan`/`draftPlan` + scope `plan:*` + intent `plan.get` · NutriScan เพิ่มปุ่มเลือกจากอัลบั้ม (มือถือเคยบังคับกล้อง) · +4 tests (156) | `062f62e` |
