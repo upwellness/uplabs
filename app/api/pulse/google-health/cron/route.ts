@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { syncGoogleHealth } from "@/lib/pulse/google-health-sync";
+import { syncGoogleHealth, type SyncResult } from "@/lib/pulse/google-health-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,7 +15,7 @@ async function run(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const admin = createAdminClient();
   const { data: conns } = await admin.from("pulse_connections").select("id, customer_id, access_token_enc, refresh_token_enc, expires_at").eq("provider", "google_health").eq("status", "active").limit(50);
-  const report: { id: string; count?: number; errors?: string[]; failed?: string }[] = [];
+  const report: { id: string; count?: number; glucose?: SyncResult["glucose"]; errors?: string[]; failed?: string }[] = [];
   for (const c of (conns ?? []) as any[]) {
     try { const r = await syncGoogleHealth(c); report.push({ id: c.id, count: r.count, glucose: r.glucose, errors: r.errors }); }
     catch (e: any) {
