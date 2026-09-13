@@ -17,7 +17,7 @@
  * Docs: https://developers.google.com/health/setup · /health/endpoints · /health/data-types
  */
 import { exchangeCode, refreshAccessToken, redirectUri } from "./google-fit";
-import { parseDailyRollup, parseDataPoints, mergeSleepByDay, rollupBody, listFilter, type ReadingRow } from "./google-health-parse";
+import { parseDailyRollup, parseDataPoints, mergeSleepByDay, rollupBody, listFilter, parseBloodGlucose, type ReadingRow, type GlucoseSample } from "./google-health-parse";
 
 export { exchangeCode, refreshAccessToken };
 
@@ -84,3 +84,22 @@ export async function fetchWindow(accessToken: string, days = 14): Promise<{ row
   }
   return { rows: mergeSleepByDay(rows), errors };
 }
+
+/**
+ * Blood-glucose samples of the last N days (physical time). A CGM app that writes to
+ * Health Connect reaches the Google account through the Google Health app's partner
+ * sync; 5-minute streams are ~288/day, so page at 1,000.
+ */
+export async function fetchGlucose(accessToken: string, days = 14): Promise<GlucoseSample[]> {
+  const since = new Date(Date.now() - days * 864e5).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const q = new URLSearchParams({ filter: `blood_glucose.sample_time.physical_time >= "${since}"`, pageSize: "1000" });
+  let out: GlucoseSample[] = []; let token: string | undefined; let pages = 0;
+  do {
+    if (token) q.set("pageToken", token);
+    const json: any = await call(accessToken, `blood-glucose/dataPoints?${q}`, { method: "GET" });
+    out = out.concat(parseBloodGlucose(json));
+    token = json?.nextPageToken; pages++;
+  } while (token && pages < 20);
+  return out;
+}
+

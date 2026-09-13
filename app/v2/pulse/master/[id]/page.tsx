@@ -180,7 +180,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
       const res = await fetch(`/api/pulse/customers/${customerId}/sync`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
-      setMsg(json.count === 0 ? "Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา (นาฬิกา/มือถือต้อง sync เข้าแอป Fitbit หรือ Google Fit ก่อน)" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก ${json.provider === "google_fit" ? "Google Fit" : "Google Health"}${json.errors?.length ? ` · บางชนิดดึงไม่ได้ (${json.errors.length}): ${json.errors.map((e: string) => e.slice(0, 160)).join(" | ")}` : ""}`);
+      setMsg(json.count === 0 && !json.glucose?.fetched ? "Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา (นาฬิกา/มือถือต้อง sync เข้าแอป Google Health (Fitbit เดิม) ก่อน)" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก ${json.provider === "google_fit" ? "Google Fit" : "Google Health"}${json.glucose?.fetched ? ` · CGM ${json.glucose.fetched} ค่า (ใหม่ ${json.glucose.inserted})` : ""}${json.errors?.length ? ` · บางชนิดดึงไม่ได้ (${json.errors.length}): ${json.errors.map((e: string) => e.slice(0, 160)).join(" | ")}` : ""}`);
       onChanged();
     } catch (e: any) { setErr(e.message ?? "sync error"); }
     finally { setBusy(null); }

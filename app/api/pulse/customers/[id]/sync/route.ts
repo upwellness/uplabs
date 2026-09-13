@@ -31,7 +31,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     const { data: gh } = await admin.from("pulse_connections").select("*").eq("customer_id", params.id).eq("provider", "google_health").eq("status", "active").maybeSingle();
     if (gh) {
       const r = await syncGoogleHealth(gh as any);
-      return NextResponse.json({ ok: true, provider: "google_health", count: r.count, errors: r.errors });
+      return NextResponse.json({ ok: true, provider: "google_health", count: r.count, errors: r.errors, glucose: r.glucose });
     }
     const { data: conn, error: connErr } = await admin
       .from("pulse_connections")

@@ -5,7 +5,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseDailyRollup, parseDataPoints, mergeSleepByDay, rollupBody, listFilter } from "../lib/pulse/google-health-parse.ts";
+import { parseDailyRollup, parseDataPoints, mergeSleepByDay, rollupBody, listFilter, parseBloodGlucose } from "../lib/pulse/google-health-parse.ts";
 
 test("steps dailyRollUp → one reading per civil day at Bangkok noon", () => {
   const json = { rollupDataPoints: [
@@ -56,3 +56,17 @@ test("request helpers: rollup body civil dates, snake_case list filters", () => 
   assert.equal(listFilter("daily-resting-heart-rate", "2026-09-01"), 'daily_resting_heart_rate.date >= "2026-09-01"');
   assert.deepEqual(parseDataPoints({}, "sleep"), []); assert.deepEqual(parseDailyRollup(null, "steps"), []);
 });
+
+test("blood glucose: CGM + unlabelled samples kept, fingerstick/lab dropped, local date from utcOffset, sorted", () => {
+  const json = { dataPoints: [
+    { bloodGlucose: { sampleTime: { physicalTime: "2026-09-12T17:30:00Z", utcOffset: "25200s" }, measurementSource: "CONTINUOUS_GLUCOSE_MONITORING", bloodGlucoseMilligramsPerDeciliter: 104.4 } },
+    { bloodGlucose: { sampleTime: { physicalTime: "2026-09-12T17:25:00Z", utcOffset: "25200s" }, bloodGlucoseMilligramsPerDeciliter: 101 } },
+    { bloodGlucose: { sampleTime: { physicalTime: "2026-09-12T12:00:00Z", utcOffset: "25200s" }, measurementSource: "SELF_MONITORING_BLOOD_GLUCOSE", bloodGlucoseMilligramsPerDeciliter: 95 } },
+    { bloodGlucose: { sampleTime: { physicalTime: "2026-09-12T08:00:00Z", utcOffset: "25200s" }, measurementSource: "LAB_TEST", bloodGlucoseMilligramsPerDeciliter: 90 } },
+    { blood_glucose: { sample_time: { physical_time: "not-a-time" }, blood_glucose_milligrams_per_deciliter: 100 } },
+  ] };
+  const s = parseBloodGlucose(json);
+  assert.deepEqual(s.map((x) => [x.original, x.mgdl, x.local_date]), [["2026-09-12T17:25:00Z", 101, "2026-09-13"], ["2026-09-12T17:30:00Z", 104.4, "2026-09-13"]]);
+  assert.deepEqual(parseBloodGlucose({}), []);
+});
+

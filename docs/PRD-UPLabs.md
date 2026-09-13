@@ -240,7 +240,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 ### 5.3 UP Pulse — Wearables & Assessment
 
-- **เชื่อมอุปกรณ์:** Whoop (OAuth + CSV import) · Apple Health (อัปโหลด export.xml) · **Google Health API** (OAuth · Fitbit + Pixel Watch · แทน Google Fit ที่ Google ปิดสิ้นปี 2026 · `lib/pulse/google-health.ts` + parser pure 5 tests · ดึง steps · active-minutes · resting HR · HRV · sleep 14 วัน · sync ทุกคืนใน `/api/cron/nightly` · ปุ่ม Sync now ใช้ตัวเดียวกัน) · การเชื่อม `google_fit` เดิมยังอ่านได้จนกว่า Google ปิด
+- **เชื่อมอุปกรณ์:** Whoop (OAuth + CSV import) · Apple Health (อัปโหลด export.xml) · **Google Health API** (OAuth · แทน Google Fit ที่ Google ปิดสิ้นปี 2026 · `lib/pulse/google-health.ts` + parser pure · ดึง steps · active-minutes · **heart-rate เฉลี่ย/สูงสุด/ต่ำสุด** · resting HR (เฉพาะที่อุปกรณ์คำนวณ) · HRV · sleep · **blood-glucose → `cgm_readings` โปรไฟล์ CGM ของลูกค้า** (กฎเดียวกับ import ไฟล์: ค่าที่มีอยู่ไม่ทับ · รับเฉพาะ CGM/ไม่ระบุแหล่ง ตัด SMBG/lab) 14 วัน · sync ทุกคืนใน `/api/cron/nightly` · ปุ่ม Sync now ใช้ตัวเดียวกัน) · **ขอบเขตข้อมูล = สิ่งที่อยู่ในบัญชี Google**: Fitbit/Pixel Watch โดยตรง · นาฬิกาอื่น (Galaxy Watch, Garmin…) และแอป CGM ต้องผ่าน Health Connect → แอป Google Health (Fitbit เดิม) เปิด "Partner apps sync" บนมือถือ · การเชื่อม `google_fit` เดิมยังอ่านได้จนกว่า Google ปิด
 - **Flow ลูกค้า:** โค้ชสร้าง invite → ลูกค้าเปิด `/connect/[token]` บนมือถือ → ยินยอม → ระบบดึงข้อมูล
 - **แบบสอบถาม:** `/intake/[token]` → `pulse_intakes` → ประเมิน (`lib/pulse/assess.ts`) → `pulse_assessments`
 - **รายงาน:** `/pulse/report/[id]` (`lib/pulse/wearable-report.ts` รวมทุก provider เป็น report เดียว) + แชร์ผ่าน `/r/[token]`
@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | Google Health ดึง **blood-glucose** เข้าบัญชี CGM ของลูกค้า (`fetchGlucose` · `parseBloodGlucose` +1 test · sync/cron รายงาน `glucose{fetched,inserted,profile}` · recompute `cgm_import`) · UI Sync now โชว์จำนวน CGM | _pending_ |
 | 2026-09-13 | Google Health ดึง `heart-rate` dailyRollUp เพิ่ม → `hr_bpm`/`hr_max`/`hr_min` · **`rhr` = เฉพาะ daily-resting-heart-rate ที่อุปกรณ์คำนวณ** · แก้ Google Fit เดิมที่เอา HR ต่ำสุดของวันมาติดป้าย rhr (relabel 10 แถวเก่าเป็น hr_min) | `0a9d9af` |
 | 2026-09-13 | Google Health **ทดสอบจริงผ่าน** (steps 14 วัน → assessment recompute `wearable_sync`) · diagnostic เมื่อ rollup ได้จุดแต่อ่านไม่ได้ · แก้ข้อความ UI/เอกสาร: API ครอบคลุมค่าที่แอป Fitbit/Google Fit sync จากมือถือด้วย ไม่ใช่แค่นาฬิกา · Sync now แสดง error เต็ม | `175b73f` |
 | 2026-09-13 | Google Health: `dailyRollUp` body ตามตัวอย่างทางการ (ใส่ `time` เที่ยงคืนทั้งสองปลาย · ตัด pageSize) — เดิม Google ตอบ 400 INVALID_ARGUMENT · เก็บ error เต็ม 1,200 ตัวอักษร · แจ้งเมื่อ list ได้จุดแต่ parse ไม่ได้ | `7ddc9d4` |

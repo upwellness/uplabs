@@ -45,7 +45,8 @@ export function WearableLinkPanel({ customerId, connection, readingCount }: {
       if (!res.ok) throw new Error(json.error ?? "sync failed");
       router.refresh();
       const errs: string[] = Array.isArray(json.errors) ? json.errors : [];
-      alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading${errs.length ? `\n\nGoogle ตอบผิดพลาด ${errs.length} รายการ:\n${errs.join("\n")}` : ""}`);
+      const glu = json.glucose?.fetched ? ` · CGM ${json.glucose.fetched} ค่า (ใหม่ ${json.glucose.inserted} → โปรไฟล์ ${json.glucose.profile})` : "";
+      alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading${glu}${errs.length ? `\n\nGoogle ตอบผิดพลาด ${errs.length} รายการ:\n${errs.join("\n")}` : ""}`);
     } catch (e: any) { alert(e.message); }
     finally { setBusy(false); }
   };

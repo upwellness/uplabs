@@ -30,7 +30,7 @@ async function run(req: Request) {
   const { data: conns } = await admin.from("pulse_connections").select("id, customer_id, access_token_enc, refresh_token_enc, expires_at").eq("provider", "google_health").eq("status", "active").limit(50);
   const wearable: unknown[] = [];
   for (const c of (conns ?? []) as any[]) {
-    try { const r = await syncGoogleHealth(c); wearable.push({ id: c.id, count: r.count, errors: r.errors }); }
+    try { const r = await syncGoogleHealth(c); wearable.push({ id: c.id, count: r.count, glucose: r.glucose, errors: r.errors }); }
     catch (e: any) {
       wearable.push({ id: c.id, failed: e?.message ?? String(e) });
       if (/invalid_grant|refresh token|เชื่อมต่อใหม่/i.test(String(e?.message))) await admin.from("pulse_connections").update({ status: "reauth_required" }).eq("id", c.id);

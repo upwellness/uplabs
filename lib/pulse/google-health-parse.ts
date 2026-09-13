@@ -113,3 +113,33 @@ export function listFilter(kind: "daily-resting-heart-rate" | "daily-heart-rate-
   const field = kind === "daily-resting-heart-rate" ? "daily_resting_heart_rate.date" : "daily_heart_rate_variability.date";
   return `${field} >= "${fromDate}"`;
 }
+
+/* ── blood glucose (CGM via Health Connect → Google Health app) ──────────── */
+
+export interface GlucoseSample { ts_ms: number; mgdl: number; original: string; local_date: string; source: string }
+
+/** "25200s" → 25_200 000 ms; anything unparsable → 0 (treated as UTC). */
+const offsetMs = (v: unknown): number => { const m = typeof v === "string" ? /^(-?\d+(?:\.\d+)?)s$/.exec(v) : null; return m ? Math.round(Number(m[1]) * 1000) : 0; };
+
+/**
+ * `blood-glucose/dataPoints` list → samples. Keeps CGM and unspecified-source readings
+ * (Health Connect imports often arrive unlabelled); fingerstick (SMBG) and lab values are
+ * dropped so they never masquerade as sensor stream points.
+ */
+export function parseBloodGlucose(json: unknown): GlucoseSample[] {
+  const pts: any[] = g(json as any, "dataPoints", "data_points") ?? [];
+  const out: GlucoseSample[] = [];
+  for (const p of pts) {
+    const b = g(p, "bloodGlucose", "blood_glucose") ?? p;
+    const src = String(g(b, "measurementSource", "measurement_source") ?? "MEASUREMENT_SOURCE_UNSPECIFIED");
+    if (src === "SELF_MONITORING_BLOOD_GLUCOSE" || src === "LAB_TEST") continue;
+    const st = g(b, "sampleTime", "sample_time") ?? {};
+    const phys = g(st, "physicalTime", "physical_time"); const ms = typeof phys === "string" ? Date.parse(phys) : NaN;
+    const mgdl = num(g(b, "bloodGlucoseMilligramsPerDeciliter", "blood_glucose_milligrams_per_deciliter"));
+    if (!Number.isFinite(ms) || mgdl == null || mgdl <= 0) continue;
+    const local = new Date(ms + offsetMs(g(st, "utcOffset", "utc_offset"))).toISOString().slice(0, 10);
+    out.push({ ts_ms: ms, mgdl: Math.round(mgdl * 10) / 10, original: phys, local_date: local, source: src });
+  }
+  return out.sort((a, b) => a.ts_ms - b.ts_ms);
+}
+

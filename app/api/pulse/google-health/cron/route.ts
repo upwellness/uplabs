@@ -17,7 +17,7 @@ async function run(req: Request) {
   const { data: conns } = await admin.from("pulse_connections").select("id, customer_id, access_token_enc, refresh_token_enc, expires_at").eq("provider", "google_health").eq("status", "active").limit(50);
   const report: { id: string; count?: number; errors?: string[]; failed?: string }[] = [];
   for (const c of (conns ?? []) as any[]) {
-    try { const r = await syncGoogleHealth(c); report.push({ id: c.id, count: r.count, errors: r.errors }); }
+    try { const r = await syncGoogleHealth(c); report.push({ id: c.id, count: r.count, glucose: r.glucose, errors: r.errors }); }
     catch (e: any) {
       report.push({ id: c.id, failed: e?.message ?? String(e) });
       // a dead refresh token (Testing-mode 7-day expiry) → flag so the coach re-links
