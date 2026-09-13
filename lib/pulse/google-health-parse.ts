@@ -83,9 +83,15 @@ export function mergeSleepByDay(rows: ReadingRow[]): ReadingRow[] {
 }
 
 /** Request body for dailyRollUp over [from, to) civil dates, one-day windows. */
+/**
+ * dailyRollUp body, shaped exactly like Google's worked example (filters guide): explicit
+ * midnight `time` on both ends, closed-open range. Omitting `time` is documented as
+ * "defaults to midnight" but the live API answered INVALID_ARGUMENT (13 Sep 2026).
+ */
 export function rollupBody(fromDate: string, toDate: string) {
   const d = (s: string): CivilDate => ({ year: Number(s.slice(0, 4)), month: Number(s.slice(5, 7)), day: Number(s.slice(8, 10)) });
-  return { range: { start: { date: d(fromDate) }, end: { date: d(toDate) } }, windowSizeDays: 1, pageSize: 400 };
+  const midnight = { hours: 0, minutes: 0, seconds: 0, nanos: 0 };
+  return { range: { start: { date: d(fromDate), time: midnight }, end: { date: d(toDate), time: midnight } }, windowSizeDays: 1 };
 }
 
 /** list filter for a daily type / sleep since a civil date. Field paths are snake_case per the docs. */

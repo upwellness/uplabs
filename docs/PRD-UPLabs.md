@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | Google Health: `dailyRollUp` body ตามตัวอย่างทางการ (ใส่ `time` เที่ยงคืนทั้งสองปลาย · ตัด pageSize) — เดิม Google ตอบ 400 INVALID_ARGUMENT · เก็บ error เต็ม 1,200 ตัวอักษร · แจ้งเมื่อ list ได้จุดแต่ parse ไม่ได้ | _pending_ |
 | 2026-09-13 | Google Health sync เก็บ error รายชนิดข้อมูลไว้ที่ `pulse_connections.last_sync_error` + ปุ่ม Sync now แสดง error (เดิม UI ทิ้ง) · migration `20260913_pulse_sync_error.sql` | `e3d2272` |
 | 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | `e39c988` |
 | 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | `1e65da6` |

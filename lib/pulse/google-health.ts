@@ -38,7 +38,7 @@ export function authUrl(state: string): string {
 
 async function call(accessToken: string, path: string, init: RequestInit): Promise<unknown> {
   const res = await fetch(`${BASE}/${path}`, { ...init, headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json", ...(init.headers ?? {}) }, cache: "no-store" });
-  if (!res.ok) throw new Error(`Google Health ${path}: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new Error(`Google Health ${path}: ${res.status} ${(await res.text()).replace(/\s+/g, " ").slice(0, 1200)}`);
   return res.json();
 }
 
@@ -64,7 +64,10 @@ export async function fetchWindow(accessToken: string, days = 14): Promise<{ row
       do {
         if (token) q.set("pageToken", token);
         const json: any = await call(accessToken, `${kind}/dataPoints?${q}`, { method: "GET" });
-        out = out.concat(parseDataPoints(json, kind));
+        const parsed = parseDataPoints(json, kind);
+        const got = Array.isArray(json?.dataPoints) ? json.dataPoints.length : 0;
+        if (got && !parsed.length) errors.push(`${kind}: ได้ ${got} จุดแต่อ่านค่าไม่ได้ — sample ${JSON.stringify(json.dataPoints[0]).slice(0, 400)}`);
+        out = out.concat(parsed);
         token = json?.nextPageToken; pages++;
       } while (token && pages < 10);
       return out;

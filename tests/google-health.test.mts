@@ -42,6 +42,12 @@ test("sleep sessions → minutes asleep on the civil day they END; naps merge; z
 test("request helpers: rollup body civil dates, snake_case list filters", () => {
   const b = rollupBody("2026-09-01", "2026-09-15");
   assert.deepEqual(b.range.start.date, { year: 2026, month: 9, day: 1 }); assert.equal(b.windowSizeDays, 1);
+  // explicit midnight on both ends — the shape in Google's worked example (omitting `time` got INVALID_ARGUMENT live)
+  assert.deepEqual(b.range.start.time, { hours: 0, minutes: 0, seconds: 0, nanos: 0 }); assert.deepEqual(b.range.end.time, b.range.start.time);
+  assert.ok(!("pageSize" in b));
+  // response shape from the filters guide: `steps` sits on the point itself, not under `value`
+  const official = parseDailyRollup({ rollupDataPoints: [{ civilStartTime: { date: { year: 2026, month: 7, day: 28 }, time: {} }, civilEndTime: { date: { year: 2026, month: 7, day: 28 }, time: { hours: 23, minutes: 59, seconds: 59 } }, steps: { countSum: "8430" } }] }, "steps");
+  assert.deepEqual(official.map((r) => [r.recorded_at.slice(0, 10), r.value]), [["2026-07-28", 8430]]);
   assert.equal(listFilter("sleep", "2026-09-01"), 'sleep.interval.civil_end_time >= "2026-09-01T00:00:00"');
   assert.equal(listFilter("daily-resting-heart-rate", "2026-09-01"), 'daily_resting_heart_rate.date >= "2026-09-01"');
   assert.deepEqual(parseDataPoints({}, "sleep"), []); assert.deepEqual(parseDailyRollup(null, "steps"), []);
