@@ -44,7 +44,8 @@ export function WearableLinkPanel({ customerId, connection, readingCount }: {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
       router.refresh();
-      alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading`);
+      const errs: string[] = Array.isArray(json.errors) ? json.errors : [];
+      alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading${errs.length ? `\n\nGoogle ตอบผิดพลาด ${errs.length} รายการ:\n${errs.join("\n")}` : ""}`);
     } catch (e: any) { alert(e.message); }
     finally { setBusy(false); }
   };

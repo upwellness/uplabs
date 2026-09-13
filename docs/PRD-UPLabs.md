@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | Google Health sync เก็บ error รายชนิดข้อมูลไว้ที่ `pulse_connections.last_sync_error` + ปุ่ม Sync now แสดง error (เดิม UI ทิ้ง) · migration `20260913_pulse_sync_error.sql` | _pending_ |
 | 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | `e39c988` |
 | 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | `1e65da6` |
 | 2026-09-13 | **Backup/Restore ทั้งฐาน** — RPC `backup_catalog/clear_table/reset_sequences` + bucket `db-backups` · snapshot อัตโนมัติทุกคืน (cron) + manual · กู้คืน dry-run → upsert/replace ตาม PK จริงเรียง FK · หน้า `/v2/admin/backup` เขียนใหม่ · เมนู Admin · ลบ `lib/backup/tables.ts` (15 ตาราง hard-code) · +4 tests (161) | `e0ccd4e` |

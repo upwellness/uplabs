@@ -27,7 +27,7 @@ export async function syncGoogleHealth(conn: { id: string; customer_id: string; 
     const { error } = await admin.from("pulse_readings").insert(rows.map((r) => ({ customer_id: conn.customer_id, connection_id: conn.id, recorded_at: r.recorded_at, metric_type: r.metric_type, value: r.value, unit: r.unit, source_data: r.source_data ?? null })));
     if (error) throw new Error(error.message);
   }
-  await admin.from("pulse_connections").update({ last_sync_at: new Date().toISOString(), status: "active" }).eq("id", conn.id);
+  await admin.from("pulse_connections").update({ last_sync_at: new Date().toISOString(), status: "active", last_sync_error: errors.length ? errors.join("\n").slice(0, 2000) : null }).eq("id", conn.id);
   if (rows.length) await recomputeQuietly(conn.customer_id, "wearable_sync");
   return { count: rows.length, errors };
 }
