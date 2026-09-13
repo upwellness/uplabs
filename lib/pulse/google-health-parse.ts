@@ -2,10 +2,11 @@
  * Google Health API v4 → pulse_readings rows. Pure; tested in tests/google-health.test.mts.
  *
  * Google Fit's REST API is switched off at the end of 2026 with no drop-in successor.
- * The cloud-side replacement is the Google Health API (data from Fitbit devices and
- * Pixel Watch, tied to the Google account; Health Connect on-device data is NOT
- * reachable from a server). Shapes below follow the published REST reference:
- *   dailyRollUp  → { rollupDataPoints: [{ civilStartTime, civilEndTime, value: { steps: { countSum } } }] }
+ * The cloud-side replacement is the Google Health API (the Google account's store:
+ * Fitbit / Pixel Watch plus whatever the Fitbit or Google Fit app syncs up from the
+ * phone). Shapes below follow the published REST reference; the rollup value may sit
+ * under `value` (reference page) or directly on the point (worked example) — both read:
+ *   dailyRollUp  → { rollupDataPoints: [{ civilStartTime, civilEndTime, steps: { countSum } | heartRate: { beatsPerMinuteAvg, …Max, …Min } | activeMinutes: {…} }] }
  *   list         → { dataPoints: [{ dailyRestingHeartRate: { date, beatsPerMinute } }
  *                                 | { dailyHeartRateVariability: { date, averageHeartRateVariabilityMilliseconds } }
  *                                 | { sleep: { interval: { civilStartTime, civilEndTime }, summary: { minutesAsleep, minutesAwake } } } ] }
@@ -13,7 +14,11 @@
  * has changed between previews, and a parse miss must surface as "no data", not a crash.
  */
 
-export interface ReadingRow { recorded_at: string; metric_type: "steps" | "rhr" | "hrv_rmssd" | "sleep_minutes" | "active_minutes"; value: number; unit: string; source_data?: unknown }
+/**
+ * `rhr` is only ever the device-computed daily resting heart rate (daily-resting-heart-rate).
+ * The day's minimum heart rate is `hr_min` — it is not a resting rate and must not be shown as one.
+ */
+export interface ReadingRow { recorded_at: string; metric_type: "steps" | "rhr" | "hrv_rmssd" | "sleep_minutes" | "active_minutes" | "hr_bpm" | "hr_max" | "hr_min"; value: number; unit: string; source_data?: unknown }
 
 type CivilDate = { year: number; month: number; day: number };
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -27,14 +32,22 @@ const civilDate = (c: any): string | null => isoDate(g(c, "date"));
 /** Bangkok-local noon as the reading instant for a daily value (keeps the day stable across zones). */
 const dayInstant = (date: string) => `${date}T05:00:00.000Z`; // 12:00 Asia/Bangkok
 
-/** dailyRollUp for `steps` (countSum) or `active-minutes` (sum of per-level minutes). */
-export function parseDailyRollup(json: unknown, metric: "steps" | "active_minutes"): ReadingRow[] {
+/** dailyRollUp for `steps` (countSum), `active-minutes` (sum of per-level minutes) or `heart-rate` (avg / max / min → three rows). */
+export function parseDailyRollup(json: unknown, metric: "steps" | "active_minutes" | "heart_rate"): ReadingRow[] {
   const pts: any[] = g(json as any, "rollupDataPoints", "rollup_data_points") ?? [];
   const out: ReadingRow[] = [];
   for (const p of pts) {
     const date = civilDate(g(p, "civilStartTime", "civil_start_time"));
     if (!date) continue;
     const v = g(p, "value") ?? p;
+    if (metric === "heart_rate") {
+      const hr = g(v, "heartRate", "heart_rate") ?? v;
+      const avg = num(g(hr, "beatsPerMinuteAvg", "beats_per_minute_avg")), max = num(g(hr, "beatsPerMinuteMax", "beats_per_minute_max")), min = num(g(hr, "beatsPerMinuteMin", "beats_per_minute_min"));
+      if (avg != null) out.push({ recorded_at: dayInstant(date), metric_type: "hr_bpm", value: Math.round(avg * 10) / 10, unit: "bpm" });
+      if (max != null) out.push({ recorded_at: dayInstant(date), metric_type: "hr_max", value: Math.round(max * 10) / 10, unit: "bpm" });
+      if (min != null) out.push({ recorded_at: dayInstant(date), metric_type: "hr_min", value: Math.round(min * 10) / 10, unit: "bpm" });
+      continue;
+    }
     let value: number | null = null;
     if (metric === "steps") value = num(g(g(v, "steps") ?? v, "countSum", "count_sum"));
     else {

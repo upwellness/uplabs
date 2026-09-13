@@ -47,7 +47,7 @@ const BKK = 7 * 3_600_000;
 const bkkDate = (ms: number) => new Date(ms + BKK).toISOString().slice(0, 10);
 
 /**
- * Last N civil days of steps, active minutes, resting HR, HRV and sleep. Each data type
+ * Last N civil days of steps, active minutes, heart rate (avg/max/min), resting HR, HRV and sleep. Each data type
  * is fetched independently — a scope the user declined or a type their device lacks
  * must not take the others down with it.
  */
@@ -56,7 +56,7 @@ export async function fetchWindow(accessToken: string, days = 14): Promise<{ row
   const rows: ReadingRow[] = []; const errors: string[] = [];
   const attempt = async (label: string, fn: () => Promise<ReadingRow[]>) => { try { rows.push(...(await fn())); } catch (e: any) { errors.push(`${label}: ${e?.message ?? e}`); } };
 
-  const rollup = async (type: "steps" | "active-minutes", metric: "steps" | "active_minutes") => {
+  const rollup = async (type: "steps" | "active-minutes" | "heart-rate", metric: "steps" | "active_minutes" | "heart_rate") => {
     const json: any = await call(accessToken, `${type}/dataPoints:dailyRollUp`, { method: "POST", body: JSON.stringify(rollupBody(from, to)) });
     const parsed = parseDailyRollup(json, metric);
     const got = Array.isArray(json?.rollupDataPoints) ? json.rollupDataPoints.length : 0;
@@ -65,6 +65,7 @@ export async function fetchWindow(accessToken: string, days = 14): Promise<{ row
   };
   await attempt("steps", () => rollup("steps", "steps"));
   await attempt("active-minutes", () => rollup("active-minutes", "active_minutes"));
+  await attempt("heart-rate", () => rollup("heart-rate", "heart_rate")); // daily avg/max/min — 14-day max range per docs, which is our window
   for (const kind of ["daily-resting-heart-rate", "daily-heart-rate-variability", "sleep"] as const) {
     await attempt(kind, async () => {
       const q = new URLSearchParams({ filter: listFilter(kind, from), pageSize: kind === "sleep" ? "25" : "400" });

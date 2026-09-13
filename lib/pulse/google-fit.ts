@@ -176,7 +176,7 @@ export async function fetch7DaySummary(accessToken: string): Promise<AggregateRo
           const max = pt.value?.[1]?.fpVal;
           const min = pt.value?.[2]?.fpVal;
           if (avg) out.push({ recorded_at: ts, metric_type: "hr_bpm", value: +avg.toFixed(1), unit: "bpm" });
-          if (min) out.push({ recorded_at: ts, metric_type: "rhr",    value: +min.toFixed(1), unit: "bpm" });
+          if (min) out.push({ recorded_at: ts, metric_type: "hr_min", value: +min.toFixed(1), unit: "bpm" }); // day's minimum — NOT a resting rate (was mislabelled rhr until 13 Sep 2026)
           if (max) out.push({ recorded_at: ts, metric_type: "hr_max", value: +max.toFixed(1), unit: "bpm" });
         }
         // ── Steps ──

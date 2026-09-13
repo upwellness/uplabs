@@ -20,6 +20,10 @@ test("steps dailyRollUp → one reading per civil day at Bangkok noon", () => {
 test("active-minutes rollup sums per-level minutes", () => {
   const json = { rollupDataPoints: [{ civilStartTime: { date: { year: 2026, month: 9, day: 10 } }, value: { activeMinutes: { activeMinutesRollupByActivityLevel: [{ activityLevel: "MODERATE", minutes: "20" }, { activityLevel: "VIGOROUS", minutes: 5 }] } } }] };
   assert.deepEqual(parseDailyRollup(json, "active_minutes").map((r) => r.value), [25]);
+  // heart-rate rollup → avg / max / min as three rows; the minimum is hr_min, never rhr
+  const hr = parseDailyRollup({ rollupDataPoints: [{ civilStartTime: { date: { year: 2026, month: 9, day: 12 } }, heartRate: { beatsPerMinuteAvg: 71.44, beatsPerMinuteMax: 132, beatsPerMinuteMin: 52 } }] }, "heart_rate");
+  assert.deepEqual(hr.map((r) => [r.metric_type, r.value]), [["hr_bpm", 71.4], ["hr_max", 132], ["hr_min", 52]]);
+  assert.ok(!hr.some((r) => r.metric_type === "rhr"));
 });
 
 test("daily resting HR and HRV list → rhr / hrv_rmssd rows", () => {
