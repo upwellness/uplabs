@@ -6,7 +6,7 @@
  * One customer's wearable providers in clinical-warm:
  *   - WHOOP        — CSV import (4 files) + OAuth connect link
  *   - Apple Health — export.xml/zip upload (parsed on-device, HRV = SDNN)
- *   - Google Fit   — OAuth connect link + manual sync
+ *   - Google Health — OAuth connect link + manual sync (replaces Google Fit, which ends 2026)
  *   - CGM          — link/unlink glucose profile names
  *
  * Reuses the v1 client components (WhoopImport / AppleImport) verbatim — they only
@@ -109,7 +109,7 @@ export default function V2PulseMasterPage({ params }: { params: { id: string } }
         </ProviderSection>
 
         {/* Google Fit — OAuth + sync */}
-        <ProviderSection icon="wellness" title="Google Fit" subtitle="เชื่อมผ่าน OAuth แล้ว sync ข้อมูล 7 วันล่าสุด">
+        <ProviderSection icon="wellness" title="Google Health (Fitbit / Pixel Watch)" subtitle="แทน Google Fit ที่จะหยุดสิ้นปี 2026 · เชื่อมผ่าน OAuth แล้ว sync 14 วันล่าสุด ทุกคืนอัตโนมัติ">
           <GoogleFitManager customerId={id} customerName={c.name ?? "ลูกค้า"} connection={data.connection} onChanged={load} />
         </ProviderSection>
 
@@ -169,7 +169,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "สร้างลิงก์ไม่สำเร็จ");
       window.open(json.url, "_blank");
-      setMsg(`สร้างลิงก์เชื่อม Google Fit แล้ว — ส่งให้ ${customerName} เปิดเพื่อยินยอม (เปิดแท็บใหม่ให้แล้ว)`);
+      setMsg(`สร้างลิงก์เชื่อม Google Health แล้ว — ส่งให้ ${customerName} เปิดเพื่อยินยอม (เปิดแท็บใหม่ให้แล้ว)`);
     } catch (e: any) { setErr(e.message ?? "connect error"); }
     finally { setBusy(null); }
   };
@@ -180,7 +180,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
       const res = await fetch(`/api/pulse/customers/${customerId}/sync`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
-      setMsg(json.count === 0 ? "Sync สำเร็จ — แต่ Google Fit ไม่มีข้อมูลใน 7 วันที่ผ่านมา" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก Google Fit`);
+      setMsg(json.count === 0 ? "Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา (นาฬิกาต้อง sync เข้าแอป Fitbit/Pixel ก่อน)" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก ${json.provider === "google_fit" ? "Google Fit" : "Google Health"}${json.errors?.length ? ` · บางชนิดดึงไม่ได้: ${json.errors.length}` : ""}`);
       onChanged();
     } catch (e: any) { setErr(e.message ?? "sync error"); }
     finally { setBusy(null); }
@@ -198,7 +198,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
               <div className="mt-0.5 font-mono text-[10.5px] text-ink-60">sync ล่าสุด {fmtDateTime(connection?.last_sync_at ?? null)}</div>
             </>
           ) : (
-            <div className="font-thai text-[13px] text-ink-60">ยังไม่ได้เชื่อม Google Fit</div>
+            <div className="font-thai text-[13px] text-ink-60">ยังไม่ได้เชื่อม Google Health</div>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

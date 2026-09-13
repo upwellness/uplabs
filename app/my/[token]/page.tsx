@@ -1,6 +1,7 @@
 import { customerByPortalToken, markPortalOpened } from "@/lib/health-design/portal";
 import { latestAssessment, runAssessment } from "@/lib/health-design/load";
-import { currentPlan } from "@/lib/health-design/plan-store";
+import { currentPlan, planProgress } from "@/lib/health-design/plan-store";
+import { GOAL_STATUS_TH } from "@/lib/health-design/progress";
 import { DOMAIN_LABEL_TH, type Level, type DomainKey } from "@/lib/health-design/assess";
 import { PortalTools } from "./PortalTools";
 
@@ -25,9 +26,10 @@ export default async function PortalPage({ params }: { params: { token: string }
   if (!c) return <Shell><p className="font-thai text-sm text-ink-60">ลิงก์นี้ใช้ไม่ได้แล้ว — ขอลิงก์ใหม่จากโค้ชของคุณได้เลยค่ะ</p></Shell>;
   await markPortalOpened(c.id);
 
-  const [stored, plan] = await Promise.all([
+  const [stored, plan, pp] = await Promise.all([
     (async () => (await latestAssessment(c.id)) ?? (await runAssessment(c.id, "manual").catch(() => null)))(),
     currentPlan(c.id),
+    planProgress(c.id).catch(() => null),
   ]);
   const a = stored?.assessment ?? null;
   const first = c.name.split(/\s+/)[0];
@@ -79,6 +81,15 @@ export default async function PortalPage({ params }: { params: { token: string }
         {plan?.status === "sent" && plan.share_token
           ? <a href={`${siteUrl()}/r/plan/${plan.share_token}`} className="inline-block rounded-xl bg-rose px-4 py-2 font-thai text-sm font-semibold text-white">เปิดแผนของคุณ →</a>
           : <p className="font-thai text-sm text-ink-60">{plan ? "โค้ชกำลังตรวจแผนของคุณ — จะส่งให้เมื่อพร้อมค่ะ" : "ยังไม่มีแผน — โค้ชจะร่างให้หลังมีผลประเมิน"}</p>}
+        {pp && plan?.status === "sent" && (
+          <div className="mt-3 rounded-2xl bg-surface p-4">
+            <div className="font-thai text-[12px] font-semibold text-ink-60">ความคืบหน้า — {pp.progress.summary_th}</div>
+            <ul className="mt-1.5 space-y-1 font-thai text-sm text-ink">
+              {pp.progress.goals.map((g, i) => <li key={i}><b>{GOAL_STATUS_TH[g.status]}</b> · {DOMAIN_LABEL_TH[g.domain]}{g.status !== "no_new_data" && g.note ? <span className="text-ink-60"> — {g.note}</span> : null}</li>)}
+            </ul>
+            {pp.progress.due_now.length > 0 && <p className="mt-2 font-thai text-[12px] text-status-caution">ถึงกำหนดแล้ว: {pp.progress.due_now.map((d) => d.what).join(" · ")}</p>}
+          </div>
+        )}
       </Section>
 
       <PortalTools token={params.token} />

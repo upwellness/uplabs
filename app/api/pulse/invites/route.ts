@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     const { customer_id, provider } = await req.json();
     if (!customer_id) return NextResponse.json({ error: "customer_id required" }, { status: 400 });
-    const inviteProvider = provider === "whoop" ? "whoop" : "google_fit";
+    const inviteProvider = provider === "whoop" ? "whoop" : "google_health";
 
     const supa = createClient();
 

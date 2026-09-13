@@ -397,7 +397,7 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
         get: {
           operationId: "getPlan",
           summary: "แผนดูแล 90 วัน (UP Health Design)",
-          description: "คืนแผนล่าสุด · is_draft=true = โค้ชยังไม่ยืนยัน ห้ามนำไปบอกลูกค้าเป็นแผนจริง · แผนที่ยืนยันแล้วมี goals_90d · nutrition (เป้า+เมนู 7 วัน) · lifestyle · supplements (เภสัชกรจัด) · retest · doctor_flags",
+          description: "คืนแผนล่าสุด + progress (วันที่ x/90 · แต่ละเป้า achieved/improving/no_change/worsening/no_new_data จากค่าที่วัดใหม่เท่านั้น · due_now = ตรวจซ้ำที่ถึงกำหนด) · is_draft=true = โค้ชยังไม่ยืนยัน ห้ามบอกลูกค้าเป็นแผนจริง",
           parameters: [customerId],
           responses: { "200": { description: "ok" } },
         },

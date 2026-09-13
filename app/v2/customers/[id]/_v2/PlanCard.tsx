@@ -10,6 +10,7 @@ import { ClipboardList, RefreshCw, Send, Check, Link2 } from "lucide-react";
 import { Card, LoadingState } from "@/lib/v2/ui";
 import { DOMAIN_LABEL_TH } from "@/lib/health-design/assess";
 import type { HealthPlan } from "@/lib/health-design/plan";
+import type { PlanProgress } from "@/lib/health-design/progress";
 
 interface StoredPlan {
   id: string; status: "draft" | "confirmed" | "sent" | "archived"; goal: string; draft: HealthPlan; final: HealthPlan | null;
@@ -18,10 +19,12 @@ interface StoredPlan {
 const GOAL_TH: Record<string, string> = { loss: "ลดไขมัน/น้ำหนัก", longevity: "ชะลอวัย", muscle: "สร้างกล้ามเนื้อ" };
 const AREA_TH: Record<string, string> = { sleep: "นอน", steps: "เดิน", resistance: "แรงต้าน", food_log: "บันทึกอาหาร", cgm: "CGM" };
 const STATUS_TH = { draft: "ร่าง — รอโค้ชยืนยัน", confirmed: "ยืนยันแล้ว — ยังไม่ส่ง", sent: "ส่งลูกค้าแล้ว", archived: "เก่า" } as const;
+const PROG_TH: Record<string, { t: string; c: string }> = { achieved: { t: "ถึงเป้า", c: "text-status-optimal" }, improving: { t: "ดีขึ้น", c: "text-status-good" }, no_change: { t: "ยังไม่เปลี่ยน", c: "text-ink-60" }, worsening: { t: "แย่ลง", c: "text-status-danger" }, no_new_data: { t: "ยังไม่มีข้อมูลใหม่", c: "text-ink-40" } };
 
 export function PlanCard({ customerId }: { customerId: string }) {
   const [plan, setPlan] = useState<StoredPlan | null>(null);
   const [shareBase, setShareBase] = useState("");
+  const [progress, setProgress] = useState<PlanProgress | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export function PlanCard({ customerId }: { customerId: string }) {
       setState("loading");
       const r = await fetch(`/api/customers/${customerId}/plan`, { cache: "no-store" });
       if (!r.ok) throw new Error(String(r.status));
-      const j = await r.json(); hydrate(j.plan); setShareBase(j.share_base ?? ""); setState("ready");
+      const j = await r.json(); hydrate(j.plan); setShareBase(j.share_base ?? ""); setProgress(j.progress ?? null); setState("ready");
     } catch { setState("error"); }
   }, [customerId]);
   useEffect(() => { void load(); }, [load]);
@@ -87,6 +90,18 @@ export function PlanCard({ customerId }: { customerId: string }) {
             {" · "}เป้า {GOAL_TH[plan.goal] ?? plan.goal} <span className="text-ink-40">({src.goal_reason})</span>
             {plan.sent_at && <> · ส่งเมื่อ {new Date(plan.sent_at).toLocaleDateString("th-TH")}</>}
           </p>
+
+          {progress && plan.status !== "draft" && (
+            <div className="mt-3 rounded-xl border border-wellness/30 bg-wellness/5 p-3">
+              <div className="text-[12px] font-semibold text-ink">ความคืบหน้า · {progress.summary_th}</div>
+              <ul className="mt-1.5 space-y-1">
+                {progress.goals.map((g, i) => (
+                  <li key={i} className="text-[12px]"><span className={`font-semibold ${PROG_TH[g.status]?.c}`}>{PROG_TH[g.status]?.t}</span> <span className="text-ink-60">{DOMAIN_LABEL_TH[g.domain]}</span>{g.note && <span className="text-ink-40"> — {g.note}</span>}</li>
+                ))}
+              </ul>
+              {progress.due_now.length > 0 && <div className="mt-1.5 text-[12px] text-status-caution">ถึงกำหนด: {progress.due_now.map((d) => `${d.what}${d.overdue_days > 0 ? ` (เลย ${d.overdue_days} วัน)` : ""}`).join(" · ")}</div>}
+            </div>
+          )}
 
           <Block title="เป้า 90 วัน">
             {goals.map((g, i) => (

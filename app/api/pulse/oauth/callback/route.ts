@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { exchangeCode, fetch7DaySummary } from "@/lib/pulse/google-fit";
+import { exchangeCode } from "@/lib/pulse/google-health";
+import { syncGoogleHealth } from "@/lib/pulse/google-health-sync";
 import { encryptToken } from "@/lib/pulse/crypto";
 
 /**
- * Google's OAuth callback.
+ * Google's OAuth callback (Google Health API — Fitbit / Pixel Watch).
  *  - exchange code for tokens
  *  - resolve invite → customer
  *  - upsert pulse_connections (encrypted tokens)
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
       .from("pulse_connections")
       .upsert({
         customer_id:      invite.customer_id,
-        provider:         "google_fit",
+        provider:         "google_health",
         access_token_enc: encryptToken(tokens.access_token),
         refresh_token_enc: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
         scopes:           tokens.scope?.split(" ") ?? [],
@@ -52,27 +53,9 @@ export async function GET(req: Request) {
       .single();
     if (cErr) throw cErr;
 
-    // Initial 7-day fetch (best-effort — if it fails we still mark connected)
-    try {
-      const rows = await fetch7DaySummary(tokens.access_token);
-      if (rows.length > 0) {
-        const inserts = rows.map((r) => ({
-          customer_id:   invite.customer_id,
-          connection_id: conn.id,
-          recorded_at:   r.recorded_at,
-          metric_type:   r.metric_type,
-          value:         r.value,
-          unit:          r.unit,
-        }));
-        await admin.from("pulse_readings").insert(inserts);
-        await admin.from("pulse_connections")
-          .update({ last_sync_at: new Date().toISOString() })
-          .eq("id", conn.id);
-      }
-    } catch (fetchErr: any) {
-      console.error("[pulse] initial fetch failed:", fetchErr?.message);
-      // Continue — user can re-sync later
-    }
+    // Initial 14-day pull (best-effort — if it fails we still mark connected)
+    try { await syncGoogleHealth(conn); }
+    catch (fetchErr: any) { console.error("[pulse] initial Google Health sync failed:", fetchErr?.message); }
 
     // Mark invite used
     await admin.from("pulse_invites")

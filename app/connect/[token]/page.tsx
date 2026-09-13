@@ -84,7 +84,7 @@ export default async function ConnectPage({ params }: { params: { token: string 
               href={`/api/pulse/${(invite as any).provider === "whoop" ? "whoop/oauth" : "oauth"}/start?token=${params.token}`}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-rose px-6 py-3.5 font-head text-base font-bold text-white shadow-[0_4px_12px_rgba(140,76,76,0.25)] transition-all hover:shadow-[0_6px_20px_rgba(140,76,76,0.35)] active:scale-[0.98]"
             >
-              {(invite as any).provider === "whoop" ? "✓ ยอมรับและเชื่อมต่อ WHOOP" : "✓ ยอมรับและเชื่อมต่อ Google Fit"}
+              {(invite as any).provider === "whoop" ? "✓ ยอมรับและเชื่อมต่อ WHOOP" : "✓ ยอมรับและเชื่อมต่อ Google Health (Fitbit / Pixel Watch)"}
             </a>
             <p className="text-center font-mono text-[10px] text-ink-40">
               ถ้ายังไม่ยินยอม ปิดหน้านี้ได้เลย — เราจะไม่ดึงข้อมูลใดๆ

@@ -13,7 +13,7 @@
       "schedule": "0 11 * * *"
     },
     {
-      "path": "/api/admin/backup/cron",
+      "path": "/api/cron/nightly",
       "schedule": "0 20 * * *"
     }
   ]

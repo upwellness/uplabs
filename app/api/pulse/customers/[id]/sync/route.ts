@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { canManageCustomer } from "@/lib/customers/access";
 import { decryptToken, encryptToken } from "@/lib/pulse/crypto";
 import { fetch7DaySummary, refreshAccessToken } from "@/lib/pulse/google-fit";
+import { syncGoogleHealth } from "@/lib/pulse/google-health-sync";
 
 /**
  * Manual "Sync Now" — pulls fresh 7-day biomarker data.
@@ -26,6 +27,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     }
 
     const admin = createAdminClient();
+    // Google Health first; a legacy Google Fit link still syncs until Google turns Fit off (end of 2026).
+    const { data: gh } = await admin.from("pulse_connections").select("*").eq("customer_id", params.id).eq("provider", "google_health").eq("status", "active").maybeSingle();
+    if (gh) {
+      const r = await syncGoogleHealth(gh as any);
+      return NextResponse.json({ ok: true, provider: "google_health", count: r.count, errors: r.errors });
+    }
     const { data: conn, error: connErr } = await admin
       .from("pulse_connections")
       .select("*")

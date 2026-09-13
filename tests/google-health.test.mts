@@ -1,0 +1,48 @@
+/**
+ * Google Health API parsers — pinned to the shapes in the published v4 REST reference
+ * (rollupDataPoints / dataPoints unions). A casing change on Google's side must show
+ * up here, not as a silent "no data" in production.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { parseDailyRollup, parseDataPoints, mergeSleepByDay, rollupBody, listFilter } from "../lib/pulse/google-health-parse.ts";
+
+test("steps dailyRollUp → one reading per civil day at Bangkok noon", () => {
+  const json = { rollupDataPoints: [
+    { civilStartTime: { date: { year: 2026, month: 9, day: 10 }, time: { hours: 0 } }, civilEndTime: { date: { year: 2026, month: 9, day: 11 } }, value: { steps: { countSum: "8123" } } },
+    { civil_start_time: { date: { year: 2026, month: 9, day: 11 } }, value: { steps: { count_sum: 4021 } } },
+    { civilStartTime: { date: { year: 2026, month: 9, day: 12 } }, value: {} },
+  ] };
+  const rows = parseDailyRollup(json, "steps");
+  assert.deepEqual(rows.map((r) => [r.recorded_at, r.value, r.unit]), [["2026-09-10T05:00:00.000Z", 8123, "count"], ["2026-09-11T05:00:00.000Z", 4021, "count"]]);
+});
+
+test("active-minutes rollup sums per-level minutes", () => {
+  const json = { rollupDataPoints: [{ civilStartTime: { date: { year: 2026, month: 9, day: 10 } }, value: { activeMinutes: { activeMinutesRollupByActivityLevel: [{ activityLevel: "MODERATE", minutes: "20" }, { activityLevel: "VIGOROUS", minutes: 5 }] } } }] };
+  assert.deepEqual(parseDailyRollup(json, "active_minutes").map((r) => r.value), [25]);
+});
+
+test("daily resting HR and HRV list → rhr / hrv_rmssd rows", () => {
+  const rhr = parseDataPoints({ dataPoints: [{ dailyRestingHeartRate: { date: { year: 2026, month: 9, day: 10 }, beatsPerMinute: "62" } }] }, "daily-resting-heart-rate");
+  assert.deepEqual(rhr, [{ recorded_at: "2026-09-10T05:00:00.000Z", metric_type: "rhr", value: 62, unit: "bpm" }]);
+  const hrv = parseDataPoints({ dataPoints: [{ dailyHeartRateVariability: { date: { year: 2026, month: 9, day: 10 }, averageHeartRateVariabilityMilliseconds: 41.26, entropy: 2.1 } }] }, "daily-heart-rate-variability");
+  assert.equal(hrv[0].metric_type, "hrv_rmssd"); assert.equal(hrv[0].value, 41.3); assert.equal(hrv[0].unit, "ms");
+});
+
+test("sleep sessions → minutes asleep on the civil day they END; naps merge; zero-minute sessions dropped", () => {
+  const json = { dataPoints: [
+    { sleep: { interval: { civilStartTime: { date: { year: 2026, month: 9, day: 9 } }, civilEndTime: { date: { year: 2026, month: 9, day: 10 } } }, summary: { minutesAsleep: "402", minutesAwake: "35" } } },
+    { sleep: { interval: { civilEndTime: { date: { year: 2026, month: 9, day: 10 } } }, summary: { minutesAsleep: 30 } } },
+    { sleep: { interval: { civilEndTime: { date: { year: 2026, month: 9, day: 11 } } }, summary: { minutesAsleep: 0 } } },
+  ] };
+  const rows = mergeSleepByDay(parseDataPoints(json, "sleep"));
+  assert.equal(rows.length, 1); assert.equal(rows[0].value, 432); assert.equal(rows[0].recorded_at, "2026-09-10T05:00:00.000Z");
+});
+
+test("request helpers: rollup body civil dates, snake_case list filters", () => {
+  const b = rollupBody("2026-09-01", "2026-09-15");
+  assert.deepEqual(b.range.start.date, { year: 2026, month: 9, day: 1 }); assert.equal(b.windowSizeDays, 1);
+  assert.equal(listFilter("sleep", "2026-09-01"), 'sleep.interval.civil_end_time >= "2026-09-01T00:00:00"');
+  assert.equal(listFilter("daily-resting-heart-rate", "2026-09-01"), 'daily_resting_heart_rate.date >= "2026-09-01"');
+  assert.deepEqual(parseDataPoints({}, "sleep"), []); assert.deepEqual(parseDailyRollup(null, "steps"), []);
+});

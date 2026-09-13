@@ -1,6 +1,6 @@
 import { withApi, requireScope, assertCustomerInScope } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/respond";
-import { currentPlan, createDraft } from "@/lib/health-design/plan-store";
+import { currentPlan, createDraft, planProgress } from "@/lib/health-design/plan-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -15,9 +15,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     ctx.customerId = params.id;
     const p = await currentPlan(params.id);
     if (!p) return apiOk({ plan: null, message: "ยังไม่มีแผน — ใช้ draftPlan เพื่อร่าง แล้วให้โค้ชยืนยันในแอป" }, { meta: { token: ctx.token.name, row_count: 0 } });
+    const pp = await planProgress(params.id).catch(() => null);
     return apiOk({
       plan_id: p.id, status: p.status, is_draft: p.status === "draft", goal: p.goal, created_at: p.created_at, confirmed_at: p.confirmed_at, sent_at: p.sent_at,
       plan: p.final ?? p.draft, coach_note: p.coach_note,
+      progress: pp?.progress ?? null,
       note: p.status === "draft" ? "นี่คือร่างที่โค้ชยังไม่ยืนยัน — ห้ามส่งให้ลูกค้าเป็นแผนจริง" : "แผนที่โค้ชยืนยันแล้ว",
     }, { clinical: true, meta: { token: ctx.token.name, row_count: 1 } });
   });

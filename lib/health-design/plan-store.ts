@@ -8,6 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCustomer, ageFrom } from "@/lib/api/data";
 import { latestAssessment, runAssessment } from "./load";
 import { draftPlan, type HealthPlan } from "./plan";
+import { computeProgress, type PlanProgress } from "./progress";
+import type { HealthAssessment } from "./assess";
 import type { Goal, PlanConfig } from "@/lib/plate-planner/engine";
 
 export type PlanStatus = "draft" | "confirmed" | "sent" | "archived";
@@ -100,4 +102,25 @@ export async function planByToken(token: string): Promise<{ plan: HealthPlan; cu
     .eq("share_token", token).not("sent_at", "is", null).maybeSingle();
   if (!data || !(data as any).final) return null;
   return { plan: (data as any).final, customer_name: (data as any).customers?.name ?? "คุณ", sent_at: (data as any).sent_at, coach_note: (data as any).coach_note };
+}
+
+/**
+ * Progress of the live plan: the assessment it was drafted from vs the latest one.
+ * null when there is no plan, or the baseline assessment row is gone.
+ */
+export async function planProgress(customerId: string): Promise<{ plan: StoredPlan; progress: PlanProgress } | null> {
+  const plan = await currentPlan(customerId);
+  if (!plan || !plan.assessment_id) return null;
+  const admin = createAdminClient();
+  const [{ data: base }, latest] = await Promise.all([
+    admin.from("health_assessments").select("computed_at, payload").eq("id", plan.assessment_id).maybeSingle(),
+    latestAssessment(customerId),
+  ]);
+  if (!base || !latest) return null;
+  const progress = computeProgress({
+    baseline: (base as any).payload as HealthAssessment, baseline_at: (base as any).computed_at,
+    current: latest.assessment, current_at: latest.computed_at,
+    plan: plan.final ?? plan.draft, plan_confirmed_at: plan.confirmed_at, today: new Date().toISOString(),
+  });
+  return { plan, progress };
 }

@@ -271,7 +271,7 @@ function PulseWorkspace({ customerId, onClear }: { customerId: string; onClear: 
           <StepState done={connected} doneLabel="เชื่อมแล้ว" todoLabel="ยังไม่เชื่อม" />
           {connected && (
             <div className="mt-1 font-mono text-[10px] text-ink-60">
-              {data.connection?.provider === "whoop" ? "WHOOP" : "Google Fit"} · sync ล่าสุด {fmtDateTime(data.connection?.last_sync_at ?? null)}
+              {data.connection?.provider === "whoop" ? "WHOOP" : data.connection?.provider === "google_fit" ? "Google Fit (จะหยุดสิ้นปี 2026 — เชื่อม Google Health ใหม่)" : "Google Health"} · sync ล่าสุด {fmtDateTime(data.connection?.last_sync_at ?? null)}
             </div>
           )}
           <Link

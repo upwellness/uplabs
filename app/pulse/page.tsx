@@ -86,9 +86,9 @@ export default function PulsePage() {
       if (!res.ok) throw new Error(json.error ?? "sync failed");
       await loadCustomer(customer);
       if (json.count === 0) {
-        alert("Sync สำเร็จ — แต่ Google Fit ไม่มี data ใน 7 วันที่ผ่านมา");
+        alert("Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา");
       } else {
-        alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading จาก Google Fit`);
+        alert(`Sync สำเร็จ — ดึงข้อมูล ${json.count} reading`);
       }
     } catch (e: any) { setError(e.message); }
     finally { setSyncing(false); }

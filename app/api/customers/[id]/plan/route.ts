@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session";
 import { canManageCustomer } from "@/lib/customers/access";
-import { currentPlan, planHistory, createDraft, confirmPlan, markSent } from "@/lib/health-design/plan-store";
+import { currentPlan, planHistory, createDraft, confirmPlan, markSent, planProgress } from "@/lib/health-design/plan-store";
 import { pushMessage } from "@/lib/line/client";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,8 @@ async function allowed(customerId: string) {
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const a = await allowed(params.id);
   if (a.status !== 200) return NextResponse.json({ error: a.error }, { status: a.status });
-  const [plan, history] = await Promise.all([currentPlan(params.id), planHistory(params.id)]);
-  return NextResponse.json({ plan, history, share_base: `${siteUrl()}/r/plan/` }, { headers: { "cache-control": "no-store" } });
+  const [plan, history, pp] = await Promise.all([currentPlan(params.id), planHistory(params.id), planProgress(params.id).catch(() => null)]);
+  return NextResponse.json({ plan, history, progress: pp?.progress ?? null, share_base: `${siteUrl()}/r/plan/` }, { headers: { "cache-control": "no-store" } });
 }
 
 /**

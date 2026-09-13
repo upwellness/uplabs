@@ -240,7 +240,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 ### 5.3 UP Pulse — Wearables & Assessment
 
-- **เชื่อมอุปกรณ์:** Whoop (OAuth + CSV import) · Apple Health (อัปโหลด export.xml) · Google Fit (OAuth — ⚠️ กำลังตาย ดู §12)
+- **เชื่อมอุปกรณ์:** Whoop (OAuth + CSV import) · Apple Health (อัปโหลด export.xml) · **Google Health API** (OAuth · Fitbit + Pixel Watch · แทน Google Fit ที่ Google ปิดสิ้นปี 2026 · `lib/pulse/google-health.ts` + parser pure 5 tests · ดึง steps · active-minutes · resting HR · HRV · sleep 14 วัน · sync ทุกคืนใน `/api/cron/nightly` · ปุ่ม Sync now ใช้ตัวเดียวกัน) · การเชื่อม `google_fit` เดิมยังอ่านได้จนกว่า Google ปิด
 - **Flow ลูกค้า:** โค้ชสร้าง invite → ลูกค้าเปิด `/connect/[token]` บนมือถือ → ยินยอม → ระบบดึงข้อมูล
 - **แบบสอบถาม:** `/intake/[token]` → `pulse_intakes` → ประเมิน (`lib/pulse/assess.ts`) → `pulse_assessments`
 - **รายงาน:** `/pulse/report/[id]` (`lib/pulse/wearable-report.ts` รวมทุก provider เป็น report เดียว) + แชร์ผ่าน `/r/[token]`
@@ -292,6 +292,13 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 - **App registry:** `lib/apps-registry.ts` — เพิ่มแอปใหม่ต้องลงทะเบียนที่นี่ + เพิ่มลิงก์ใน `app/v2/_components/Shell.tsx`
 
 ---
+
+### 5.14 UP Health Design — ติดตามผล (ปิดวง · 13 ก.ย. 2026)
+
+- **ความคืบหน้าเทียบแผน** `lib/health-design/progress.ts` (pure · 3 tests): เทียบ assessment ที่ใช้ร่างแผน (baseline) กับล่าสุด — ต่อเป้า: `achieved / improving / no_change / worsening / no_new_data` · นับเฉพาะค่าที่**วัดใหม่หลัง baseline** (ค่าเดิม = ยังไม่มีข้อมูลใหม่ ไม่ใช่ "ไม่เปลี่ยน") · ทิศทางต่อค่า (ไขมันลง = ดี · HDL ขึ้น = ดี · HRV/RHR ไม่ตัดสิน) · band ขยับ good ↔ watch ↔ attention ตัดสิน achieved/worsening · `due_now` = ตรวจซ้ำที่ถึงกำหนดตามวัน
+- แสดงใน PlanCard (โค้ช) · portal `/my` (ลูกค้า) · `getPlan` (MCP) มี `progress`
+- **LINE nudge ทุกวันจันทร์** (`lib/health-design/weekly-nudge.ts` ใน `/api/cron/nightly`): ลูกค้าที่มีแผน sent + ผูกกลุ่ม LINE ได้สรุปวันที่ x/90 · สถานะแต่ละเป้า · ที่ถึงกำหนด · ลิงก์ portal — ข้อความประกอบจากตัวเลข ไม่ใช่ LLM
+- **cron รวม** `/api/cron/nightly` 03:00 (Hobby plan มี cron ได้ 2 ตัว): Google Health sync → (จันทร์) LINE nudge → backup snapshot
 
 ### 5.13 UP Health Design — ฐานอ้างอิง + หน้าลูกค้า (เฟส 4 · 12 ก.ย. 2026)
 
@@ -430,7 +437,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | # | เรื่อง | สถานะ |
 |---|---|---|
-| 1 | **Google Fit sync ตาย** — OAuth ยังเป็น Testing mode (refresh token อายุ 7 วัน) + Google ปิด Fit REST API สิ้นปี 2026 | ต้องเลือกทาง: Google Health API หรือ upload ไฟล์ |
+| 1 | ~~Google Fit sync ตาย~~ | **✅ ย้ายไป Google Health API แล้ว 13 ก.ย. 2026** (§5.3) — Fitbit/Pixel Watch ผ่าน cloud · ⚠️ ยังต้องทำในตัว Google Cloud: enable "Google Health API" + เพิ่ม 3 scope ใน consent screen · Testing mode = ≤100 คน + refresh token 7 วัน (ระบบตั้ง `reauth_required` ให้เมื่อหมด) · Health Connect (Samsung/Garmin บนมือถือ) ไม่มี API ฝั่งเซิร์ฟเวอร์ → อัปโหลดไฟล์ |
 | 2 | `NEXT_PUBLIC_SITE_URL` เคยชี้โดเมนเว็บไซต์ ทำให้ลิงก์ invite/reset 404 | ✅ แก้แล้ว 24 ก.ค. 2026 · ⚠️ env มีผลหลัง redeploy |
 | 3 | CGM ยังไม่มีหน้า v2 | backlog |
 | 4 | v1 ↔ v2 ยังอยู่คู่กัน | ทยอย cutover |
@@ -455,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | _pending_ |
 | 2026-09-13 | backup: exclude list `FOREIGN_TABLES` (20 ตารางโปรเจกต์อื่น) — snapshot อัตโนมัติ/ค่าเริ่มต้นข้าม · ติ๊กรวมได้ · เก็บ 14 ชุด · +1 test (162) | _pending_ |
 | 2026-09-13 | **Backup/Restore ทั้งฐาน** — RPC `backup_catalog/clear_table/reset_sequences` + bucket `db-backups` · snapshot อัตโนมัติทุกคืน (cron) + manual · กู้คืน dry-run → upsert/replace ตาม PK จริงเรียง FK · หน้า `/v2/admin/backup` เขียนใหม่ · เมนู Admin · ลบ `lib/backup/tables.ts` (15 ตาราง hard-code) · +4 tests (161) | `e0ccd4e` |
 | 2026-09-12 | **UP Health Design เฟส 4** — เปอร์เซ็นไทล์ NHANES 2017–2020 (`scripts/build-reference.py` · `lib/health-design/reference.ts` · `driver.reference`) · หน้าลูกค้า `/my/[token]` (ประเมิน · แผน · บันทึกอาหาร · อัปโหลด CGM · `customers.portal_token`) · `getWearableSummary` + scope `wearable:read` · CGM import flow แยกเป็น `lib/api/cgm-import-flow.ts` · +1 test (157) | `b5b8c80` |

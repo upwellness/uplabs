@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { authUrl } from "@/lib/pulse/google-fit";
+import { authUrl } from "@/lib/pulse/google-health";
 
 /**
  * Public endpoint — called by /connect/[token] page after consent.

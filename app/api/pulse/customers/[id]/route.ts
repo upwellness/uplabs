@@ -32,7 +32,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     ] = await Promise.all([
       supa.from("pulse_connections")
         .select("id, provider, status, connected_at, last_sync_at, expires_at")
-        .eq("customer_id", params.id).eq("provider", "google_fit").maybeSingle(),
+        .eq("customer_id", params.id).in("provider", ["google_health", "google_fit"]).order("connected_at", { ascending: false }).limit(1).maybeSingle(),
       supa.from("pulse_readings")
         .select("recorded_at, metric_type, value, unit")
         .eq("customer_id", params.id)

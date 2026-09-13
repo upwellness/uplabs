@@ -200,7 +200,7 @@ export function ReportView(props: Props) {
             <div className="rpt-empty">
               <div className="rpt-empty-ic">📊</div>
               <p className="t">ยังไม่มีข้อมูล wearable, ผลเลือด หรือข้อมูลสุขภาพอื่น</p>
-              <p className="s">เชื่อม WHOOP / Google Fit / Apple, นำเข้าผลแล็บ หรือบันทึก BCA / CGM / อาหารก่อน</p>
+              <p className="s">เชื่อม WHOOP / Google Health / Apple, นำเข้าผลแล็บ หรือบันทึก BCA / CGM / อาหารก่อน</p>
               <a href={`/v2/pulse/master/${customerId}`} className="rpt-empty-btn">จัดการอุปกรณ์ &amp; นำเข้าข้อมูล</a>
             </div>
           </div></section>
