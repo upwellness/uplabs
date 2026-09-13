@@ -109,7 +109,7 @@ export default function V2PulseMasterPage({ params }: { params: { id: string } }
         </ProviderSection>
 
         {/* Google Fit — OAuth + sync */}
-        <ProviderSection icon="wellness" title="Google Health (Fitbit / Pixel Watch)" subtitle="แทน Google Fit ที่จะหยุดสิ้นปี 2026 · เชื่อมผ่าน OAuth แล้ว sync 14 วันล่าสุด ทุกคืนอัตโนมัติ">
+        <ProviderSection icon="wellness" title="Google Health (Fitbit / Pixel Watch / มือถือผ่านแอป Fitbit-Google Fit)" subtitle="แทน Google Fit ที่จะหยุดสิ้นปี 2026 · เชื่อมผ่าน OAuth แล้ว sync 14 วันล่าสุด ทุกคืนอัตโนมัติ">
           <GoogleFitManager customerId={id} customerName={c.name ?? "ลูกค้า"} connection={data.connection} onChanged={load} />
         </ProviderSection>
 
@@ -180,7 +180,7 @@ function GoogleFitManager({ customerId, customerName, connection, onChanged }: {
       const res = await fetch(`/api/pulse/customers/${customerId}/sync`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "sync failed");
-      setMsg(json.count === 0 ? "Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา (นาฬิกาต้อง sync เข้าแอป Fitbit/Pixel ก่อน)" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก ${json.provider === "google_fit" ? "Google Fit" : "Google Health"}${json.errors?.length ? ` · บางชนิดดึงไม่ได้: ${json.errors.length}` : ""}`);
+      setMsg(json.count === 0 ? "Sync สำเร็จ — แต่ไม่มีข้อมูลใน 14 วันที่ผ่านมา (นาฬิกา/มือถือต้อง sync เข้าแอป Fitbit หรือ Google Fit ก่อน)" : `Sync สำเร็จ — ดึงข้อมูล ${json.count} ค่า จาก ${json.provider === "google_fit" ? "Google Fit" : "Google Health"}${json.errors?.length ? ` · บางชนิดดึงไม่ได้ (${json.errors.length}): ${json.errors.map((e: string) => e.slice(0, 160)).join(" | ")}` : ""}`);
       onChanged();
     } catch (e: any) { setErr(e.message ?? "sync error"); }
     finally { setBusy(null); }

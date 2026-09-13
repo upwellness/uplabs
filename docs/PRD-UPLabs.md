@@ -437,7 +437,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | # | เรื่อง | สถานะ |
 |---|---|---|
-| 1 | ~~Google Fit sync ตาย~~ | **✅ ย้ายไป Google Health API แล้ว 13 ก.ย. 2026** (§5.3) — Fitbit/Pixel Watch ผ่าน cloud · ⚠️ ยังต้องทำในตัว Google Cloud: enable "Google Health API" + เพิ่ม 3 scope ใน consent screen · Testing mode = ≤100 คน + refresh token 7 วัน (ระบบตั้ง `reauth_required` ให้เมื่อหมด) · Health Connect (Samsung/Garmin บนมือถือ) ไม่มี API ฝั่งเซิร์ฟเวอร์ → อัปโหลดไฟล์ |
+| 1 | ~~Google Fit sync ตาย~~ | **✅ ย้ายไป Google Health API แล้ว · ทดสอบจริงผ่าน 13 ก.ย. 2026** (§5.3) — Google Cloud: enable API + 3 scope + redirect URI + OAuth client ใหม่ (`20768705354-…`) ทำแล้ว · บัญชีมือถืออย่างเดียว (ไม่มีนาฬิกา) ได้ steps 14 วัน → API ครอบคลุม Fitbit/Pixel Watch **และ** ค่าที่แอป Fitbit/Google Fit sync ขึ้นบัญชี (รวม Health Connect ที่ผ่านแอปเหล่านั้น) · ยังไม่ได้ทดสอบกับบัญชีที่มีนาฬิกาจริง (RHR/HRV/sleep) · Testing mode = ≤100 คน + refresh token 7 วัน (ระบบตั้ง `reauth_required` ให้เมื่อหมด) · sync error รายชนิดเก็บที่ `pulse_connections.last_sync_error` |
 | 2 | `NEXT_PUBLIC_SITE_URL` เคยชี้โดเมนเว็บไซต์ ทำให้ลิงก์ invite/reset 404 | ✅ แก้แล้ว 24 ก.ค. 2026 · ⚠️ env มีผลหลัง redeploy |
 | 3 | CGM ยังไม่มีหน้า v2 | backlog |
 | 4 | v1 ↔ v2 ยังอยู่คู่กัน | ทยอย cutover |
@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | Google Health **ทดสอบจริงผ่าน** (steps 14 วัน → assessment recompute `wearable_sync`) · diagnostic เมื่อ rollup ได้จุดแต่อ่านไม่ได้ · แก้ข้อความ UI/เอกสาร: API ครอบคลุมค่าที่แอป Fitbit/Google Fit sync จากมือถือด้วย ไม่ใช่แค่นาฬิกา · Sync now แสดง error เต็ม | _pending_ |
 | 2026-09-13 | Google Health: `dailyRollUp` body ตามตัวอย่างทางการ (ใส่ `time` เที่ยงคืนทั้งสองปลาย · ตัด pageSize) — เดิม Google ตอบ 400 INVALID_ARGUMENT · เก็บ error เต็ม 1,200 ตัวอักษร · แจ้งเมื่อ list ได้จุดแต่ parse ไม่ได้ | `7ddc9d4` |
 | 2026-09-13 | Google Health sync เก็บ error รายชนิดข้อมูลไว้ที่ `pulse_connections.last_sync_error` + ปุ่ม Sync now แสดง error (เดิม UI ทิ้ง) · migration `20260913_pulse_sync_error.sql` | `e3d2272` |
 | 2026-09-13 | **ปิดวงครบ + Google Health** — UP Pulse ย้าย Google Fit → Google Health API (`google_health` · sync 14 วัน · nightly) · progress เทียบแผน (`progress.ts`) ใน PlanCard/portal/MCP · LINE nudge วันจันทร์ · cron รวม `/api/cron/nightly` (sync → nudge → backup) · +9 tests (170) | `e39c988` |

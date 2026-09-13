@@ -2,10 +2,11 @@
  * Google Health API (v4) — the replacement for Google Fit's REST API, which Google
  * switches off at the end of 2026 (no new Fit sign-ups since 1 May 2024).
  *
- * What it gives us: the Google-account cloud store fed by Fitbit devices and Pixel
- * Watch. What it does NOT give us: Health Connect data that lives on the phone
- * (Samsung Health, Garmin via Health Connect, …) — that needs an installed Android
- * app and is out of scope for a web platform; those users upload an export instead.
+ * What it gives us: the Google-account cloud store — Fitbit / Pixel Watch, plus
+ * whatever the Fitbit or Google Fit app syncs up from the phone and Health Connect
+ * (verified 13 Sep 2026: a phone-only account returned 14 days of steps). Data that
+ * never reaches the Google account (a Health Connect source without the Fitbit app
+ * syncing it) is not visible; those users upload an export instead.
  *
  * Setup (Google Cloud Console, same project + OAuth client as Google Fit):
  *   1. APIs & Services → enable "Google Health API"
@@ -55,8 +56,15 @@ export async function fetchWindow(accessToken: string, days = 14): Promise<{ row
   const rows: ReadingRow[] = []; const errors: string[] = [];
   const attempt = async (label: string, fn: () => Promise<ReadingRow[]>) => { try { rows.push(...(await fn())); } catch (e: any) { errors.push(`${label}: ${e?.message ?? e}`); } };
 
-  await attempt("steps", async () => parseDailyRollup(await call(accessToken, "steps/dataPoints:dailyRollUp", { method: "POST", body: JSON.stringify(rollupBody(from, to)) }), "steps"));
-  await attempt("active-minutes", async () => parseDailyRollup(await call(accessToken, "active-minutes/dataPoints:dailyRollUp", { method: "POST", body: JSON.stringify(rollupBody(from, to)) }), "active_minutes"));
+  const rollup = async (type: "steps" | "active-minutes", metric: "steps" | "active_minutes") => {
+    const json: any = await call(accessToken, `${type}/dataPoints:dailyRollUp`, { method: "POST", body: JSON.stringify(rollupBody(from, to)) });
+    const parsed = parseDailyRollup(json, metric);
+    const got = Array.isArray(json?.rollupDataPoints) ? json.rollupDataPoints.length : 0;
+    if (got && !parsed.length) errors.push(`${type}: ได้ ${got} วันแต่อ่านค่าไม่ได้ — sample ${JSON.stringify(json.rollupDataPoints[0]).slice(0, 400)}`);
+    return parsed;
+  };
+  await attempt("steps", () => rollup("steps", "steps"));
+  await attempt("active-minutes", () => rollup("active-minutes", "active_minutes"));
   for (const kind of ["daily-resting-heart-rate", "daily-heart-rate-variability", "sleep"] as const) {
     await attempt(kind, async () => {
       const q = new URLSearchParams({ filter: listFilter(kind, from), pageSize: kind === "sleep" ? "25" : "400" });
