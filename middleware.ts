@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { VIEW_AS_COOKIE } from "@/lib/auth/view-as-constants";
+import { corsHeaders } from "@/lib/api/cors";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -42,7 +43,17 @@ const PUBLIC_PATHS = [
 const isPublic = (path: string) =>
   PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
 
+/** /api/v1 is callable from allowlisted browser origins (UP CGM Analyser → import). Everything else: no CORS. */
 export async function middleware(req: NextRequest) {
+  const isV1 = req.nextUrl.pathname === "/api/v1" || req.nextUrl.pathname.startsWith("/api/v1/");
+  const cors = isV1 ? corsHeaders(req.headers.get("origin")) : null;
+  if (isV1 && req.method === "OPTIONS") return new NextResponse(null, { status: cors ? 204 : 403, headers: cors ?? {} });
+  const res = await middlewareInner(req);
+  if (cors) for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
+  return res;
+}
+
+async function middlewareInner(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

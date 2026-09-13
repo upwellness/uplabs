@@ -133,6 +133,10 @@ uplab_<env>_<prefix8>_<secret32>
 
 ทุกกรณี **บันทึกลง `api_token_logs`** ไม่ว่าจะผ่านหรือไม่ผ่าน
 
+### 6.3 เรียกจากเบราว์เซอร์ (CORS) — 13 ก.ย. 2026
+
+`/api/v1/*` ตอบ CORS ให้ **เฉพาะ origin ในรายการ** (`lib/api/cors.ts` · จัดการใน `middleware.ts` ก่อนถึง route): ค่าเริ่มต้น `https://upcgm.vercel.app` (UP CGM Analyser → ปุ่ม "ส่งเข้า UP Labs") + env `API_CORS_ORIGINS` (คั่น comma) + localhost เฉพาะตอน dev · preflight `OPTIONS` → 204 เมื่ออนุญาต / 403 เมื่อไม่ · อนุญาต header `Authorization, Content-Type` · **token ยังเป็นหลักฐานเดียว** — CORS แค่ตัดสินว่าเบราว์เซอร์อ่านคำตอบได้ไหม · `/api/mcp` และส่วนอื่นไม่เปิด CORS
+
 ---
 
 ## 7. Authorization Model

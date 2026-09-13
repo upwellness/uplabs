@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-13 | **UP CGM Analyser → ส่งเข้า UP Labs**: `/api/v1` เปิด CORS ให้ origin ในรายการ (`lib/api/cors.ts` +2 tests · `API_CORS_ORIGINS`) · ฝั่ง upcgm (`06e041d`) ปุ่ม "ส่งเข้า UP Labs" + token ในเบราว์เซอร์โค้ช → `POST …/cgm/import` ตรงจากเบราว์เซอร์ | _pending_ |
 | 2026-09-13 | Google Health ดึง **blood-glucose** เข้าบัญชี CGM ของลูกค้า (`fetchGlucose` · `parseBloodGlucose` +1 test · sync/cron รายงาน `glucose{fetched,inserted,profile}` · recompute `cgm_import`) · UI Sync now โชว์จำนวน CGM | `363aff3` |
 | 2026-09-13 | Google Health ดึง `heart-rate` dailyRollUp เพิ่ม → `hr_bpm`/`hr_max`/`hr_min` · **`rhr` = เฉพาะ daily-resting-heart-rate ที่อุปกรณ์คำนวณ** · แก้ Google Fit เดิมที่เอา HR ต่ำสุดของวันมาติดป้าย rhr (relabel 10 แถวเก่าเป็น hr_min) | `0a9d9af` |
 | 2026-09-13 | Google Health **ทดสอบจริงผ่าน** (steps 14 วัน → assessment recompute `wearable_sync`) · diagnostic เมื่อ rollup ได้จุดแต่อ่านไม่ได้ · แก้ข้อความ UI/เอกสาร: API ครอบคลุมค่าที่แอป Fitbit/Google Fit sync จากมือถือด้วย ไม่ใช่แค่นาฬิกา · Sync now แสดง error เต็ม | `175b73f` |
