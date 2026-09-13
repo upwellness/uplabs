@@ -450,7 +450,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 ## 13. Roadmap
 
 1. ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1
-2. แก้เส้นทาง wearable (Google Health API หรือ upload) ให้ sync กลับมาได้
+2. ~~แก้เส้นทาง wearable~~ ✅ Google Health API ทดสอบผ่าน 13 ก.ย. · **ถัดไป: Mobile Portal** (`SPEC-Mobile-Portal.md` — M1–M4 ~10 วัน หลังเคาะ Q1/Q4)
 3. Longevity Report ให้เป็นปุ่มเดียวในแอป (ตอนนี้สร้างนอกระบบแล้วอัปโหลด)
 4. ~~External API v1 → MCP server~~ ✅ ทำแล้ว (11–12 ก.ย. 2026) — `/api/mcp` + OAuth · claude.ai/ChatGPT ต่อตรงได้
 5. หมุน CGM passcode + ใส่ rate limit
@@ -462,6 +462,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-14 | สเปกใหม่ `docs/SPEC-Mobile-Portal.md` (v0.1 draft) — หน้าลูกค้าบนมือถือ 5 แท็บ + แผ่นรายละเอียดค่า + AI อธิบาย · mockup 9 หน้า (artifact) · รอเคาะ Q1 (BYO-key ข้อ 3) · Q4 (คลังคำอธิบาย) | _pending_ |
 | 2026-09-13 | **UP CGM Analyser → ส่งเข้า UP Labs**: `/api/v1` เปิด CORS ให้ origin ในรายการ (`lib/api/cors.ts` +2 tests · `API_CORS_ORIGINS`) · ฝั่ง upcgm (`06e041d`) ปุ่ม "ส่งเข้า UP Labs" + token ในเบราว์เซอร์โค้ช → `POST …/cgm/import` ตรงจากเบราว์เซอร์ | `a241a8a` |
 | 2026-09-13 | Google Health ดึง **blood-glucose** เข้าบัญชี CGM ของลูกค้า (`fetchGlucose` · `parseBloodGlucose` +1 test · sync/cron รายงาน `glucose{fetched,inserted,profile}` · recompute `cgm_import`) · UI Sync now โชว์จำนวน CGM | `363aff3` |
 | 2026-09-13 | Google Health ดึง `heart-rate` dailyRollUp เพิ่ม → `hr_bpm`/`hr_max`/`hr_min` · **`rhr` = เฉพาะ daily-resting-heart-rate ที่อุปกรณ์คำนวณ** · แก้ Google Fit เดิมที่เอา HR ต่ำสุดของวันมาติดป้าย rhr (relabel 10 แถวเก่าเป็น hr_min) | `0a9d9af` |

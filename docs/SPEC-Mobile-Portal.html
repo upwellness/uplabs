@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UP Labs Mobile Portal — หน้าลูกค้าบนมือถือ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F1E1B; --ink80:#3D3840; --ink60:#5C5660; --ink40:#8A838E; --ink10:#E2DED8;
+    --cream:#F7F4EE; --paper:#fff; --surface:#FBF9F5;
+    --rose:#8C4C4C; --rose-u:#FAF3F2; --well:#396755; --well-u:#F0F8F4;
+    --amber:#C47A2A; --amber-u:#FEFAF3; --sci:#2A7B8F; --sci-u:#EDF7FA;
+    --gold:#C99D2F; --danger:#DC2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:Sarabun,-apple-system,sans-serif;font-size:15px;line-height:1.8}
+  h1,h2,h3,h4{font-family:Kanit,sans-serif;line-height:1.35;margin:0}
+  a{color:var(--rose)}
+  code{background:var(--surface);border:1px solid var(--ink10);border-radius:5px;padding:1px 5px;font-size:.88em;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+  header.top{background:linear-gradient(135deg,var(--rose-u),var(--cream) 45%,var(--well-u));border-bottom:1px solid var(--ink10)}
+  .hero{max-width:1080px;margin:0 auto;padding:38px 20px 30px}
+  .eyebrow{font-family:Kanit;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rose)}
+  h1{font-size:clamp(26px,4.5vw,40px);margin-top:8px}
+  .sub{color:var(--ink60);margin-top:10px;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{background:#fff;border:1px solid var(--ink10);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--ink60)}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink10)}
+  nav.toc .in{max-width:1080px;margin:0 auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto}
+  nav.toc a{white-space:nowrap;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--ink60);border:1px solid var(--ink10);background:#fff;border-radius:999px;padding:5px 12px}
+  nav.toc a:hover{color:var(--rose);border-color:var(--rose)}
+  section{background:var(--paper);border:1px solid var(--ink10);border-radius:22px;padding:26px 26px 22px;margin-top:22px;box-shadow:0 1px 0 rgba(0,0,0,.02),0 20px 40px -34px rgba(140,76,76,.25)}
+  section>h2{font-size:22px;display:flex;align-items:center;gap:10px}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:var(--rose);color:#fff;font-size:13px}
+  h3{font-size:16.5px;margin-top:22px;color:var(--ink)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:5px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--ink10);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--surface);font-family:Kanit;font-weight:600;font-size:12.5px}
+  tr:nth-child(even) td{background:#FCFBF9}
+  .callout{border-left:4px solid var(--gold);background:var(--amber-u);border-radius:0 14px 14px 0;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-color:var(--danger);background:#FEF2F2}
+  .callout.ok{border-color:var(--well);background:var(--well-u)}
+  .callout b{color:var(--ink)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:14px 0}
+  .card{border:1px solid var(--ink10);border-radius:16px;padding:14px 16px;background:#fff}
+  .card .t{font-family:Kanit;font-weight:600;font-size:14.5px}
+  .card .d{font-size:13px;color:var(--ink60);margin-top:4px}
+  .tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;font-family:Kanit}
+  .t-rose{background:var(--rose-u);color:var(--rose)} .t-well{background:var(--well-u);color:var(--well)}
+  .t-amber{background:var(--amber-u);color:var(--amber)} .t-sci{background:var(--sci-u);color:var(--sci)}
+  footer{max-width:1080px;margin:26px auto 0;padding:0 20px;color:var(--ink40);font-size:12.5px}
+  @media print{nav.toc{display:none}section{break-inside:avoid;box-shadow:none}}
+
+  pre.code{background:var(--surface);border:1px solid var(--ink10);border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.65;margin:14px 0}
+  pre.code code{background:none;border:0;padding:0;font-size:inherit}
+  h4{font-size:14.5px;margin-top:16px;color:var(--ink80)}
+  .genwarn{background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:10px;padding:8px 14px;font-size:12.5px;margin-top:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hero">
+    <div class="eyebrow">Feature Specification · Draft</div>
+    <h1>UP Labs Mobile Portal — หน้าลูกค้าบนมือถือ</h1>
+    <p class="sub">เวอร์ชันแอปของ /my/&lt;token&gt;: ลูกค้าเปิดจากลิงก์ที่โค้ชส่ง เห็นค่าทุกค่าของตัวเอง (ผลเลือด · BCA · CGM · นาฬิกา · อาหาร) แผน 90 วัน และกดให้ AI อธิบายจากค่าที่ระบบตัดสินแล้ว</p>
+    <div class="meta"></div>
+    <div class="genwarn">ไฟล์นี้ถูกสร้างอัตโนมัติจาก <code>docs/SPEC-Mobile-Portal.md</code> — แก้ที่ .md แล้วรัน <code>npm run docs</code> · <b>ห้ามแก้ .html ตรง ๆ</b> เพราะจะถูกทับ</div>
+  </div>
+</header>
+<nav class="toc"><div class="in"><a href="#s1-problem-statement">Problem Statement</a><a href="#s2-goals">Goals</a><a href="#s3-non-goals">Non-Goals</a><a href="#s4-user-stories">User Stories</a><a href="#s5-หน้าจอ-information-architecture">หน้าจอ (Information Architecture)</a><a href="#s6-requirements">Requirements</a><a href="#s7-ข้อจำกัดและการตัดสินใจทางเทคนิค">ข้อจำกัดและการตัดสินใจทางเทคนิค</a><a href="#s8-success-metrics">Success Metrics</a><a href="#s9-open-questions">Open Questions</a><a href="#s10-phasing">Phasing</a></div></nav>
+<div class="wrap">
+<section id="s1-problem-statement"><h2><span class="num">1</span>Problem Statement</h2>
+<p>วันนี้ลูกค้าเห็นข้อมูลตัวเองได้ 2 ทาง: (ก) โค้ชแคปหน้าจอ/ส่งรายงาน A4 ให้ทาง LINE — เห็นเป็นภาพนิ่ง ถามต่อไม่ได้ (ข) <code>/my/&lt;token&gt;</code> — มีผลประเมิน 7 ด้าน แผน บันทึกอาหาร อัปโหลด CGM แต่เป็นหน้าเดียวยาว ๆ ออกแบบจากจอคอม ไม่มีค่าดิบ (ผลเลือดรายตัว · กราฟ CGM · BCA · นาฬิกา) และไม่มีทางถาม "ค่านี้แปลว่าอะไร"</p>
+<p>ผลคือคำถามพื้นฐาน ("HbA1c 5.8 แย่ไหม" · "อาทิตย์นี้น้ำตาลดีขึ้นไหม") ไหลกลับไปหาโค้ชทาง LINE ทุกครั้ง โค้ชตอบเรื่องเดิมซ้ำ และลูกค้าที่ไม่กล้าถามก็ไม่รู้อะไรเลยระหว่างนัด — ระบบมีข้อมูลครบ (5 แหล่ง · ประเมินอัตโนมัติ · แผน 90 วัน · ความคืบหน้า) แต่ลูกค้าเข้าไม่ถึงในรูปที่ใช้เองได้</p>
+</section>
+<section id="s2-goals"><h2><span class="num">2</span>Goals</h2>
+<table><thead><tr><th>#</th><th>เป้า</th><th>วัดจาก</th></tr></thead><tbody><tr><td>G1</td><td>ลูกค้าเห็น <b>ทุกค่าที่ระบบใช้ monitor</b> (ผลเลือด · BCA · CGM · นาฬิกา · อาหาร) ในหน้าเดียวที่เปิดจากมือถือ โดยไม่ต้อง login</td><td>ทุก driver ใน <code>HealthAssessment</code> มีหน้า/แถวของตัวเองในพอร์ทัล</td></tr><tr><td>G2</td><td>ลูกค้าเข้าใจค่าของตัวเองโดยไม่ต้องถามโค้ช</td><td>≥50% ของ session กดเปิดรายละเอียดค่าหรือ "ให้ AI อธิบาย" อย่างน้อย 1 ครั้ง (90 วันแรก)</td></tr><tr><td>G3</td><td>ลูกค้ากลับมาดูเองระหว่างนัด</td><td>≥40% ของลูกค้าที่ได้ลิงก์เปิดซ้ำ ≥2 ครั้ง/สัปดาห์ในเดือนแรก (<code>customers.portal_opened_at</code> → ต้องเปลี่ยนเป็น log รายครั้ง)</td></tr><tr><td>G4</td><td>ลดคำถามซ้ำถึงโค้ช</td><td>โค้ชรายงานเอง (ไม่มี baseline — เดือนแรก = วัด)</td></tr><tr><td>G5</td><td>ลูกค้าป้อนข้อมูลเองมากขึ้น</td><td>สัดส่วน food log / CGM upload ที่มาจากพอร์ทัล ≥30% ของทั้งหมดใน 90 วัน</td></tr></tbody></table>
+</section>
+<section id="s3-non-goals"><h2><span class="num">3</span>Non-Goals</h2>
+<ul>
+<li><b>ไม่ทำแอป native / ไม่ขึ้นสโตร์</b> — เป็นเว็บ mobile-first เปิดจากลิงก์ที่โค้ชส่ง (Add to Home Screen ได้) · เหตุผล: ลูกค้าไม่ต้องติดตั้ง ไม่ต้องสมัคร ไม่มีรอบรีวิวสโตร์
+</li>
+<li><b>ไม่มีบัญชีลูกค้า / รหัสผ่าน</b> ในเฟสนี้ — ใช้ token ต่อคน (<code>customers.portal_token</code>) ที่โค้ชสร้าง/หมุนได้ · Q5 ใน SPEC-Health-Design ยังค้าง
+</li>
+<li><b>ไม่ให้ AI สร้างตัวเลขหรือคำตัดสินใหม่</b> — AI เรียบเรียงจากค่าที่ engine คำนวณและป้ายที่ engine ให้แล้วเท่านั้น (เกณฑ์เดียวกับ UP CGM Analyser: "AI ใช้เรียบเรียงคำพูด ตัวเลขทั้งหมดมาจากเกณฑ์")
+</li>
+<li><b>ไม่ให้ลูกค้าแก้แผน / เลือกอาหารเสริมเอง</b> — แผนยืนยันโดยโค้ช · อาหารเสริมมาจากตารางเภสัชกรเท่านั้น
+</li>
+<li><b>ไม่แชทกับโค้ชในพอร์ทัล</b> — ใช้ LINE ตามเดิม (มีปุ่มลัด)
+</li>
+<li><b>ไม่แสดงข้อมูลลูกค้าคนอื่น / ไม่มีการเทียบกับเพื่อน</b> — เทียบได้กับเกณฑ์อ้างอิงและตัวเองในอดีตเท่านั้น
+</li>
+</ul>
+</section>
+<section id="s4-user-stories"><h2><span class="num">4</span>User Stories</h2>
+<p><b>ลูกค้า (เปิดจากมือถือด้วยลิงก์จากโค้ช)</b></p>
+<ol>
+<li>อยากเห็นสรุปวันนี้ใน 5 วินาที (ด้านไหนดี ด้านไหนต้องดู ก้าว/นอน/น้ำตาลล่าสุด) เพื่อรู้ว่าวันนี้ต้องทำอะไร
+</li>
+<li>อยากเห็นผลเลือดทุกตัวพร้อมสีสถานะและเปอร์เซ็นไทล์ เพื่อรู้ว่าค่าไหนต้องใส่ใจโดยไม่ต้องอ่านใบแล็บ
+</li>
+<li>อยากกดที่ค่าใดก็ได้แล้วอ่านคำอธิบายภาษาคน ("HbA1c คืออะไร ค่าของฉันอยู่ตรงไหน ทำอะไรได้") เพื่อไม่ต้องถามโค้ชเรื่องพื้นฐาน
+</li>
+<li>อยากเห็นกราฟน้ำตาล 24 ชม. ล่าสุดกับ % เวลาในช่วง เพื่อเชื่อมกับมื้ออาหารที่เพิ่งกิน
+</li>
+<li>อยากเห็นน้ำหนัก/ไขมัน/กล้ามเนื้อย้อนหลังเป็นเส้น เพื่อรู้ว่าไปทางไหน
+</li>
+<li>อยากเห็นก้าว/นอน/หัวใจจากนาฬิกาที่ sync มา และรู้ว่า sync ล่าสุดเมื่อไร (ถ้าหลุดต้องเชื่อมใหม่)
+</li>
+<li>อยากบันทึกอาหารจากมือถือ (พิมพ์/ถ่าย/เลือกจากอัลบั้ม) และเห็น C:P:F ของวันนี้เทียบเป้า
+</li>
+<li>อยากเห็นแผน 90 วันกับสถานะแต่ละเป้า (ถึงเป้า/ดีขึ้น/ยังไม่มีข้อมูลใหม่) และรายการที่ถึงกำหนดตรวจ
+</li>
+<li>ถ้าเปิดลิงก์เก่าที่โค้ชหมุนแล้ว อยากเห็นข้อความบอกให้ขอลิงก์ใหม่ ไม่ใช่หน้าว่าง
+</li>
+<li>ถ้ายังไม่มีข้อมูลบางแหล่ง อยากเห็นว่า "ยังไม่มี" พร้อมวิธีเติม ไม่ใช่ช่องว่างเงียบ ๆ
+</li>
+</ol>
+<p><b>โค้ช</b></p>
+<ol>
+<li>อยากสร้าง/คัดลอก/หมุนลิงก์ของลูกค้าจากการ์ดในหน้าลูกค้า (มีแล้ว) และเห็นว่าลูกค้าเปิดล่าสุดเมื่อไร
+</li>
+<li>อยากรู้ว่าลูกค้ากดให้ AI อธิบายเรื่องอะไรบ้าง เพื่อเตรียมคุยตอนนัด
+</li>
+</ol>
+</section>
+<section id="s5-หน้าจอ-information-architecture"><h2><span class="num">5</span>หน้าจอ (Information Architecture)</h2>
+<p>Route: <b><code>/my/&lt;token&gt;</code> เดิม เขียนใหม่เป็น mobile-first</b> (ไม่ตั้ง <code>/v2/mobile</code> เพราะ <code>/v2</code> ต้อง login ตาม middleware และลิงก์เดิมที่ส่งไปแล้วต้องยังใช้ได้) · จอคอมเห็นเป็นคอลัมน์กลาง 430px</p>
+<p>แถบล่าง 5 แท็บ (ใช้ได้ด้วยนิ้วโป้ง): <b>หน้าแรก · ค่าของฉัน · อาหาร · แผน · ฉัน</b></p>
+<table><thead><tr><th>#</th><th>หน้า</th><th>เห็นอะไร</th><th>ที่มาข้อมูล (มีแล้ว)</th></tr></thead><tbody><tr><td>S1</td><td><b>หน้าแรก</b></td><td>ทักชื่อ · การ์ด 7 ด้าน (จุดสี + ป้าย) · 3 ตัวเลขวันนี้ (ก้าว · นอน · น้ำตาลเฉลี่ย) · "สิ่งที่ควรทำสัปดาห์นี้" 1–3 ข้อจากแผน · ปุ่ม <b>ให้ AI อธิบายภาพรวม</b></td><td><code>latestAssessment</code> · <code>wearableWindow</code> · <code>computeMetrics</code> · <code>currentPlan</code></td></tr><tr><td>S2</td><td><b>ค่าของฉัน</b> (hub)</td><td>5 การ์ดแหล่งข้อมูล: ผลเลือด · ร่างกาย (BCA) · น้ำตาล (CGM) · นาฬิกา · อายุสุขภาพ — แต่ละใบบอกวันที่ล่าสุด + จำนวนค่าที่ควรดู</td><td><code>sources_used</code> · <code>data_gaps</code></td></tr><tr><td>S2a</td><td><b>ผลเลือด</b></td><td>จัดกลุ่มตาม panel (น้ำตาล · ไขมัน · ตับ/ไต · อักเสบ · อื่น ๆ) · แต่ละตัว: ค่า · หน่วย · แถบช่วง (ดี/ควรติดตาม/ควรปรึกษาแพทย์) · เปอร์เซ็นไทล์ NHANES · ลูกศรเทียบครั้งก่อน</td><td><code>customer_lab_values</code> · <code>driver.reference</code> · <code>lib/medical-status.ts</code></td></tr><tr><td>S2b</td><td><b>น้ำตาล (CGM)</b></td><td>กราฟ 24 ชม. ล่าสุด (monotone cubic — ไม่ spline) · TIR/TAR/TBR · เฉลี่ย · GMI · ปุ่มอัปโหลดไฟล์ · จุดมื้ออาหารจาก food log บนกราฟ</td><td><code>cgm_readings</code> · <code>computeMetrics</code> · <code>/api/my/&lt;token&gt;/cgm</code></td></tr><tr><td>S2c</td><td><b>ร่างกาย (BCA)</b></td><td>น้ำหนัก · ไขมัน% · กล้ามเนื้อ% · ไขมันช่องท้อง · BMR — ค่าล่าสุด + เส้น 6 ครั้งหลัง + ลูกศร</td><td><code>measurements</code></td></tr><tr><td>S2d</td><td><b>นาฬิกา</b></td><td>ก้าว · นอน · HR เฉลี่ย/ต่ำสุด · RHR (ถ้าอุปกรณ์ให้) · HRV — 14 วัน แท่ง/เส้น · สถานะ sync ("ล่าสุด 03:12 · Google Health") · ปุ่ม "เชื่อมใหม่" เมื่อ <code>reauth_required</code></td><td><code>pulse_readings</code> · <code>pulse_connections</code> · <code>whoop_daily</code></td></tr><tr><td>S2e</td><td><b>อายุสุขภาพ</b></td><td>PhenoAge เทียบอายุจริง · marker ที่ใช้/ที่ขาด · ข้อความจำกัด (ไม่ใช่การวินิจฉัย)</td><td><code>domains.health_age</code></td></tr><tr><td>S3</td><td><b>อาหาร</b></td><td>วันนี้: C:P:F เทียบเป้าจากแผน (โดนัท) · รายการมื้อ (รูป/ข้อความ · เวลา · ที่มา 🤖/✋) · ปุ่ม + (พิมพ์ · ถ่าย · อัลบั้ม → EXIF วันที่) · คะแนน glucose impact / health score ต่อมื้อ · ย้อนหลัง 7 วัน</td><td><code>nutriscan_scans</code> · <code>PortalTools</code> (มีแล้ว) · <code>calcTargets</code></td></tr><tr><td>S4</td><td><b>แผน 90 วัน</b></td><td>วันที่ x/90 · เป้าแต่ละข้อ + สถานะ (ถึงเป้า/ดีขึ้น/ยังไม่เปลี่ยน/แย่ลง/ยังไม่มีข้อมูลใหม่) + ตัวเลข from→to · โภชนาการเป้า · lifestyle · อาหารเสริม (จากเภสัชกร · ป้ายชัด) · ถึงกำหนดตรวจ · เรื่องที่ควรปรึกษาแพทย์</td><td><code>currentPlan</code> · <code>planProgress</code> · <code>GOAL_STATUS_TH</code></td></tr><tr><td>S5</td><td><b>ฉัน</b></td><td>ชื่อ · โค้ช (ปุ่ม LINE) · ลิงก์นี้เป็นของคุณคนเดียว (คำเตือน) · ข้อมูลที่ระบบเก็บ · ภาษา/ขนาดตัวอักษร · เพิ่มลงหน้าจอหลัก</td><td><code>customers</code> · <code>line_bot_groups</code></td></tr><tr><td>D1</td><td><b>รายละเอียดค่า</b> (bottom sheet จากทุกหน้า)</td><td>ชื่อค่า + คำอธิบาย 1 บรรทัดจากคลัง · ค่าของฉันบนแถบช่วงอ้างอิง (ระบุที่มาเกณฑ์ ADA/ATP III/KDIGO…) · เปอร์เซ็นไทล์ · ประวัติ · ปุ่ม <b>ให้ AI อธิบาย</b></td><td><code>driver</code> (note · reference · level)</td></tr><tr><td>D2</td><td><b>AI อธิบาย</b> (bottom sheet)</td><td>คำอธิบายภาษาคน 3 ส่วน: ค่านี้คืออะไร · ของฉันอยู่ตรงไหน (จากป้ายที่ engine ให้) · ทำอะไรได้ (จากแผนที่โค้ชยืนยัน) · ท้ายด้วย disclaimer · ปุ่ม "ถามโค้ชต่อทาง LINE" · โควตาต่อวันที่เหลือ</td><td>ใหม่: <code>POST /api/my/&lt;token&gt;/explain</code></td></tr></tbody></table>
+<p><b>หลักการตัวเลข (ทุกหน้า):</b> ตัวเลขใหญ่ 1 ตัวต่อการ์ด · หน่วยเล็กข้างล่าง · สีสถานะจาก <code>lib/medical-status.ts</code> ที่เดียว · ไม่มีคะแนนรวมตัวเดียว (ตัดสินใจไว้ใน SPEC-Health-Design) · ค่าที่ไม่มี = "ยังไม่มีข้อมูล" + ปุ่มเติม ไม่ใช่ 0 · ไอคอนสื่อความหมายคู่กับคำเสมอ (ไม่ใช้ไอคอนเดี่ยว)</p>
+</section>
+<section id="s6-requirements"><h2><span class="num">6</span>Requirements</h2>
+<h3>P0 — ต้องมีถึงจะปล่อย</h3>
+<table><thead><tr><th>#</th><th>ข้อกำหนด</th><th>เกณฑ์ตรวจรับ</th></tr></thead><tbody><tr><td>R1</td><td>โครง mobile-first 5 แท็บ ที่ <code>/my/&lt;token&gt;</code> · จอ 360–430px ไม่มี scroll แนวนอน · ปุ่มแตะ ≥44px · ตัวอักษรไทย ≥17px body (ตาม feedback Thai UI readability)</td><td>ทดสอบจริงบน iPhone SE + Android ขนาดเล็ก · Lighthouse mobile a11y ≥90</td></tr><tr><td>R2</td><td>S1 หน้าแรก + S2 hub + S2a–S2d ครบ 4 แหล่ง + S3 + S4 + S5</td><td>ทุก driver ที่ engine มีปรากฏบนหน้าอย่างน้อย 1 ที่ (เขียน test map driver→screen)</td></tr><tr><td>R3</td><td>D1 รายละเอียดค่า: แถบช่วง + ที่มาเกณฑ์ + เปอร์เซ็นไทล์ + ประวัติ</td><td>กดจากค่าใดก็ได้ใน S1/S2a–d · ไม่มีค่าใดที่กดแล้วไม่มี sheet</td></tr><tr><td>R4</td><td>D2 AI อธิบาย: <code>POST /api/my/&lt;token&gt;/explain</code> รับ <code>{ metric | domain | overview }</code> → เรียบเรียงจาก payload ที่ engine คำนวณแล้ว (ค่า · ป้าย · เกณฑ์ · แผน) ห้ามให้โมเดลเห็นค่าดิบชุดอื่นหรือคิดเกณฑ์เอง · ตอบไทย · ลงท้าย disclaimer · โควตา <code>PORTAL_DAILY_AI_CAP</code> ร่วมกับ food (หรือแยก 20/วัน — Q2)</td><td>unit test prompt-builder: ทุกตัวเลขในคำตอบต้องมีในอินพุต (regex ตัวเลข ⊆ อินพุต) · ไม่มีคำต้องห้าม (วินิจฉัย · รักษา · ชื่อสินค้า · ขนาดยา) — ใช้ชุดคำเดียวกับ upcgm</td></tr><tr><td>R5</td><td>ทุกข้อความ "ควรปรึกษาแพทย์" / "ต้องดูแลจริงจัง" ใช้ split clinical-vs-lifestyle ตัวเดียวกับ engine</td><td>ไม่มีข้อความสถานะ hardcode ในหน้า (grep)</td></tr><tr><td>R6</td><td>ลิงก์ที่ถูกหมุน/ไม่มี → หน้า "ลิงก์นี้ใช้ไม่ได้แล้ว ขอใหม่จากโค้ช" (มีแล้ว คงไว้)</td><td>curl token มั่ว → 200 พร้อมข้อความ ไม่ leak ว่ามีลูกค้าไหม</td></tr><tr><td>R7</td><td>บันทึกการเปิด <b>รายครั้ง</b> + การกด AI อธิบาย (metric อะไร) ลงตาราง <code>portal_events(customer_id, kind, meta, at)</code> — โค้ชเห็นสรุปในการ์ด</td><td>G2/G3 วัดได้จากตารางนี้</td></tr><tr><td>R8</td><td>Red-team ก่อนปล่อย: Lucifer + จิ้น (เภสัช) อ่านทุกข้อความที่ระบบ/AI สร้างในพอร์ทัล (feedback_health_copy_redteam)</td><td>มีบันทึกผลรีวิวใน PRD</td></tr></tbody></table>
+<h3>P1 — ตามมาเร็ว</h3>
+<ul>
+<li>S2e อายุสุขภาพ (PhenoAge) แยกหน้า · จุดมื้ออาหารบนกราฟ CGM · เพิ่มลงหน้าจอหลัก (manifest + ไอคอน) · ภาษาอังกฤษ · ขนาดตัวอักษร 3 ระดับ (เหมือน upcgm)
+</li>
+<li>LINE nudge วันจันทร์ลิงก์ตรงมาที่แท็บแผน (<code>/my/&lt;token&gt;#plan</code>)
+</li>
+<li>โค้ชเห็น "ลูกค้าเปิดล่าสุด · กด AI อธิบายเรื่อง …" ในการ์ด AssessmentCard
+</li>
+</ul>
+<h3>P2 — ออกแบบเผื่อ</h3>
+<ul>
+<li>บัญชีลูกค้า + OAuth role <code>customer</code> → ลูกค้าใช้ AI ของตัวเองผ่าน MCP (Q5 เดิม)
+</li>
+<li>Push notification (ต้องเป็น PWA ที่ติดตั้ง) เมื่อมีผลเลือดใหม่/แผนใหม่
+</li>
+<li>เทียบกับตัวเองเป็นกราฟรวมหลายแหล่ง (น้ำตาล × นอน × ก้าว)
+</li>
+</ul>
+</section>
+<section id="s7-ข้อจำกัดและการตัดสินใจทางเทคนิค"><h2><span class="num">7</span>ข้อจำกัดและการตัดสินใจทางเทคนิค</h2>
+<ul>
+<li><b>AI ฝั่งลูกค้า = ข้อยกเว้น BYO-key ข้อที่ 3</b> (ต่อจาก <code>lib/pulse/gemini.ts</code> และ <code>/api/my/&lt;token&gt;/food</code>) — ลูกค้าไม่มีคีย์ · ใช้ <code>GEMINI_API_KEY</code> ระบบ · มีโควตาต่อคนต่อวัน · ต้องบันทึกใน AGENTS.md เหมือน 2 ข้อก่อน
+</li>
+<li><b>ไม่มี LLM ตัดสินอะไร</b> — prompt รับเฉพาะ <code>{metric, value, unit, level, level_label_th, reference{p, band, source}, plan_actions[]}</code> ที่ engine ให้ · โมเดลห้ามได้รับค่าดิบชุดอื่น (กัน "AI เห็น HbA1c แล้วไปวินิจฉัย")
+</li>
+<li><b>ค่าสุขภาพต้องมาจากข้อมูลจริง</b> — พอร์ทัลอ่านตารางเดิมทั้งหมด ไม่มี cache ชั้นใหม่ · <code>createAdminClient</code> no-store
+</li>
+<li><b>PII:</b> พอร์ทัลเป็นหน้า public-by-token — ห้ามใส่ชื่อเต็ม/เบอร์/ที่อยู่ในหน้า (ชื่อเล่นพอ) · ห้ามใส่ token ใน analytics
+</li>
+<li><b>ประสิทธิภาพ:</b> payload หน้าแรก ≤150 KB · กราฟวาดด้วย SVG ไม่โหลด chart lib · รูปอาหารเป็น thumbnail
+</li>
+<li><b>โทนภาพ:</b> โครงตามภาพอ้างอิงที่ต้นส่ง (การ์ดขาวโค้งบนพื้นเขียวอ่อน · ไอคอนในวงกลม · แถบล่างแบบเม็ดยา แท็บที่เลือกขยายมีคำ) แต่ <b>สีใช้ CI UP</b> (Wellness Green <code>#396755</code> เป็นหลัก · Old Rose <code>#8C4C4C</code> เฉพาะปุ่ม AI/สิ่งที่ต้องใส่ใจ · สีสถานะจาก <code>lib/medical-status.ts</code>) — ดู mockup
+</li>
+</ul>
+</section>
+<section id="s8-success-metrics"><h2><span class="num">8</span>Success Metrics</h2>
+<table><thead><tr><th>ตัวชี้วัด</th><th>สำเร็จ</th><th>ดีมาก</th><th>วัดเมื่อ</th></tr></thead><tbody><tr><td>ลูกค้าที่ได้ลิงก์เปิดภายใน 24 ชม.</td><td>70%</td><td>90%</td><td>30 วัน</td></tr><tr><td>session ที่กด D1 หรือ D2 ≥1 ครั้ง</td><td>50%</td><td>70%</td><td>30/90 วัน</td></tr><tr><td>ลูกค้าเปิดซ้ำ ≥2 ครั้ง/สัปดาห์</td><td>40%</td><td>60%</td><td>30 วัน</td></tr><tr><td>food log / CGM upload จากพอร์ทัล</td><td>30%</td><td>50%</td><td>90 วัน</td></tr><tr><td>AI อธิบายถูกตีกลับโดย red-team</td><td>0 ข้อความก่อนปล่อย</td><td>—</td><td>ก่อนปล่อย</td></tr><tr><td>คำถามซ้ำถึงโค้ช</td><td>ลดลง (โค้ชประเมิน)</td><td>—</td><td>90 วัน</td></tr></tbody></table>
+</section>
+<section id="s9-open-questions"><h2><span class="num">9</span>Open Questions</h2>
+<table><thead><tr><th>#</th><th>คำถาม</th><th>ใคร</th><th>บล็อกไหม</th></tr></thead><tbody><tr><td>Q1</td><td>รับข้อยกเว้น BYO-key ข้อที่ 3 (AI อธิบายด้วยคีย์ระบบ) ไหม · เพดานเท่าไร (เสนอ 20/คน/วัน แยกจาก food 40)</td><td>ต้น</td><td>บล็อก D2</td></tr><tr><td>Q2</td><td>ให้ AI อธิบายได้ทุกค่า หรือเฉพาะค่าที่มีเกณฑ์ (ค่าที่ engine ให้ <code>level: null</code> เช่น HRV/RHR ควรอธิบายแค่ "ใช้ดูแนวโน้ม")</td><td>จิ้น</td><td>ไม่บล็อก — ค่าเริ่มต้น: เฉพาะที่มีเกณฑ์</td></tr><tr><td>Q3</td><td>ลิงก์ token ในมือลูกค้า = ใครมีลิงก์ก็เห็น (PDPA) — ต้องเพิ่ม PIN 4 หลักที่โค้ชตั้งไหม (ต่อจาก Q2 เดิม เรื่องรูปอาหาร)</td><td>ต้น/จิ้น</td><td>ไม่บล็อก v1 (มีแล้ววันนี้) แต่ควรตัดสินก่อนส่งลูกค้าจริงเป็นวงกว้าง</td></tr><tr><td>Q4</td><td>คลังคำอธิบาย "ค่านี้คืออะไร" 1 บรรทัดต่อ metric (~40 ตัว) ใครเขียน/รีวิว — เสนอ: ผมร่างจากแหล่งอ้างอิงที่ engine ใช้ · จิ้นรีวิว</td><td>จิ้น</td><td>บล็อก D1</td></tr><tr><td>Q5</td><td>จะแทนที่ <code>/my/&lt;token&gt;</code> ทั้งหน้า หรือคงหน้าเดิมไว้ที่ <code>/my/&lt;token&gt;/classic</code> ช่วงเปลี่ยนผ่าน</td><td>ต้น</td><td>ไม่บล็อก — ค่าเริ่มต้น: แทนที่</td></tr></tbody></table>
+</section>
+<section id="s10-phasing"><h2><span class="num">10</span>Phasing</h2>
+<table><thead><tr><th>เฟส</th><th>ส่งมอบ</th><th>ประมาณ</th></tr></thead><tbody><tr><td>M1</td><td>โครง 5 แท็บ + S1 + S2 hub + S2a ผลเลือด + D1 + S5 · portal_events</td><td>3–4 วัน</td></tr><tr><td>M2</td><td>S2b CGM (กราฟ SVG) + S2c BCA + S2d นาฬิกา</td><td>2–3 วัน</td></tr><tr><td>M3</td><td>S3 อาหาร (ย้าย PortalTools) + S4 แผน + ความคืบหน้า</td><td>2 วัน</td></tr><tr><td>M4</td><td>D2 AI อธิบาย (หลัง Q1/Q4) + red-team + ปล่อย</td><td>2 วัน + รีวิว</td></tr></tbody></table>
+<p>ขึ้นกับ: Q1 (ก่อน M4) · Q4 (ก่อน M1 เสร็จ — ใช้ placeholder "คำอธิบายกำลังมา" ไม่ได้ เพราะเป็นหน้าลูกค้า)</p>
+</section>
+</div>
+<footer>UP Labs · UP Labs Mobile Portal — หน้าลูกค้าบนมือถือ · ต่อยอดจาก <a href="./SPEC-Health-Design.html">SPEC-Health-Design.html</a> §3.6 — generate จาก <code>SPEC-Mobile-Portal.md</code> ห้ามแก้ .html ตรง ๆ</footer>
+</body>
+</html>
