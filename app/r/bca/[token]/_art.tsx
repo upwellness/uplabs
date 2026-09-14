@@ -6,6 +6,7 @@
  * person's position marked on them. Colours are the app's status ramp.
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { statusHex, type StatusLevel, type Gender } from "@/lib/medical-status";
 
 const INK = "#1F1E1B", MUTED = "#8A838E", GREEN = "#396755", ROSE = "#8C4C4C", GOLD = "#C9922B";
@@ -163,7 +164,8 @@ function VisceralGallery() {
           </button>
         ))}
       </div>
-      {open != null && (
+      {/* portal: the glass card has backdrop-filter, which would otherwise trap position:fixed inside it */}
+      {open != null && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4" onClick={() => setOpen(null)} role="dialog" aria-modal="true">
           <img src={VIS_EXAMPLES[open].src} alt={VIS_EXAMPLES[open].cap} className="max-h-[70vh] w-auto max-w-full rounded-xl" />
           <p className="mt-3 max-w-[420px] text-center font-thai text-[14px] leading-relaxed text-white">{VIS_EXAMPLES[open].cap}</p>
@@ -171,7 +173,8 @@ function VisceralGallery() {
           <div className="mt-3 flex gap-2">
             {VIS_EXAMPLES.map((_, i) => <button key={i} type="button" onClick={(ev) => { ev.stopPropagation(); setOpen(i); }} className={`h-2.5 w-2.5 rounded-full ${i === open ? "bg-white" : "bg-white/35"}`} aria-label={`ภาพที่ ${i + 1}`} />)}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -220,7 +223,7 @@ export function MuscleArt({ musclePct, gender }: { musclePct: number | null; gen
           <text x={Math.min(X0 + W - 22, Math.max(X0 + 22, x))} y={Y - 16} fontSize={10} fill={INK} textAnchor="middle" fontFamily="Sarabun" fontWeight={700}>คุณ {musclePct}%</text>
         </g>
       )}
-      <text x={12} y={104} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">กล้ามเนื้อคือ "เครื่องยนต์" เผาผลาญ · หลัง 40 ปี ลดราว 3–8% ต่อ 10 ปีถ้าไม่ฝึก (ACSM)</text>
+      <text x={12} y={104} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">หลัง 40 ปี กล้ามเนื้อลดราว 3–8% ต่อ 10 ปีถ้าไม่ฝึก (ACSM)</text>
     </svg>
   );
 }
