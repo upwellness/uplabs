@@ -22,7 +22,7 @@ export async function issueBcaShare(customerId: string, measurementId?: string |
 
 export interface RevealScan {
   measurement_id: string; recorded_at: string;
-  customer: { id: string; first_name: string; gender: "male" | "female" | null; age: number | null; height_cm: number | null; coach_name: string | null; line_id: string | null };
+  customer: { id: string; name: string; gender: "male" | "female" | null; age: number | null; height_cm: number | null; coach_name: string | null; line_id: string | null };
   input: RevealInput;
   history: { at: string; weight: number | null; fat_pct: number | null; muscle_pct: number | null; visceral: number | null }[];
 }
@@ -43,10 +43,11 @@ export async function bcaByToken(token: string): Promise<RevealScan | null> {
   const gender = (c as any).gender === "male" || (c as any).gender === "female" ? (c as any).gender : null;
   // customers carry either a full birth date or just the (Thai-form) year
   const age = (c as any).birth_date ? ageFrom((c as any).birth_date) : num((c as any).birth_year) != null ? new Date().getFullYear() - (num((c as any).birth_year)! > 2400 ? num((c as any).birth_year)! - 543 : num((c as any).birth_year)!) : null;
-  const first = String((c as any).name ?? "").trim().split(/\s+/)[0] || "คุณ";
+  // full name as stored — ต้น (14 ก.ย.): the header must show the whole name, e.g. "คุณ DDrive Benz", not just the first word
+  const name = String((c as any).name ?? "").trim().replace(/\s+/g, " ") || "คุณ";
   return {
     measurement_id: (m as any).id, recorded_at: String((m as any).recorded_at),
-    customer: { id: (c as any).id, first_name: first, gender, age, height_cm: num((c as any).height), coach_name: /\p{L}/u.test(coachName) ? coachName : null, line_id: null },
+    customer: { id: (c as any).id, name, gender, age, height_cm: num((c as any).height), coach_name: /\p{L}/u.test(coachName) ? coachName : null, line_id: null },
     input: { gender, age, height_cm: num((c as any).height), weight: num((m as any).weight), fat_pct: num((m as any).fat_pct), muscle_pct: num((m as any).muscle_pct), visceral: num((m as any).visceral), body_age: num((m as any).body_age), bmr: num((m as any).bmr) },
     history: ((hist ?? []) as any[]).reverse().map((h) => ({ at: String(h.recorded_at), weight: num(h.weight), fat_pct: num(h.fat_pct), muscle_pct: num(h.muscle_pct), visceral: num(h.visceral) })),
   };

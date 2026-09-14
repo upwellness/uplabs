@@ -57,7 +57,7 @@ export function Reveal({ scan }: { scan: RevealScan }) {
         {/* hero */}
         <div className="px-1">
           <div className="font-head text-[11px] font-bold uppercase tracking-[0.14em] text-wellness">UP Wellness · ผลตรวจองค์ประกอบร่างกาย</div>
-          <h1 className="mt-1 font-head text-[24px] font-extrabold leading-tight tracking-tight text-ink">ร่างกายของคุณ{scan.customer.first_name}</h1>
+          <h1 className="mt-1 font-head text-[24px] font-extrabold leading-tight tracking-tight text-ink">ร่างกายของคุณ {scan.customer.name}</h1>
           <div className="mt-0.5 font-thai text-[13px] text-ink-60">ชั่งเมื่อ {fmtDate(scan.recorded_at)}{a.gender_assumed ? " · ยังไม่ระบุเพศ ใช้เกณฑ์หญิงไปก่อน" : ""}</div>
         </div>
 
@@ -159,7 +159,7 @@ export function Reveal({ scan }: { scan: RevealScan }) {
         </section>
 
         {/* guidance */}
-        <h2 id="guide" className="mt-6 px-1 font-head text-[17px] font-extrabold text-ink">แนวทางสำหรับคุณ{scan.customer.first_name} {quizDone ? "" : <span className="font-thai text-[12px] font-normal text-ink-60">(ยังไม่ได้ตอบแบบสอบถาม — จัดจากค่าที่วัดได้)</span>}</h2>
+        <h2 id="guide" className="mt-6 px-1 font-head text-[17px] font-extrabold text-ink">แนวทางสำหรับคุณ {scan.customer.name} {quizDone ? "" : <span className="font-thai text-[12px] font-normal text-ink-60">(ยังไม่ได้ตอบแบบสอบถาม — จัดจากค่าที่วัดได้)</span>}</h2>
         <p className="mt-1 px-1 font-thai text-[13px] leading-relaxed text-ink-60">ตามพีระมิด Longevity ของ UP Wellness: <b>L1</b> ปรับการใช้ชีวิต (0 บาท · ให้ผลราว 95%) → <b>L2</b> วิตามินพื้นฐาน → <b>L3</b> วัดค่าติดตามผล</p>
         <div className="mt-2 flex flex-col gap-2">
           <Level tag="L1" title="ปรับพฤติกรรม — เริ่ม 5 ข้อนี้ก่อน" tone="green" defaultOpen>
