@@ -54,7 +54,7 @@ export function assessScan(i: RevealInput): RevealAssessment {
   else metrics.push({ key: "bmi", value: null, unit: "kg/m²", level: null, label: i.height_cm ? "ไม่มีน้ำหนัก" : "ไม่มีส่วนสูง", note: "ต้องมีส่วนสูงและน้ำหนักถึงคำนวณได้" });
   if (i.body_age != null && i.age != null) { const l = classifyBodyAge(i.body_age, i.age); metrics.push({ key: "body_age", value: i.body_age, unit: "ปี", level: l, label: STATUS_LABEL_TH[l], note: `อายุจริง ${i.age}` }); }
   else metrics.push({ key: "body_age", value: i.body_age, unit: "ปี", level: null, label: i.body_age == null ? "ไม่มีข้อมูล" : "ไม่ทราบอายุจริง" });
-  metrics.push({ key: "bmr", value: i.bmr, unit: "kcal/วัน", level: null, label: i.bmr == null ? "ไม่มีข้อมูล" : "พลังงานขั้นต่ำที่ร่างกายใช้" });
+  metrics.push({ key: "bmr", value: i.bmr, unit: "kcal", level: null, label: i.bmr == null ? "ไม่มีข้อมูล" : "ตอนพัก" });
 
   const fat_mass_kg = i.weight != null && i.fat_pct != null ? r1((i.weight * i.fat_pct) / 100) : null;
   const lean_mass_kg = i.weight != null && fat_mass_kg != null ? r1(i.weight - fat_mass_kg) : null;
