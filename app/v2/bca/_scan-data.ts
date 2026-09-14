@@ -15,6 +15,8 @@ import type { Customer, MeasurementWithDerived } from "@/lib/types";
 export interface ScanRevealData {
   name: string;
   sex: "male" | "female";
+  /** gender not on file → female bands, and the UI says so */
+  sexAssumed: boolean;
   age: number | null;
   heightCm: number | null;
   date: string;
@@ -47,6 +49,7 @@ export function buildScanData(customer: Customer, enriched: MeasurementWithDeriv
   return {
     name: customer.name,
     sex: customer.gender === "male" ? "male" : "female",
+    sexAssumed: !(customer.gender === "male" || customer.gender === "female"),
     age: age ?? null,
     heightCm: customer.height ?? null,
     date: fullDate(latest.recorded_at),

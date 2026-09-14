@@ -166,7 +166,7 @@ function VisceralGallery() {
       </div>
       {/* portal: the glass card has backdrop-filter, which would otherwise trap position:fixed inside it */}
       {open != null && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4" onClick={() => setOpen(null)} role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-black/90 p-4" onClick={() => setOpen(null)} role="dialog" aria-modal="true">
           <img src={VIS_EXAMPLES[open].src} alt={VIS_EXAMPLES[open].cap} className="max-h-[70vh] w-auto max-w-full rounded-xl" />
           <p className="mt-3 max-w-[420px] text-center font-thai text-[14px] leading-relaxed text-white">{VIS_EXAMPLES[open].cap}</p>
           <p className="mt-1 font-thai text-[11.5px] text-white/60">ภาพประกอบเพื่อความเข้าใจ ไม่ใช่ร่างกายของคุณ · แตะเพื่อปิด</p>
