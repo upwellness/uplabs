@@ -473,7 +473,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
-| 2026-09-14 | **Mobile Portal M1–M4** — `/my/<token>` เป็นแอปมือถือ 4 แท็บ + บันได L0→L3 (§5.15) · `portal-data.ts` · `glossary.ts` (50 ค่า · unreviewed) · `explain.ts` + `/explain` (BYO-key ข้อยกเว้นที่ 3 · cap 20) · `portal_events` · หน้าแหล่งข้อมูล 4 หน้า · อาหารถ่าย→ยืนยัน · +8 tests (181) · ลบ `PortalTools.tsx` | _pending_ |
+| 2026-09-14 | **Mobile Portal M1–M4** — `/my/<token>` เป็นแอปมือถือ 4 แท็บ + บันได L0→L3 (§5.15) · `portal-data.ts` · `glossary.ts` (50 ค่า · unreviewed) · `explain.ts` + `/explain` (BYO-key ข้อยกเว้นที่ 3 · cap 20) · `portal_events` · หน้าแหล่งข้อมูล 4 หน้า · อาหารถ่าย→ยืนยัน · +8 tests (181) · ลบ `PortalTools.tsx` | `36a6a7d`, `52f1616` |
 | 2026-09-14 | `SPEC-Mobile-Portal.md` v0.2 **approved for dev** — lean: 4 แท็บ · เมนูตาม 7 ด้าน · บันได L0→L3 ขยายในที่ · กระจก `.liquid` เดิม · ตัดสินใจ Q1 (AI อธิบายด้วยคีย์ระบบ 20/คน/วัน = ข้อยกเว้น BYO-key ที่ 3) · Q5 แทนที่ `/my/<token>` · mockup v2 (artifact) | `ce58ad9` |
 | 2026-09-14 | สเปกใหม่ `docs/SPEC-Mobile-Portal.md` (v0.1 draft) — หน้าลูกค้าบนมือถือ 5 แท็บ + แผ่นรายละเอียดค่า + AI อธิบาย · mockup 9 หน้า (artifact) · รอเคาะ Q1 (BYO-key ข้อ 3) · Q4 (คลังคำอธิบาย) | `03a61ff` |
 | 2026-09-13 | **UP CGM Analyser → ส่งเข้า UP Labs**: `/api/v1` เปิด CORS ให้ origin ในรายการ (`lib/api/cors.ts` +2 tests · `API_CORS_ORIGINS`) · ฝั่ง upcgm (`06e041d`) ปุ่ม "ส่งเข้า UP Labs" + token ในเบราว์เซอร์โค้ช → `POST …/cgm/import` ตรงจากเบราว์เซอร์ | `a241a8a` |
