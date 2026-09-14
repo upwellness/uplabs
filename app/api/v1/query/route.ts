@@ -10,6 +10,7 @@ import type { Scope } from "@/lib/api/scopes";
 import { getProfileNames, getReadings, latestDate, shiftDate, todayBangkok, toPoints } from "@/lib/api/cgm-data";
 import { latestAssessment, runAssessment } from "@/lib/health-design/load";
 import { foodWindow } from "@/lib/food/store";
+import { issuePortalToken } from "@/lib/health-design/portal";
 import { currentPlan, planProgress } from "@/lib/health-design/plan-store";
 import { DOMAIN_LABEL_TH } from "@/lib/health-design/assess";
 import { computeMetrics, TARGETS } from "@/lib/api/cgm-metrics";
@@ -232,6 +233,13 @@ export async function POST(req: Request) {
           .select("id, body, pinned, created_at").single();
         if (error) return apiError("internal_error", "บันทึกโน้ตไม่สำเร็จ");
         return envelope({ customer, note: data, created: true }, 1, false);
+      }
+
+      case "portal.link": {
+        const base = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
+        if (!base) return apiError("internal_error", "ระบบยังไม่ได้ตั้งค่า NEXT_PUBLIC_SITE_URL");
+        const token = await issuePortalToken(customerId!, false);
+        return envelope({ customer, url: `${base}/my/${token}`, note: "ลิงก์นี้เป็นของลูกค้าคนเดียว — ส่งให้ทาง LINE โดยตรง · ออกใหม่ได้ด้วย getPortalLink rotate=true" }, 1, false);
       }
 
       case "links.invite": {

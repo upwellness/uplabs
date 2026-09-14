@@ -419,6 +419,16 @@ export function buildSpec(base: string, { scopes, intentNames }: SpecInputs) {
           responses: { "200": { description: "ok" } },
         },
       },
+      "/customers/{id}/portal-link": {
+        post: {
+          operationId: "getPortalLink",
+          summary: "ลิงก์หน้าลูกค้า (/my/<token>) — ลูกค้าเปิดจากมือถือ ดูค่าทุกค่า แผน บันทึกอาหาร ให้ AI อธิบายได้",
+          description: "ครั้งแรกสร้าง ครั้งต่อไปได้ลิงก์เดิม · rotate=true = ออกใหม่และลิงก์เดิมใช้ไม่ได้ทันที · ลิงก์เป็นของลูกค้าคนเดียว ส่งให้ทาง LINE โดยตรง ห้ามโพสต์สาธารณะ · ต้องใช้ scope links:write",
+          parameters: [customerId],
+          requestBody: { required: false, content: { "application/json": { schema: { type: "object", properties: { rotate: { type: "boolean", default: false, description: "true = ออกลิงก์ใหม่ ลิงก์เดิมใช้ไม่ได้" } } } } } },
+          responses: { "200": { description: "url · rotated · note" } },
+        },
+      },
       "/customers/{id}/supplements": {
         get: {
           operationId: "getSupplements",

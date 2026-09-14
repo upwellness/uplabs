@@ -37,6 +37,7 @@ import * as food from "@/app/api/v1/customers/[id]/food/route";
 import * as photoDate from "@/app/api/v1/food/photo-date/route";
 import * as plan from "@/app/api/v1/customers/[id]/plan/route";
 import * as wearable from "@/app/api/v1/customers/[id]/wearable/route";
+import * as portalLink from "@/app/api/v1/customers/[id]/portal-link/route";
 import * as supplements from "@/app/api/v1/customers/[id]/supplements/route";
 import * as notes from "@/app/api/v1/customers/[id]/notes/route";
 
@@ -72,6 +73,7 @@ const HANDLERS: Record<RouteKey, Handler> = {
   "GET /customers/{id}/plan": plan.GET,
   "POST /customers/{id}/plan": plan.POST,
   "GET /customers/{id}/wearable": wearable.GET,
+  "POST /customers/{id}/portal-link": portalLink.POST,
   "GET /customers/{id}/supplements": supplements.GET,
   "GET /customers/{id}/notes": notes.GET,
   "POST /customers/{id}/notes": notes.POST,

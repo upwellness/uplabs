@@ -44,7 +44,7 @@ export const SCOPE_LABEL_TH: Record<Scope, string> = {
   "supplements:read": "อ่านอาหารเสริม",
   "notes:read": "อ่านโน้ตโค้ช",
   "notes:write": "เขียนโน้ตโค้ช",
-  "links:write": "ขอลิงก์สมัคร",
+  "links:write": "ขอลิงก์สมัคร / ลิงก์หน้าลูกค้า",
   "cgm:read": "อ่านค่าน้ำตาลต่อเนื่อง (CGM) + ตัวเลขสรุป",
   "wearable:read": "อ่านข้อมูลนาฬิกา/อุปกรณ์สวมใส่ (นอน · HRV · ก้าว)",
   "plan:read": "อ่านแผนดูแล 90 วัน (ร่าง/ยืนยันแล้ว)",

@@ -152,7 +152,7 @@ uplab_<env>_<prefix8>_<secret32>
 | `measurements:read` / `measurements:write` | BCA |
 | `supplements:read` | อาหารเสริม + ความปลอดภัยคู่ยา |
 | `notes:read` / `notes:write` | โน้ตโค้ช |
-| `links:write` | ขอลิงก์สมัคร |
+| `links:write` | ขอลิงก์สมัคร · **ลิงก์หน้าลูกค้า `/my/<token>`** (14 ก.ย. 2026) |
 | `cgm:read` | อ่านค่าน้ำตาลต่อเนื่อง (CGM) ดิบ + ตัวเลขสรุป TIR/CV/GMI |
 | `cgm:write` | นำเข้าไฟล์ CGM (Ottai .xlsx/.csv) เข้าประวัติ — upsert ไม่เขียนทับ |
 | `food:read` | อ่านบันทึกอาหาร + สรุปรายวัน (เฉลี่ยเฉพาะวันที่บันทึก) |
@@ -315,6 +315,7 @@ Base: `https://upwellness-ops.vercel.app/api/v1`
 | `supplements.list` | "X กินอาหารเสริมอะไรอยู่" | `supplements:read` |
 | `notes.list` | "โน้ตของ X" | `notes:read` |
 | `notes.add` | "จดโน้ตให้ X ว่า …" | `notes:write` |
+| `portal.link` | "ขอลิงก์หน้าลูกค้าพี่สุ" | `links:write` |
 | `links.invite` | "ขอลิงก์สมัครให้ที" | `links:write` |
 
 ### 8.8 MCP server — `POST /api/mcp` (เพิ่ม 11 ก.ย. 2026)
@@ -397,6 +398,7 @@ claude.ai (custom connector) และ ChatGPT (connector / developer mode) ไ�
 | Endpoint | Scope | คืนอะไร |
 |---|---|---|
 | `GET /customers/{id}/wearable?days=14` | `wearable:read` | `daily[]` (นอน · HRV · RHR · ก้าว · recovery · strain) + `summary` เฉลี่ยเฉพาะวันที่มีข้อมูล · Whoop ก่อน ไม่งั้น `pulse_readings` · **ไม่ให้เกรด** — assessment เป็นคนตัดสิน |
+| `POST /customers/{id}/portal-link` `{rotate?}` | `links:write` | **`getPortalLink`** — `url` หน้าลูกค้า (`/my/<token>` แอปมือถือ · SPEC-Mobile-Portal) · ครั้งแรกสร้าง ครั้งต่อไปลิงก์เดิม · `rotate:true` ออกใหม่ ลิงก์เดิมตายทันที · พฤติกรรมเดียวกับปุ่ม "ลิงก์ลูกค้า" ในการ์ดผลประเมิน · intent `portal.link` ("ขอลิงก์ลูกค้าพี่สุ") |
 
 **เปอร์เซ็นไทล์อ้างอิง** — driver ทุกตัวจากแล็บ + BMI ใน `getAssessment` มี `reference: { percentile, band, n, source, note }` = ตำแหน่งเทียบเพศ/ช่วงอายุเดียวกัน (20–39 · 40–59 · 60+) ใน **NHANES 2017–March 2020 (สหรัฐ · CDC public domain)** — คำนวณจาก microdata ด้วย `scripts/build-reference.py` (survey-weighted · เก็บเฉพาะ p5–p95 ใน `lib/health-design/reference/`) · **บอกตำแหน่ง ไม่ใช่เกณฑ์สุขภาพ** · caveat ใน assessment บอกทุกครั้งว่าเป็นประชากรสหรัฐ · เปลี่ยนเป็น Thai NHES เมื่อได้ข้อมูล (SPEC-Health-Design Q1)
 

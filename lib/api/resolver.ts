@@ -208,6 +208,16 @@ export const INTENTS: IntentDef[] = [
     describe: (p) => `ค้นหาลูกค้า "${p.q ?? ""}"`,
   },
   {
+    intent: "portal.link",
+    scope: "links:write",
+    needsCustomer: true,
+    keywords: [
+      { k: "ลิงก์ลูกค้า", w: 6 }, { k: "ลิงค์ลูกค้า", w: 6 }, { k: "หน้าลูกค้า", w: 5 }, { k: "portal", w: 5 },
+      { k: "ลิงก์ให้ลูกค้า", w: 6 }, { k: "ส่งลิงก์", w: 4 }, { k: "customer link", w: 5 }, { k: "/my/", w: 5 },
+    ],
+    describe: (p) => `ลิงก์หน้าลูกค้าของ ${p.customer ?? ""}`,
+  },
+  {
     intent: "links.invite",
     scope: "links:write",
     needsCustomer: false,
