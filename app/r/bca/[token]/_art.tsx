@@ -20,11 +20,12 @@ export function BodyFigure({ fat, visceral, muscle, weight, onPick }: {
   const w = 1 + f * 0.22;
   const zone = "cursor-pointer";
   return (
-    <svg viewBox="0 0 200 300" className="mx-auto block h-auto w-[200px]" role="img" aria-label="ร่างกายของคุณ">
+    <svg viewBox="0 0 320 300" className="mx-auto block h-auto w-full max-w-[340px]" role="img" aria-label="ร่างกายของคุณ">
       <defs>
         <radialGradient id="belly" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor={col(visceral.level)} stopOpacity="0.55" /><stop offset="100%" stopColor={col(visceral.level)} stopOpacity="0" /></radialGradient>
         <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#F3E9DD" /><stop offset="100%" stopColor="#E8D9C8" /></linearGradient>
       </defs>
+      <g transform="translate(60 0)">
       {/* outer (fat) layer scales with fat% */}
       <g transform={`translate(100 0) scale(${w} 1) translate(-100 0)`}>
         <path d="M100 18c-14 0-24 10-24 24 0 10 5 18 12 22v10c-22 6-38 16-44 36l-8 62c-2 10 4 14 10 12l12-40 4 40-6 76c-1 8 4 12 10 12h10c6 0 9-4 10-12l6-60c1-6 5-6 6 0l6 60c1 8 4 12 10 12h10c6 0 11-4 10-12l-6-76 4-40 12 40c6 2 12-2 10-12l-8-62c-6-20-22-30-44-36V64c7-4 12-12 12-22 0-14-10-24-24-24z" fill={col(fat.level)} opacity={0.28} />
@@ -35,11 +36,12 @@ export function BodyFigure({ fat, visceral, muscle, weight, onPick }: {
       <g stroke={col(muscle.level)} strokeWidth={2.2} strokeLinecap="round" opacity={0.7}><path d="M84 170c-2 20-3 40-2 60M116 170c2 20 3 40 2 60M60 110l-4 30M140 110l4 30" /></g>
       {/* belly glow */}
       <ellipse cx={100} cy={132} rx={26 + f * 10} ry={20 + f * 6} fill="url(#belly)" />
+      </g>
       {/* zones */}
-      <g className={zone} onClick={() => onPick("visceral")}><circle cx={100} cy={132} r={20} fill="transparent" /><Callout x={100} y={132} tx={168} ty={140} label="ไขมันช่องท้อง" value={visceral.value != null ? `ระดับ ${visceral.value}` : "—"} level={visceral.level} side="r" /></g>
-      <g className={zone} onClick={() => onPick("fat_pct")}><circle cx={64} cy={110} r={16} fill="transparent" /><Callout x={66} y={112} tx={32} ty={92} label="ไขมัน" value={fat.value != null ? `${fat.value}%` : "—"} level={fat.level} side="l" /></g>
-      <g className={zone} onClick={() => onPick("muscle_pct")}><circle cx={116} cy={200} r={16} fill="transparent" /><Callout x={116} y={200} tx={168} ty={216} label="กล้ามเนื้อ" value={muscle.value != null ? `${muscle.value}%` : "—"} level={muscle.level} side="r" /></g>
-      <g className={zone} onClick={() => onPick("bmi")}><circle cx={100} cy={90} r={14} fill="transparent" /><Callout x={98} y={88} tx={32} ty={52} label="น้ำหนัก" value={weight.value != null ? `${weight.value} kg` : "—"} level={null} side="l" /></g>
+      <g className={zone} onClick={() => onPick("visceral")}><circle cx={160} cy={132} r={20} fill="transparent" /><Callout x={160} y={132} tx={236} ty={146} label="ไขมันช่องท้อง" value={visceral.value != null ? `ระดับ ${visceral.value}` : "—"} level={visceral.level} side="r" /></g>
+      <g className={zone} onClick={() => onPick("fat_pct")}><circle cx={124} cy={110} r={16} fill="transparent" /><Callout x={126} y={112} tx={84} ty={92} label="ไขมัน" value={fat.value != null ? `${fat.value}%` : "—"} level={fat.level} side="l" /></g>
+      <g className={zone} onClick={() => onPick("muscle_pct")}><circle cx={176} cy={200} r={16} fill="transparent" /><Callout x={176} y={200} tx={236} ty={220} label="กล้ามเนื้อ" value={muscle.value != null ? `${muscle.value}%` : "—"} level={muscle.level} side="r" /></g>
+      <g className={zone} onClick={() => onPick("bmi")}><circle cx={160} cy={90} r={14} fill="transparent" /><Callout x={158} y={88} tx={84} ty={52} label="น้ำหนัก" value={weight.value != null ? `${weight.value} kg` : "—"} level={null} side="l" /></g>
     </svg>
   );
 }
