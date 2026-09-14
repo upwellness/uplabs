@@ -23,6 +23,7 @@
 ## 2. กติกาที่พลาดบ่อย (เคยพังมาแล้ว)
 
 - **AI = BYO key** — Gemini key อยู่ใน browser (`localStorage['uplabs_gemini_key']`) **ไม่มี fallback ฝั่ง server** · error เรื่องคีย์ต้องโชว์ `GeminiKeyErrorNotice` (ชวนไปขอคีย์) **ห้ามโชว์ error ดิบ** · ใช้ `lib/gemini-error.ts` เสมอ
+  **ข้อยกเว้นที่บันทึกไว้ 3 ข้อ (ใช้ `GEMINI_API_KEY` ฝั่งเซิร์ฟเวอร์ เพราะผู้ใช้ปลายทางไม่มีคีย์):** ① `lib/pulse/gemini.ts` (UP Pulse master) ② `/api/my/<token>/food` — ลูกค้าประเมินอาหารใน portal · เพดาน `PORTAL_DAILY_AI_CAP` 40/คน/วัน ③ `/api/my/<token>/explain` — "ให้ AI อธิบาย" ใน portal (14 ก.ย. 2026 · SPEC-Mobile-Portal Q1) · เพดาน `PORTAL_EXPLAIN_CAP` 20/คน/วัน · โมเดลได้รับเฉพาะค่าที่ engine ตัดสินแล้ว · คำตอบผ่าน `validateAnswer` (ตัวเลข ⊆ อินพุต · ไม่มีคำวินิจฉัย/ยา/สินค้า) ไม่งั้นตกไปใช้ข้อความของระบบ · **ห้ามเพิ่มข้อยกเว้นที่ 4 โดยไม่บันทึกที่นี่**
 - **`NEXT_PUBLIC_SITE_URL` = `https://upwellness-ops.vercel.app`** (ห้ามมี `/` ท้าย · ห้ามใช้ `upwellness.vercel.app` ซึ่งเป็น**เว็บไซต์คนละตัว**) — เคยทำให้ลิงก์ invite/reset 404
 - **repo นี้ public** — ห้าม commit PII (รายงานสุขภาพ ชื่อลูกค้า ผลแล็บ) หรือคีย์ · รายงานลูกค้าเก็บใน `customer_report_html`
 - **ค่าสุขภาพต้องมาจากข้อมูลจริง** — อ่านจากไฟล์/ฐานข้อมูล ห้ามเดาหรือกะจากภาพ

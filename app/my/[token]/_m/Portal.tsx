@@ -17,6 +17,7 @@ import { FoodScreen } from "./Food";
 import { PlanScreen } from "./Plan";
 import { MeScreen } from "./Me";
 import { MetricSheet } from "./MetricSheet";
+import { ExplainSheet } from "./ExplainSheet";
 
 export interface Nav { state: NavState; go: (hash: string) => void; back: () => void; token: string }
 
@@ -83,6 +84,7 @@ export function Portal({ data, token }: { data: PortalData; token: string }) {
       </nav>
 
       {sheetMetric && <MetricSheet data={data} nav={nav} metric={sheetMetric} domain={state.domain} />}
+      {sheetAi && <ExplainSheet data={data} nav={nav} target={state.page === "home" ? { kind: "overview" } : state.metric ? { kind: "metric", domain: state.domain, metric: state.metric } : state.domain ? { kind: "domain", domain: state.domain } : { kind: "overview" }} />}
     </div>
   );
 }
