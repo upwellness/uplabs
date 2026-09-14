@@ -23,7 +23,7 @@ const n1 = (v: number | null | undefined, d = 1) => (v == null ? "—" : v.toLoc
 const META: Record<MetricKey, { title: string; what: string; why: string }> = {
   fat_pct: { title: "% ไขมัน", what: "สัดส่วนไขมันต่อน้ำหนักตัวทั้งหมด วัดจากความต้านทานไฟฟ้าของเครื่อง BCA", why: "ตัวเลขนี้บอกมากกว่าน้ำหนัก — คนน้ำหนักเท่ากันอาจมีไขมันต่างกันมาก ดูแนวโน้มทุก 4 สัปดาห์สำคัญกว่าค่าครั้งเดียว" },
   muscle_pct: { title: "% กล้ามเนื้อ", what: "สัดส่วนกล้ามเนื้อต่อน้ำหนักตัว", why: "กล้ามเนื้อคือส่วนที่เผาผลาญพลังงานและพยุงร่างกายตอนอายุมาก การลดน้ำหนักที่ดีต้องไม่เสียส่วนนี้" },
-  visceral: { title: "ไขมันช่องท้อง", what: "ไขมันที่พันรอบอวัยวะภายใน ไม่ใช่ไขมันที่จับได้ที่หน้าท้อง", why: "เป็นไขมันชนิดที่เกี่ยวกับน้ำตาล ไขมันในเลือด และการอักเสบมากที่สุด — และเป็นชนิดที่ลดได้เร็วที่สุดเมื่อปรับการกินและการเดิน" },
+  visceral: { title: "ไขมันช่องท้อง", what: "ไขมันที่พันรอบอวัยวะภายใน ไม่ใช่ไขมันที่จับได้ที่หน้าท้อง — เครื่องรายงานเป็นคะแนน 1–30 ไม่ใช่เปอร์เซ็นต์", why: "เป็นไขมันชนิดที่เกี่ยวกับน้ำตาล ไขมันในเลือด และการอักเสบมากที่สุด — และเป็นชนิดที่ลดได้เร็วที่สุดเมื่อปรับการกินและการเดิน" },
   bmi: { title: "BMI", what: "น้ำหนักเทียบกับส่วนสูง (เกณฑ์เอเชีย-แปซิฟิก)", why: "ใช้คัดกรองคร่าว ๆ เท่านั้น ไม่แยกไขมันกับกล้ามเนื้อ — คนกล้ามเนื้อเยอะอาจ BMI สูงโดยไม่มีไขมันเกิน" },
   body_age: { title: "อายุร่างกาย", what: "อายุที่เครื่องประมาณจากองค์ประกอบร่างกาย เทียบกับอายุจริง", why: "เป็นสูตรของเครื่อง ไม่ใช่การวินิจฉัย — แต่ทิศทางที่มันขยับตามไขมันและกล้ามเนื้อของคุณเชื่อถือได้" },
   bmr: { title: "พลังงานพื้นฐาน (BMR)", what: "พลังงานที่ร่างกายใช้ต่อวันแม้นอนเฉย ๆ", why: "ยิ่งกล้ามเนื้อมาก BMR ยิ่งสูง — นี่คือเหตุผลที่การอดอาหารแล้วเสียกล้ามเนื้อทำให้กลับมาอ้วนง่าย" },
@@ -87,7 +87,7 @@ export function Reveal({ scan }: { scan: RevealScan }) {
                     <div className="rounded-2xl bg-white/60 p-3">
                       {k === "fat_pct" && <FatLayerArt fatPct={v.value} gender={a.gender_used} level={v.level} />}
                       {k === "visceral" && <VisceralArt level={v.level} value={v.value} />}
-                      {k === "muscle_pct" && <MuscleArt level={v.level} />}
+                      {k === "muscle_pct" && <MuscleArt musclePct={v.value} gender={a.gender_used} />}
                       {k === "bmi" && <BmiArt bmi={v.value} />}
                       {k === "bmr" && <BmrArt bmr={bmr} total={total} />}
                       {k === "body_age" && (v.value != null && scan.input.age != null ? <BodyAgeArt bodyAge={v.value} age={scan.input.age} /> : <p className="font-thai text-[13px] text-ink-60">ต้องมีวันเกิดในระบบถึงเทียบกับอายุจริงได้</p>)}
@@ -96,7 +96,7 @@ export function Reveal({ scan }: { scan: RevealScan }) {
                     <p className="font-thai text-[14.5px] leading-relaxed text-ink">{META[k].what}</p>
                     <div className="mt-2 font-head text-[12px] font-bold text-wellness">ของคุณ</div>
                     <p className="font-thai text-[14.5px] leading-relaxed text-ink">
-                      {v.value == null ? "ยังไม่มีค่านี้ — ชั่งครั้งถัดไปให้ครบ" : k === "fat_pct" && a.fat_mass_kg != null ? `ไขมัน ${v.value}% ของน้ำหนัก ${n1(scan.input.weight)} kg = ไขมันประมาณ ${n1(a.fat_mass_kg)} kg และส่วนที่ไม่ใช่ไขมัน (กล้ามเนื้อ กระดูก น้ำ) ${n1(a.lean_mass_kg)} kg · เกณฑ์${a.gender_used === "male" ? "ชาย" : "หญิง"}: ${v.label}` : k === "visceral" ? `ระดับ ${v.value} = ${v.label}` : k === "body_age" && v.note ? `${v.value} ปี เทียบ${v.note} = ${v.label}` : `${v.value} ${v.unit} = ${v.label}`}
+                      {v.value == null ? "ยังไม่มีค่านี้ — ชั่งครั้งถัดไปให้ครบ" : k === "fat_pct" && a.fat_mass_kg != null ? `ไขมัน ${v.value}% ของน้ำหนัก ${n1(scan.input.weight)} kg = ไขมันประมาณ ${n1(a.fat_mass_kg)} kg และส่วนที่ไม่ใช่ไขมัน (กล้ามเนื้อ กระดูก น้ำ) ${n1(a.lean_mass_kg)} kg · เกณฑ์${a.gender_used === "male" ? "ชาย" : "หญิง"}: ${v.label}` : k === "visceral" ? `คะแนน ${v.value} (ไม่ใช่ %) = ${v.label}` : k === "body_age" && v.note ? `${v.value} ปี เทียบ${v.note} = ${v.label}` : `${v.value} ${v.unit} = ${v.label}`}
                     </p>
                     <div className="mt-2 font-head text-[12px] font-bold text-wellness">ทำไมสำคัญ</div>
                     <p className="font-thai text-[14.5px] leading-relaxed text-ink">{META[k].why}</p>
@@ -165,9 +165,9 @@ export function Reveal({ scan }: { scan: RevealScan }) {
           <Level tag="L1" title="ปรับพฤติกรรม — เริ่ม 5 ข้อนี้ก่อน" tone="green" defaultOpen>
             {g.l1.map((t, i) => <div key={t.id} className={`py-2.5 ${i ? "border-t border-ink-10" : ""}`}><div className="flex items-start gap-2"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-wellness font-head text-[11px] font-bold text-white">{i + 1}</span><div><div className="font-thai text-[15px] font-semibold text-ink">{t.title}</div><div className="font-thai text-[13px] leading-relaxed text-ink-60">{t.why}{t.source ? <span className="text-ink-40"> · {t.source}</span> : null}</div></div></div></div>)}
           </Level>
-          <Level tag="L2" title="วิตามินพื้นฐาน (core) ที่ควรคุยกับเภสัชกร" tone="gold">
-            {g.l2.map((x, i) => <div key={x.nutrient} className={`py-2.5 ${i ? "border-t border-ink-10" : ""}`}><div className="font-thai text-[15px] font-semibold text-ink">{x.nutrient}</div><div className="font-thai text-[13px] leading-relaxed text-ink-60">{x.why}</div><div className="mt-0.5 font-thai text-[12px] text-[#7A5410]">{x.note}</div></div>)}
-            <p className="mt-2 rounded-xl bg-[rgba(201,146,43,.12)] px-3 py-2 font-thai text-[12px] leading-relaxed text-[#7A5410]">หน้านี้ตั้งใจไม่ระบุยี่ห้อและปริมาณ — ชนิดและขนาดที่เหมาะกับคุณต้องดูผลเลือดและยาที่ใช้อยู่ก่อน ซึ่งเภสัชกรของทีมเป็นคนกำหนด</p>
+          <Level tag="L2" title="วิตามินพื้นฐาน (core) — Nutrilite ที่ตรงกับค่าของคุณ" tone="gold">
+            {g.l2.map((x, i) => <div key={x.nutrient} className={`py-2.5 ${i ? "border-t border-ink-10" : ""}`}><div className="font-thai text-[15px] font-semibold text-ink">{x.nutrient}</div><div className="mt-0.5 inline-block rounded-full bg-[rgba(201,146,43,.16)] px-2.5 py-0.5 font-head text-[12px] font-bold text-[#7A5410]">{x.product}</div><div className="mt-1 font-thai text-[13px] leading-relaxed text-ink-60">{x.why}</div><div className="mt-0.5 font-thai text-[12px] text-[#7A5410]">{x.note}</div></div>)}
+            <p className="mt-2 rounded-xl bg-[rgba(201,146,43,.12)] px-3 py-2 font-thai text-[12px] leading-relaxed text-[#7A5410]">ระบุผลิตภัณฑ์ Nutrilite ที่ให้สารอาหารนั้น แต่ตั้งใจไม่ระบุปริมาณ — ขนาดที่เหมาะกับคุณต้องดูผลเลือดและยาที่ใช้อยู่ก่อน ซึ่งเภสัชกรของทีมเป็นคนกำหนด</p>
           </Level>
           <Level tag="L3" title="ค่าที่ควรวัดต่อ เพื่อรู้ว่ามาถูกทาง" tone="rose">
             {g.l3.map((x, i) => <div key={x.what} className={`py-2.5 ${i ? "border-t border-ink-10" : ""}`}><div className="font-thai text-[15px] font-semibold text-ink">{x.what}</div><div className="font-thai text-[13px] leading-relaxed text-ink-60">{x.why}</div></div>)}
@@ -179,7 +179,7 @@ export function Reveal({ scan }: { scan: RevealScan }) {
         {scan.history.length > 1 && (
           <section className="liquid mt-5 rounded-[22px] p-4">
             <div className="font-head text-[15px] font-bold text-ink">ครั้งก่อน ๆ</div>
-            {scan.history.map((h, i) => <div key={h.at} className={`flex justify-between py-2 font-thai text-[13.5px] ${i ? "border-t border-ink-10" : ""}`}><span className="text-ink-60">{fmtDate(h.at)}</span><span className="font-head tabular-nums text-ink">{n1(h.weight)} kg · ไขมัน {n1(h.fat_pct)}% · กล้าม {n1(h.muscle_pct)}% · ช่องท้อง {h.visceral ?? "—"}</span></div>)}
+            {scan.history.map((h, i) => <div key={h.at} className={`flex justify-between py-2 font-thai text-[13.5px] ${i ? "border-t border-ink-10" : ""}`}><span className="text-ink-60">{fmtDate(h.at)}</span><span className="font-head tabular-nums text-ink">{n1(h.weight)} kg · ไขมัน {n1(h.fat_pct)}% · กล้าม {n1(h.muscle_pct)}% · ช่องท้อง {h.visceral ?? "—"} คะแนน</span></div>)}
           </section>
         )}
 

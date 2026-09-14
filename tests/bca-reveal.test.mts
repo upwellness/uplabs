@@ -40,7 +40,7 @@ test("guidance: high fat + visceral ranks fiber-first / walking; low muscle rank
   assert.equal(g.l1.length, 5);
   assert.equal(g.l1[0].id, "no_sugar_drink");
   assert.ok(g.l1.some((t) => t.id === "fiber_first") && g.l1.some((t) => t.id === "walk_after"));
-  for (const x of g.l2) { assert.ok(!/Nutrilite|Double|mg|IU|เม็ด/.test(x.nutrient + x.why + x.note), x.nutrient); }
+  for (const x of g.l2) { assert.match(x.product, /^Nutrilite /, x.nutrient); assert.ok(!/\bmg\b|IU|เม็ด|ช้อน|ซอง/.test(x.product + x.why + x.note), x.nutrient); }
   assert.ok(g.l2.some((x) => x.nutrient === "โอเมก้า-3"));
   assert.ok(g.l3.some((x) => /HbA1c/.test(x.what)) && !g.l3.some((x) => /ALT/.test(x.what)));
   const lowMuscle: RevealInput = { ...F, weight: 60, fat_pct: 24, muscle_pct: 22, visceral: 4 };

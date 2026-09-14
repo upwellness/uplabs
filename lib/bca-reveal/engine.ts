@@ -10,7 +10,7 @@
  *
  * Longevity levels follow the UP Wellness pyramid (reference_opp_frameworks):
  *   L1 Lifestyle+ (0 บาท · ~95% of results) · L2 Foundation supplements · L3 Biomarker tracking
- * L2 names only foundation nutrients — no products, no doses; the pharmacist/coach sets those.
+ * L2 names foundation nutrients and the Nutrilite product that carries each (ต้น, 14 ก.ย.) — never a dose; the pharmacist/coach sets that.
  */
 import { bandBodyFat, bandMusclePct, bandVisceralFat, bandBMI, classifyBodyAge, STATUS_LABEL_TH, type StatusLevel, type Gender } from "@/lib/medical-status";
 import { deriveBMI } from "@/lib/bca-derive";
@@ -48,8 +48,8 @@ export function assessScan(i: RevealInput): RevealAssessment {
   else metrics.push({ key: "fat_pct", value: null, unit: "%", level: null, label: "ไม่มีข้อมูล" });
   if (i.muscle_pct != null) { const b = bandMusclePct(i.muscle_pct, g); metrics.push({ key: "muscle_pct", value: i.muscle_pct, unit: "%", level: b.level, label: b.label }); }
   else metrics.push({ key: "muscle_pct", value: null, unit: "%", level: null, label: "ไม่มีข้อมูล" });
-  if (i.visceral != null) { const b = bandVisceralFat(i.visceral); metrics.push({ key: "visceral", value: i.visceral, unit: "ระดับ", level: b.level, label: b.label }); }
-  else metrics.push({ key: "visceral", value: null, unit: "ระดับ", level: null, label: "ไม่มีข้อมูล" });
+  if (i.visceral != null) { const b = bandVisceralFat(i.visceral); metrics.push({ key: "visceral", value: i.visceral, unit: "คะแนน", level: b.level, label: b.label }); }
+  else metrics.push({ key: "visceral", value: null, unit: "คะแนน", level: null, label: "ไม่มีข้อมูล" });
   if (bmi != null) { const b = bandBMI(bmi); metrics.push({ key: "bmi", value: bmi, unit: "kg/m²", level: b.level, label: b.label }); }
   else metrics.push({ key: "bmi", value: null, unit: "kg/m²", level: null, label: i.height_cm ? "ไม่มีน้ำหนัก" : "ไม่มีส่วนสูง", note: "ต้องมีส่วนสูงและน้ำหนักถึงคำนวณได้" });
   if (i.body_age != null && i.age != null) { const l = classifyBodyAge(i.body_age, i.age); metrics.push({ key: "body_age", value: i.body_age, unit: "ปี", level: l, label: STATUS_LABEL_TH[l], note: `อายุจริง ${i.age}` }); }
@@ -125,7 +125,7 @@ export const QUIZ_EMPTY: Quiz = { sleep_h: null, steps: null, veg_first: null, s
 export interface Tip { id: string; title: string; why: string; source?: string; priority: number }
 export interface Guidance {
   l1: Tip[];                        // ranked, top 5
-  l2: { nutrient: string; why: string; note: string }[];
+  l2: { nutrient: string; product: string; why: string; note: string }[];
   l3: { what: string; why: string }[];
   disclaimer: string;
 }
@@ -154,13 +154,13 @@ export function guidance(i: RevealInput, a: RevealAssessment, q: Quiz): Guidance
   push({ id: "phone_out", title: "มือถือออกจากห้องนอน", why: "การนอนคือฮอร์โมนคุมความหิวและซ่อมกล้ามเนื้อ" }, q.sleep_h != null && q.sleep_h < 6.5 ? 3 : 1);
   const l1 = tips.filter((t) => t.priority > 0).sort((x, y) => y.priority - x.priority).slice(0, 5);
 
-  // L2 — foundation nutrients only (no product, no dose)
+  // L2 — foundation nutrients + the Nutrilite product that carries each (no dose)
   const l2: Guidance["l2"] = [
-    { nutrient: "วิตามินดี", why: "คนไทยในเมืองขาดบ่อยจากการเลี่ยงแดด เกี่ยวกับกล้ามเนื้อ กระดูก และภูมิคุ้มกัน", note: "ควรตรวจระดับในเลือดก่อน แล้วให้เภสัชกร/โค้ชกำหนดปริมาณ" },
+    { nutrient: "วิตามินดี", product: "Nutrilite Cal Mag D", why: "คนไทยในเมืองขาดบ่อยจากการเลี่ยงแดด เกี่ยวกับกล้ามเนื้อ กระดูก และภูมิคุ้มกัน", note: "ควรตรวจระดับในเลือดก่อน แล้วให้เภสัชกร/โค้ชกำหนดปริมาณ" },
   ];
-  if (fatHigh || visHigh) l2.push({ nutrient: "โอเมก้า-3", why: "สัมพันธ์กับการอักเสบต่ำ ๆ ที่มากับไขมันช่องท้อง", note: "ปริมาณและความเหมาะกับยาที่ใช้อยู่ให้เภสัชกรดู" });
-  if (musLow || fatHigh) l2.push({ nutrient: "โปรตีนเสริม (เมื่อกินจากอาหารไม่ถึง)", why: `เป้าโปรตีนของคุณอยู่ราว ${proteinRange(i.weight)?.low ?? "—"}–${proteinRange(i.weight)?.high ?? "—"} g/วัน — ถ้าจากอาหารไม่ถึง ค่อยเติม`, note: "เป็นอาหาร ไม่ใช่ยา แต่ให้โค้ชช่วยดูปริมาณให้พอดี" });
-  l2.push({ nutrient: "แมกนีเซียม", why: "เกี่ยวกับการนอนและการทำงานของกล้ามเนื้อ", note: q.sleep_h != null && q.sleep_h < 7 ? "คุณตอบว่านอนน้อยกว่า 7 ชม. — ถามเภสัชกรว่าเหมาะไหม" : "พิจารณาเมื่อมีปัญหานอนหรือตะคริว — ถามเภสัชกรก่อน" });
+  if (fatHigh || visHigh) l2.push({ nutrient: "โอเมก้า-3", product: "Nutrilite Triple Omega", why: "สัมพันธ์กับการอักเสบต่ำ ๆ ที่มากับไขมันช่องท้อง", note: "ปริมาณและความเหมาะกับยาที่ใช้อยู่ให้เภสัชกรดู" });
+  if (musLow || fatHigh) l2.push({ nutrient: "โปรตีนเสริม (เมื่อกินจากอาหารไม่ถึง)", product: "Nutrilite All Plant Protein", why: `เป้าโปรตีนของคุณอยู่ราว ${proteinRange(i.weight)?.low ?? "—"}–${proteinRange(i.weight)?.high ?? "—"} g/วัน — ถ้าจากอาหารไม่ถึง ค่อยเติม`, note: "เป็นอาหาร ไม่ใช่ยา แต่ให้โค้ชช่วยดูปริมาณให้พอดี" });
+  l2.push({ nutrient: "แมกนีเซียม", product: "Nutrilite Cal Mag D (ตัวเดียวกับวิตามินดี)", why: "เกี่ยวกับการนอนและการทำงานของกล้ามเนื้อ", note: q.sleep_h != null && q.sleep_h < 7 ? "คุณตอบว่านอนน้อยกว่า 7 ชม. — ถามเภสัชกรว่าเหมาะไหม" : "พิจารณาเมื่อมีปัญหานอนหรือตะคริว — ถามเภสัชกรก่อน" });
 
   // L3 — what to measure next, from these numbers
   const l3: Guidance["l3"] = [{ what: "ชั่ง BCA ซ้ำทุก 4 สัปดาห์ เวลาเดิม", why: "ดูว่าน้ำหนักที่เปลี่ยนคือไขมันหรือกล้ามเนื้อ" }];

@@ -5,6 +5,7 @@
  * numbers; fat% and visceral fat use reference photos (public/bca/*.webp) with the
  * person's position marked on them. Colours are the app's status ramp.
  */
+import { useState } from "react";
 import { statusHex, type StatusLevel, type Gender } from "@/lib/medical-status";
 
 const INK = "#1F1E1B", MUTED = "#8A838E", GREEN = "#396755", ROSE = "#8C4C4C", GOLD = "#C9922B";
@@ -38,7 +39,7 @@ export function BodyFigure({ fat, visceral, muscle, weight, onPick }: {
       <ellipse cx={100} cy={132} rx={26 + f * 10} ry={20 + f * 6} fill="url(#belly)" />
       </g>
       {/* zones */}
-      <g className={zone} onClick={() => onPick("visceral")}><circle cx={160} cy={132} r={20} fill="transparent" /><Callout x={160} y={132} tx={236} ty={146} label="ไขมันช่องท้อง" value={visceral.value != null ? `ระดับ ${visceral.value}` : "—"} level={visceral.level} side="r" /></g>
+      <g className={zone} onClick={() => onPick("visceral")}><circle cx={160} cy={132} r={20} fill="transparent" /><Callout x={160} y={132} tx={236} ty={146} label="ไขมันช่องท้อง" value={visceral.value != null ? `คะแนน ${visceral.value}` : "—"} level={visceral.level} side="r" /></g>
       <g className={zone} onClick={() => onPick("fat_pct")}><circle cx={124} cy={110} r={16} fill="transparent" /><Callout x={126} y={112} tx={84} ty={92} label="ไขมัน" value={fat.value != null ? `${fat.value}%` : "—"} level={fat.level} side="l" /></g>
       <g className={zone} onClick={() => onPick("muscle_pct")}><circle cx={176} cy={200} r={16} fill="transparent" /><Callout x={176} y={200} tx={236} ty={220} label="กล้ามเนื้อ" value={muscle.value != null ? `${muscle.value}%` : "—"} level={muscle.level} side="r" /></g>
       <g className={zone} onClick={() => onPick("bmi")}><circle cx={160} cy={90} r={14} fill="transparent" /><Callout x={158} y={88} tx={84} ty={52} label="น้ำหนัก" value={weight.value != null ? `${weight.value} kg` : "—"} level={null} side="l" /></g>
@@ -123,7 +124,7 @@ export function VisceralArt({ level, value }: { level: StatusLevel | null; value
   const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
   return (
     <div>
-      <div className="relative h-11">{x != null && <Pin x={x} label={`คุณ · ระดับ ${value}`} color={c} />}</div>
+      <div className="relative h-11">{x != null && <Pin x={x} label={`คุณ · คะแนน ${value}`} color={c} />}</div>
       <div className="relative overflow-hidden rounded-xl">
         <img src="/bca/visceral.webp" alt="โมเดลช่องท้อง ซ้ายไขมันน้อย ขวาไขมันพันรอบอวัยวะ" className="block h-auto w-full" />
         {x != null && (
@@ -134,24 +135,92 @@ export function VisceralArt({ level, value }: { level: StatusLevel | null; value
           </>
         )}
       </div>
-      <div className="mt-1.5 flex justify-between font-thai text-[11.5px] text-ink-60"><span>← ระดับ 1–2 ไขมันน้อย</span><span>ระดับ 10–11 ไขมันพันรอบอวัยวะ →</span></div>
+      <div className="mt-1.5 flex justify-between font-thai text-[11.5px] text-ink-60"><span>← คะแนน 1–2 ไขมันน้อย</span><span>คะแนน 10–11 ไขมันพันรอบอวัยวะ →</span></div>
       <p className="mt-1.5 font-thai text-[12px] leading-relaxed text-ink-60">
-        {value == null ? "ยังไม่มีค่าระดับไขมันช่องท้องของคุณ" : value > 11 ? `ระดับ ${value} เกินขอบขวาของภาพ — ไขมันรอบอวัยวะมากกว่าที่เห็นในภาพ` : "แถบสว่างคือตำแหน่งของคุณ"}
-        {" "}· ไขมันที่พันรอบตับ ลำไส้ ตับอ่อน มองไม่เห็นจากภายนอก · ระดับจากเครื่อง 1–30: 1–2 ดี · 3–5 ปกติ · 6–10 เริ่มเสี่ยง · 11–15 เสี่ยงสูง · 16+ อันตราย
+        {value == null ? "ยังไม่มีคะแนนไขมันช่องท้องของคุณ" : value > 11 ? `คะแนน ${value} เกินขอบขวาของภาพ — ไขมันรอบอวัยวะมากกว่าที่เห็นในภาพ` : "แถบสว่างคือตำแหน่งของคุณ"}
+        {" "}· <b>ตัวเลขนี้เป็นคะแนนจากเครื่อง (1–30) ไม่ใช่เปอร์เซ็นต์</b>: 1–2 ดี · 3–5 ปกติ · 6–10 เริ่มเสี่ยง · 11–15 เสี่ยงสูง · 16+ อันตราย · ไขมันที่พันรอบตับ ลำไส้ ตับอ่อน มองไม่เห็นจากภายนอก
       </p>
+      <VisceralGallery />
     </div>
   );
 }
 
-/** Muscle fibres — denser strands when muscle% is in the good band. */
-export function MuscleArt({ level }: { level: StatusLevel | null }) {
-  const n = level === "optimal" ? 9 : level === "good" ? 7 : 4;
+/** Three example photos of what visceral fat is — tap to view full-screen. Illustrative only, not the person's own body. */
+const VIS_EXAMPLES = [
+  { src: "/bca/visceral-ex1.webp", cap: "ไขมันช่องท้องอยู่ลึกใต้กล้ามเนื้อหน้าท้อง พันรอบตับ ลำไส้ ตับอ่อน" },
+  { src: "/bca/visceral-ex2.webp", cap: "ภาพตัดขวาง MRI: ชั้นสีเหลืองคือไขมัน — คนน้ำหนัก 113 kg (ซ้าย) เทียบ 54 kg (ขวา)" },
+  { src: "/bca/visceral-ex3.webp", cap: "หัวใจที่ไม่มีไขมันหุ้ม (ซ้าย) เทียบหัวใจที่ไขมันหุ้มรอบ (ขวา)" },
+];
+function VisceralGallery() {
+  const [open, setOpen] = useState<number | null>(null);
   return (
-    <svg viewBox="0 0 240 110" className="block h-auto w-full" role="img" aria-label="มวลกล้ามเนื้อ">
-      <ellipse cx={120} cy={55} rx={100} ry={34} fill={ROSE} opacity={0.15} />
-      {Array.from({ length: n }, (_, i) => <path key={i} d={`M30 ${30 + (i * 50) / Math.max(1, n - 1)}c40 -10 140 -10 180 0`} stroke={ROSE} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.75} />)}
-      <text x={12} y={16} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">กล้ามเนื้อคือ "เครื่องยนต์" ที่เผาผลาญและพยุงร่างกายตอนอายุมาก</text>
-      <text x={12} y={104} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">หลัง 40 ปี มวลกล้ามเนื้อลดราว 3–8% ต่อ 10 ปีถ้าไม่ฝึก (ACSM)</text>
+    <div className="mt-3">
+      <div className="font-head text-[12px] font-bold text-ink-60">ตัวอย่างประกอบ — แตะเพื่อขยาย</div>
+      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+        {VIS_EXAMPLES.map((e, i) => (
+          <button key={e.src} type="button" onClick={() => setOpen(i)} className="overflow-hidden rounded-lg bg-black/5" aria-label={`ขยายภาพ: ${e.cap}`}>
+            <img src={e.src} alt={e.cap} className="block h-20 w-full object-cover" loading="lazy" />
+          </button>
+        ))}
+      </div>
+      {open != null && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4" onClick={() => setOpen(null)} role="dialog" aria-modal="true">
+          <img src={VIS_EXAMPLES[open].src} alt={VIS_EXAMPLES[open].cap} className="max-h-[70vh] w-auto max-w-full rounded-xl" />
+          <p className="mt-3 max-w-[420px] text-center font-thai text-[14px] leading-relaxed text-white">{VIS_EXAMPLES[open].cap}</p>
+          <p className="mt-1 font-thai text-[11.5px] text-white/60">ภาพประกอบเพื่อความเข้าใจ ไม่ใช่ร่างกายของคุณ · แตะเพื่อปิด</p>
+          <div className="mt-3 flex gap-2">
+            {VIS_EXAMPLES.map((_, i) => <button key={i} type="button" onClick={(ev) => { ev.stopPropagation(); setOpen(i); }} className={`h-2.5 w-2.5 rounded-full ${i === open ? "bg-white" : "bg-white/35"}`} aria-label={`ภาพที่ ${i + 1}`} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Muscle% scale, split by sex — the four bands of `bandMusclePct` (thresholds copied
+ * from lib/medical-status.ts, the only place they are defined) drawn as a ruler with the
+ * person's marker. The end bands are open-ended, so the ruler shows a working range.
+ */
+const MUSCLE_SCALE: Record<Gender, { min: number; cuts: [number, number, number]; max: number }> = {
+  male: { min: 25, cuts: [32.9, 35.8, 37.4], max: 45 },
+  female: { min: 18, cuts: [25.9, 28.0, 29.1], max: 36 },
+};
+const MUSCLE_BANDS: { label: string; level: StatusLevel }[] = [
+  { label: "ต่ำ", level: "warning" }, { label: "ปกติ", level: "good" }, { label: "สูง", level: "optimal" }, { label: "สูงมาก", level: "optimal" },
+];
+export function MuscleArt({ musclePct, gender }: { musclePct: number | null; gender: Gender }) {
+  const sc = MUSCLE_SCALE[gender];
+  const stops = [sc.min, ...sc.cuts, sc.max];
+  const W = 220, X0 = 10, Y = 40, H = 16;
+  const segW = W / 4;
+  // piecewise: each band gets a quarter of the ruler regardless of its numeric width, so the labels stay readable
+  const xOf = (v: number) => {
+    const c = Math.min(sc.max, Math.max(sc.min, v));
+    for (let i = 0; i < 4; i++) if (c <= stops[i + 1]) return X0 + segW * (i + (c - stops[i]) / (stops[i + 1] - stops[i]));
+    return X0 + W;
+  };
+  const x = musclePct != null ? xOf(musclePct) : null;
+  return (
+    <svg viewBox="0 0 240 110" className="block h-auto w-full" role="img" aria-label={`เกณฑ์ % กล้ามเนื้อ (${gender === "male" ? "ชาย" : "หญิง"})`}>
+      <text x={12} y={14} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">เกณฑ์ % กล้ามเนื้อสำหรับ{gender === "male" ? "ผู้ชาย" : "ผู้หญิง"} — ยิ่งขวายิ่งดี</text>
+      {MUSCLE_BANDS.map((b, i) => (
+        <g key={b.label}>
+          <rect x={X0 + segW * i} y={Y} width={segW} height={H} fill={statusHex[b.level]} opacity={i === 3 ? 0.9 : 0.7} rx={i === 0 ? 4 : 0} />
+          <text x={X0 + segW * (i + 0.5)} y={Y + H + 12} fontSize={9} fill={INK} textAnchor="middle" fontFamily="Sarabun" fontWeight={600}>{b.label}</text>
+          <text x={X0 + segW * (i + 0.5)} y={Y + H + 23} fontSize={8} fill={MUTED} textAnchor="middle" fontFamily="Sarabun">
+            {i === 0 ? `< ${sc.cuts[0]}%` : i === 3 ? `≥ ${sc.cuts[2]}%` : `${stops[i]}–${stops[i + 1]}%`}
+          </text>
+        </g>
+      ))}
+      {x != null && musclePct != null && (
+        <g>
+          <path d={`M${x} ${Y - 4}l-5 -8h10z`} fill={INK} />
+          <rect x={x - 1} y={Y - 2} width={2} height={H + 4} fill={INK} />
+          <text x={Math.min(X0 + W - 22, Math.max(X0 + 22, x))} y={Y - 16} fontSize={10} fill={INK} textAnchor="middle" fontFamily="Sarabun" fontWeight={700}>คุณ {musclePct}%</text>
+        </g>
+      )}
+      <text x={12} y={104} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">กล้ามเนื้อคือ "เครื่องยนต์" เผาผลาญ · หลัง 40 ปี ลดราว 3–8% ต่อ 10 ปีถ้าไม่ฝึก (ACSM)</text>
     </svg>
   );
 }
