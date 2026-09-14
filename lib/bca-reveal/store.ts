@@ -33,7 +33,7 @@ export async function bcaByToken(token: string): Promise<RevealScan | null> {
   const { data: m } = await admin.from("measurements").select("id, customer_id, recorded_at, weight, fat_pct, muscle_pct, visceral, body_age, bmr").eq("share_token", token).maybeSingle();
   if (!m) return null;
   const [{ data: c }, { data: hist }] = await Promise.all([
-    admin.from("customers").select("id, name, gender, birth_date, height, coach_id, line_id, disabled_at").eq("id", (m as any).customer_id).maybeSingle(),
+    admin.from("customers").select("id, name, gender, birth_date, birth_year, height, coach_id, disabled_at").eq("id", (m as any).customer_id).maybeSingle(),
     admin.from("measurements").select("recorded_at, weight, fat_pct, muscle_pct, visceral").eq("customer_id", (m as any).customer_id).lte("recorded_at", (m as any).recorded_at).order("recorded_at", { ascending: false }).limit(8),
   ]);
   if (!c || (c as any).disabled_at) return null;
@@ -41,11 +41,13 @@ export async function bcaByToken(token: string): Promise<RevealScan | null> {
   const coachName = String((coach.data as any)?.display_name ?? "").trim();
   void admin.from("measurements").update({ share_opened_at: new Date().toISOString() }).eq("id", (m as any).id).is("share_opened_at", null).then(() => {});
   const gender = (c as any).gender === "male" || (c as any).gender === "female" ? (c as any).gender : null;
+  // customers carry either a full birth date or just the (Thai-form) year
+  const age = (c as any).birth_date ? ageFrom((c as any).birth_date) : num((c as any).birth_year) != null ? new Date().getFullYear() - (num((c as any).birth_year)! > 2400 ? num((c as any).birth_year)! - 543 : num((c as any).birth_year)!) : null;
   const first = String((c as any).name ?? "").trim().split(/\s+/)[0] || "คุณ";
   return {
     measurement_id: (m as any).id, recorded_at: String((m as any).recorded_at),
-    customer: { id: (c as any).id, first_name: first, gender, age: ageFrom((c as any).birth_date), height_cm: num((c as any).height), coach_name: /\p{L}/u.test(coachName) ? coachName : null, line_id: (c as any).line_id ?? null },
-    input: { gender, age: ageFrom((c as any).birth_date), height_cm: num((c as any).height), weight: num((m as any).weight), fat_pct: num((m as any).fat_pct), muscle_pct: num((m as any).muscle_pct), visceral: num((m as any).visceral), body_age: num((m as any).body_age), bmr: num((m as any).bmr) },
+    customer: { id: (c as any).id, first_name: first, gender, age, height_cm: num((c as any).height), coach_name: /\p{L}/u.test(coachName) ? coachName : null, line_id: null },
+    input: { gender, age, height_cm: num((c as any).height), weight: num((m as any).weight), fat_pct: num((m as any).fat_pct), muscle_pct: num((m as any).muscle_pct), visceral: num((m as any).visceral), body_age: num((m as any).body_age), bmr: num((m as any).bmr) },
     history: ((hist ?? []) as any[]).reverse().map((h) => ({ at: String(h.recorded_at), weight: num(h.weight), fat_pct: num(h.fat_pct), muscle_pct: num(h.muscle_pct), visceral: num(h.visceral) })),
   };
 }
