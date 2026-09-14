@@ -176,7 +176,7 @@ export async function loadPortalData(c: PortalCustomer): Promise<PortalData> {
     customer: {
       first_name: first, initial: first.replace(/^(คุณ|พี่|น้อง)/, "").slice(0, 1) || first.slice(0, 1),
       gender: c.gender, age: ageFrom((cust.data as any)?.birth_date ?? c.birth_date), height_cm: num((cust.data as any)?.height),
-      coach_name: (coachRes.data as any)?.display_name ?? null, has_line_group: !!lineRes.data,
+      coach_name: (() => { const n = String((coachRes.data as any)?.display_name ?? "").trim(); return /\p{L}/u.test(n) ? n : null; })(), has_line_group: !!lineRes.data, // an ID-only display name is not a name to greet with
     },
     assessment: stored && a ? { computed_at: stored.computed_at, a } : null,
     labs: groupLabs((labRes.data ?? []) as any[], a),

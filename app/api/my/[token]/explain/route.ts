@@ -56,11 +56,14 @@ export async function POST(req: Request, { params }: { params: { token: string }
     const json = await geminiGenerate(GEMINI_TEXT_MODEL, key, {
       contents: [{ parts: [{ text: buildPrompt(facts) }] }],
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      generationConfig: { temperature: 0.3, maxOutputTokens: 700, responseMimeType: "application/json" },
+      // Thai runs ~3 tokens per word and "minimal" thinking still spends some of this budget — 700 truncated the first live answer mid-string
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048, responseMimeType: "application/json" },
     });
-    const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+    const text: string = json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("") ?? "{}";
     let parsed: unknown = null;
     try { parsed = JSON.parse(text); } catch { parsed = null; }
+    const finish = json?.candidates?.[0]?.finishReason;
+    if (parsed == null && finish && finish !== "STOP") console.warn("[portal explain] finishReason", finish);
     const v = validateAnswer(parsed, facts.numbers);
     // one event per call, with the outcome — the discard reason is what tells us the guardrail is too tight or too loose
     await logPortalEvent(c.id, "explain", { ...meta, ai: v.ok, ...(v.ok ? {} : { discarded: v.reason, sample: text.slice(0, 300) }) });
