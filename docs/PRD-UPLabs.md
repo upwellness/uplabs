@@ -293,6 +293,13 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 ---
 
+### 5.16 BCA Reveal — ผลตรวจร่างกายสำหรับลูกค้าใหม่ (14 ก.ย. 2026)
+
+- **Journey:** ลูกค้าใหม่ชั่ง BCA ที่ศูนย์ → โค้ชกด **"ส่งผลให้ลูกค้า"** ที่ `/v2/bca` → ได้ลิงก์ `/r/bca/<token>` (token ต่อ 1 ครั้งที่ชั่ง · `measurements.share_token` · migration `20260914_bca_share.sql`) → ส่ง LINE → ลูกค้าเปิดจากมือถือโดยไม่ต้อง login → เห็นผลตัวเอง เข้าใจ อยากทำต่อ → ปุ่ม "คุยกับโค้ชทาง LINE" (`customers.line_id` ถ้ามี)
+- **หน้าจอ** (`app/r/bca/[token]/Reveal.tsx` · กระจก `.liquid` · ≤430px): รูปร่างกายมี 4 จุดแตะได้ (ไขมัน · ไขมันช่องท้อง · กล้ามเนื้อ · น้ำหนัก — ชั้นไขมันหนาตาม % จริง · ท้องเรืองตามระดับ visceral) + สรุป 1 บรรทัด → การ์ด 6 ค่า **กดขยาย** มีรูปประกอบ (ชั้นไขมันใต้ผิว · อวัยวะกับไขมันรอบ · เส้นใยกล้ามเนื้อ · ไม้บรรทัด BMI · เปลวเผาผลาญ · อายุร่างกาย vs จริง) + "คืออะไร / ของคุณ / ทำไมสำคัญ" → **ลองเล่น** (สไลด์เป้า % ไขมัน → kg ไขมันที่ต้องลด · น้ำหนักตอนนั้น · สัปดาห์ที่ 0.5 kg/สัปดาห์ · TDEE ตามกิจกรรม · ช่วงโปรตีน 1.2–1.6 g/kg · เดินเพิ่ม x นาที = kcal) → **แบบประเมิน 5 ข้อ** (นอน · ก้าว · ผักก่อน · เครื่องดื่มหวาน · เครียด — อยู่ในเครื่อง ไม่ส่ง) → **แนวทางเฉพาะคน L1–L3** → ประวัติครั้งก่อน → CTA คอร์ส
+- **Engine** `lib/bca-reveal/engine.ts` (pure · 3 tests): ทุก verdict จาก `lib/medical-status.ts` (เกณฑ์ศูนย์ แยกเพศ) · headline 8 แบบตาม fat/muscle/visceral · `fatScenario` คิดแบบกล้ามเนื้อคงที่ · BMR fallback Mifflin-St Jeor เมื่อเครื่องไม่ให้ · `guidance()` จัดลำดับ **L1** (Top-10 biohacks ถ่วงน้ำหนักด้วยค่าที่วัด + คำตอบ) · **L2** วิตามินพื้นฐานเฉพาะชื่อสารอาหาร (วิตามินดี · โอเมก้า-3 เมื่อไขมัน/ช่องท้องสูง · โปรตีนเสริมเมื่อกล้ามน้อย · แมกนีเซียม) **ไม่มียี่ห้อ ไม่มีปริมาณ** — เภสัชกรกำหนด (test บังคับ) · **L3** ค่าที่ควรวัดต่อ (BCA ทุก 4 สัปดาห์ · HbA1c/ไขมันในเลือดเมื่อไขมัน/BMI สูง · ALT เมื่อ visceral ≥11 · วิตามินดี · hs-CRP)
+- **Longevity levels** ใช้พีระมิดใน `reference_opp_frameworks` (L1 Lifestyle+ · L2 Foundation supplements · L3 Biomarker) — **ต่างจาก L1–L4 ของรายงาน** (L2 biomarker · L3 supplement) ระบุชื่อระดับกำกับเลขทุกที่กันสับสน · ⚠️ ข้อความทั้งหน้ายัง**ไม่ผ่าน red-team/จิ้น** — ห้ามส่งลูกค้าจริงวงกว้างจนกว่าจะรีวิว (feedback_health_copy_redteam)
+
 ### 5.15 Mobile Portal — หน้าลูกค้าบนมือถือ (14 ก.ย. 2026 · `SPEC-Mobile-Portal.md` v0.2)
 
 - **`/my/<token>` เขียนใหม่เป็นแอปมือถือ** (token เดิม ลิงก์เดิมใช้ได้): โหลดข้อมูลครั้งเดียวใน `lib/health-design/portal-data.ts` → `PortalData` → client shell `app/my/[token]/_m/Portal.tsx` · **4 แท็บ** หน้าแรก · สุขภาพ · อาหาร · แผน (+ "ฉัน" หลังตัวอักษรย่อ) · hash router (`lib/health-design/portal-nav.ts` · 4 tests) ปุ่มย้อนกลับปิดแผ่นเลื่อนได้ · กระจก `.liquid` + `.aurora-bg` เดิม · Manrope/Sarabun
@@ -473,6 +480,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-14 | **BCA Reveal** `/r/bca/<token>` (§5.16) — หน้าผลตรวจร่างกายสำหรับลูกค้าใหม่บนมือถือ: รูปร่างกายแตะได้ · 6 การ์ดขยายมีรูป · ลองเล่น (เป้าไขมัน/TDEE/โปรตีน/เดิน) · แบบประเมิน 5 ข้อ · L1–L3 เฉพาะคน · CTA คอร์ส · ปุ่ม "ส่งผลให้ลูกค้า" ใน `/v2/bca` + `POST /api/customers/[id]/bca-share` · `measurements.share_token` · engine +3 tests (184) | _pending_ |
 | 2026-09-14 | External API/MCP **`getPortalLink`** (`POST /customers/{id}/portal-link` · scope `links:write` · rotate) + intent `portal.link` — AI/n8n ขอลิงก์หน้าลูกค้าส่ง LINE ได้ · MCP tools 28 | `6ceba45` |
 | 2026-09-14 | Mobile Portal ทดสอบ live (บัญชีต้น): ทุกแท็บ + L1–L3 + อาหารถ่าย→ยืนยัน ผ่าน · แก้ 2 จุดจากของจริง — คำห้าม "รักษา" กว้างไปตัด "รักษาระดับ" (เหลือเฉพาะ การรักษา/กินยา/…) · Gemini ตอบไทย JSON ถูกตัดที่ 700 token → 2048 · `portal_events.meta` เก็บผลตรวจคำตอบ (ai/discarded/sample) เพื่อจูน guardrail จากของจริง · ชื่อโค้ชที่เป็นตัวเลขไม่แสดง | `86c1eb4`, `a2eec76` |
 | 2026-09-14 | **Mobile Portal M1–M4** — `/my/<token>` เป็นแอปมือถือ 4 แท็บ + บันได L0→L3 (§5.15) · `portal-data.ts` · `glossary.ts` (50 ค่า · unreviewed) · `explain.ts` + `/explain` (BYO-key ข้อยกเว้นที่ 3 · cap 20) · `portal_events` · หน้าแหล่งข้อมูล 4 หน้า · อาหารถ่าย→ยืนยัน · +8 tests (181) · ลบ `PortalTools.tsx` | `36a6a7d`, `52f1616` |

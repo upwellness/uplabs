@@ -22,6 +22,7 @@ import Link from "next/link";
 import {
   Search, Scale, Plus, X, ChevronRight, Save, Loader2, ArrowRight, Users, Calendar,
   FileText, Pencil, Trash2, History, Sparkles,
+  Link2,
 } from "lucide-react";
 import { Shell } from "../_components/Shell";
 import { IdentityBlock } from "@/lib/v2/IdentityBlock";
@@ -178,6 +179,7 @@ function PickCustomer({ onPick }: { onPick: (id: string) => void }) {
 function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; onChange: (id: string) => void; onClear: () => void }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -304,6 +306,23 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
           </button>
           <button
             type="button"
+            onClick={async () => {
+              if (!customer || !latest) return;
+              try {
+                const r = await fetch(`/api/customers/${customer.id}/bca-share`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ measurement_id: latest.id }) });
+                const j = await r.json();
+                if (!r.ok) { setShareMsg(j.error ?? "สร้างลิงก์ไม่สำเร็จ"); return; }
+                try { await navigator.clipboard.writeText(j.url); setShareMsg(`คัดลอกลิงก์ผลตรวจแล้ว — ส่งให้ลูกค้าทาง LINE ได้เลย: ${j.url}`); } catch { setShareMsg(`ลิงก์ผลตรวจ: ${j.url}`); }
+              } catch { setShareMsg("สร้างลิงก์ไม่สำเร็จ"); }
+            }}
+            disabled={measurements.length === 0}
+            title="ลิงก์หน้าผลตรวจสำหรับลูกค้า (/r/bca/…) — เปิดจากมือถือ อธิบายทุกค่า + แนวทาง L1–L3 + ชวนเข้าคอร์ส"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink-80 transition-colors hover:border-wellness hover:text-wellness disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-wellness focus-visible:ring-offset-2"
+          >
+            <Link2 size={15} strokeWidth={2.25} aria-hidden /> ส่งผลให้ลูกค้า
+          </button>
+          <button
+            type="button"
             onClick={() => { setReportFocus(null); setReportOpen(true); }}
             disabled={measurements.length === 0}
             className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ink-10 bg-white px-4 py-2 text-[13px] font-semibold text-ink-80 transition-colors hover:border-rose hover:text-rose disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
@@ -320,6 +339,7 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
           </button>
         </div>
       </div>
+      {shareMsg && <p className="-mt-1 break-all font-thai text-[12.5px] text-wellness">{shareMsg}</p>}
 
       {formOpen && (
         <MeasurementForm
