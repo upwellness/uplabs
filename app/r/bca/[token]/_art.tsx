@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Illustrations for the BCA reveal page — simple inline SVG so the page stays light and
- * the drawings can take the person's own numbers (the fat layer thickens with fat%, the
- * belly glow follows the visceral level). Colours are the app's status ramp.
+ * Illustrations for the BCA reveal page. Most are inline SVG that take the person's own
+ * numbers; fat% and visceral fat use reference photos (public/bca/*.webp) with the
+ * person's position marked on them. Colours are the app's status ramp.
  */
-import { statusHex, type StatusLevel } from "@/lib/medical-status";
+import { statusHex, type StatusLevel, type Gender } from "@/lib/medical-status";
 
 const INK = "#1F1E1B", MUTED = "#8A838E", GREEN = "#396755", ROSE = "#8C4C4C", GOLD = "#C9922B";
 const col = (l: StatusLevel | null) => (l ? statusHex[l] : "#B8C2BD");
@@ -58,32 +58,88 @@ function Callout({ x, y, tx, ty, label, value, level, side }: { x: number; y: nu
   );
 }
 
-/** Cross-section: skin → fat layer (thickness from fat%) → muscle → bone. */
-export function FatLayerArt({ fatPct }: { fatPct: number | null }) {
-  const t = 10 + Math.min(1, Math.max(0, ((fatPct ?? 25) - 8) / 40)) * 40;
+/**
+ * Photo reference for fat% — six real bodies at labelled fat% (one row per sex). The
+ * person's own value is placed by linear interpolation between the labelled panels
+ * (their centres, measured on the source image) and marked with an arrow; between two
+ * panels the position is an estimate, and values outside the row clamp to its edge.
+ */
+const FAT_ANCHORS: Record<Gender, [number, number][]> = {
+  male: [[3, 0.1025], [5, 0.302], [10, 0.485], [20, 0.6445], [30, 0.804], [40, 0.944]],
+  female: [[10, 0.0847], [15, 0.246], [20, 0.404], [25, 0.59], [30, 0.76], [40, 0.915]],
+};
+function fatX(v: number, anchors: [number, number][]): { x: number; clamped: "low" | "high" | null } {
+  if (v <= anchors[0][0]) return { x: anchors[0][1], clamped: v < anchors[0][0] ? "low" : null };
+  const last = anchors[anchors.length - 1];
+  if (v >= last[0]) return { x: last[1], clamped: v > last[0] ? "high" : null };
+  for (let i = 1; i < anchors.length; i++) {
+    const [v0, x0] = anchors[i - 1], [v1, x1] = anchors[i];
+    if (v <= v1) return { x: x0 + ((v - v0) / (v1 - v0)) * (x1 - x0), clamped: null };
+  }
+  return { x: last[1], clamped: null };
+}
+
+/** Arrow + chip that sits above a photo strip at a horizontal fraction. */
+function Pin({ x, label, color }: { x: number; label: string; color: string }) {
   return (
-    <svg viewBox="0 0 240 110" className="block h-auto w-full" role="img" aria-label="ชั้นไขมันใต้ผิวหนัง">
-      <rect x={10} y={20} width={220} height={12} rx={6} fill="#E8D9C8" /><text x={12} y={16} fontSize={9} fill={MUTED} fontFamily="Sarabun">ผิวหนัง</text>
-      <rect x={10} y={32} width={220} height={t} fill={GOLD} opacity={0.55} /><text x={236} y={32 + t / 2 + 3} fontSize={9} fill={INK} textAnchor="end" fontFamily="Sarabun">ไขมันใต้ผิวหนัง</text>
-      <rect x={10} y={32 + t} width={220} height={22} fill={ROSE} opacity={0.6} /><text x={236} y={32 + t + 15} fontSize={9} fill="#fff" textAnchor="end" fontFamily="Sarabun">กล้ามเนื้อ</text>
-      <rect x={10} y={54 + t} width={220} height={8} rx={4} fill="#EDE7DE" stroke="#D9C9B6" />
-      <text x={12} y={100} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">ค่า % ไขมัน = น้ำหนักไขมันทั้งตัว ÷ น้ำหนักตัว (ชั้นนี้หนาขึ้นตามค่าของคุณ)</text>
-    </svg>
+    <div className="absolute bottom-0 flex flex-col items-center" style={{ left: `${x * 100}%`, transform: "translateX(-50%)" }}>
+      <span className="whitespace-nowrap rounded-full px-2.5 py-0.5 font-head text-[12px] font-bold text-white shadow-sm" style={{ background: color }}>{label}</span>
+      <svg width={16} height={14} viewBox="0 0 16 14" aria-hidden><path d="M8 14L0 3h16z" fill={color} /></svg>
+    </div>
   );
 }
 
-/** Organs with a fat halo whose intensity follows the visceral level. */
-export function VisceralArt({ level }: { level: StatusLevel | null }) {
+export function FatLayerArt({ fatPct, gender, level }: { fatPct: number | null; gender: Gender; level: StatusLevel | null }) {
+  const pos = fatPct != null ? fatX(fatPct, FAT_ANCHORS[gender]) : null;
   const c = col(level);
   return (
-    <svg viewBox="0 0 240 120" className="block h-auto w-full" role="img" aria-label="ไขมันรอบอวัยวะในช่องท้อง">
-      <ellipse cx={120} cy={62} rx={92} ry={46} fill={c} opacity={0.18} />
-      <ellipse cx={120} cy={62} rx={70} ry={34} fill={c} opacity={0.22} />
-      <path d="M78 46c10-14 28-14 36 0 8-14 26-14 36 0 6 10 0 24-8 30-8 6-18 4-28-4-10 8-20 10-28 4-8-6-14-20-8-30z" fill="#D9A79A" stroke="#B87F72" />
-      <path d="M96 84c14 10 34 10 48 0" stroke="#B87F72" strokeWidth={3} strokeLinecap="round" fill="none" />
-      <text x={12} y={16} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">ไขมันที่พันรอบตับ ลำไส้ ตับอ่อน — มองไม่เห็นจากภายนอก</text>
-      <text x={12} y={112} fontSize={9.5} fill={MUTED} fontFamily="Sarabun">ระดับจากเครื่อง 1–30 · 1–2 ดี · 3–5 ปกติ · 6–10 เริ่มเสี่ยง · 11–15 เสี่ยงสูง · 16+ อันตราย</text>
-    </svg>
+    <div>
+      <div className="relative h-11">{pos && <Pin x={pos.x} label={`คุณ ${fatPct}%`} color={c} />}</div>
+      <div className="relative overflow-hidden rounded-xl">
+        <img src={`/bca/fat-${gender}.webp`} alt={`ตัวอย่างรูปร่างที่ % ไขมันต่าง ๆ (${gender === "male" ? "ชาย" : "หญิง"})`} className="block h-auto w-full" />
+        {pos && <div className="absolute inset-y-0 w-[3px] -translate-x-1/2 bg-white/90 shadow-[0_0_0_1px_rgba(0,0,0,.25)]" style={{ left: `${pos.x * 100}%` }} />}
+      </div>
+      <p className="mt-2 font-thai text-[12px] leading-relaxed text-ink-60">
+        {fatPct == null
+          ? "ยังไม่มีค่า % ไขมันของคุณ"
+          : pos?.clamped === "low" ? `ค่าของคุณ (${fatPct}%) ต่ำกว่าภาพซ้ายสุด — ลูกศรจึงชี้ที่ขอบภาพ`
+          : pos?.clamped === "high" ? `ค่าของคุณ (${fatPct}%) สูงกว่าภาพขวาสุด — ลูกศรจึงชี้ที่ขอบภาพ`
+          : "ลูกศรคือค่าของคุณ · ตำแหน่งระหว่างภาพเป็นการประมาณ รูปร่างจริงต่างกันตามกล้ามเนื้อและส่วนสูง"}
+        {" "}· % ไขมัน = น้ำหนักไขมันทั้งตัว ÷ น้ำหนักตัว
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Photo reference for visceral fat — an abdominal model that runs from lean (left,
+ * device level ≈ 1–2) to fat-wrapped (right, ≈ 10–11). The model occupies the middle
+ * of the photo, so the level maps onto that span; levels above 11 clamp to the right edge.
+ */
+const VIS_LEFT = 0.104, VIS_RIGHT = 0.896;
+export function VisceralArt({ level, value }: { level: StatusLevel | null; value: number | null }) {
+  const c = col(level);
+  const x = value != null ? VIS_LEFT + ((Math.min(11, Math.max(1, value)) - 1) / 10) * (VIS_RIGHT - VIS_LEFT) : null;
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  return (
+    <div>
+      <div className="relative h-11">{x != null && <Pin x={x} label={`คุณ · ระดับ ${value}`} color={c} />}</div>
+      <div className="relative overflow-hidden rounded-xl">
+        <img src="/bca/visceral.webp" alt="โมเดลช่องท้อง ซ้ายไขมันน้อย ขวาไขมันพันรอบอวัยวะ" className="block h-auto w-full" />
+        {x != null && (
+          <>
+            {/* dim everything except a band around the person's position */}
+            <div className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(90deg, rgba(31,30,27,.42) 0, rgba(31,30,27,.42) calc(${pct(x)} - 9%), transparent calc(${pct(x)} - 4%), transparent calc(${pct(x)} + 4%), rgba(31,30,27,.42) calc(${pct(x)} + 9%), rgba(31,30,27,.42) 100%)` }} />
+            <div className="absolute inset-y-0 w-[3px] -translate-x-1/2 bg-white/90 shadow-[0_0_0_1px_rgba(0,0,0,.25)]" style={{ left: pct(x) }} />
+          </>
+        )}
+      </div>
+      <div className="mt-1.5 flex justify-between font-thai text-[11.5px] text-ink-60"><span>← ระดับ 1–2 ไขมันน้อย</span><span>ระดับ 10–11 ไขมันพันรอบอวัยวะ →</span></div>
+      <p className="mt-1.5 font-thai text-[12px] leading-relaxed text-ink-60">
+        {value == null ? "ยังไม่มีค่าระดับไขมันช่องท้องของคุณ" : value > 11 ? `ระดับ ${value} เกินขอบขวาของภาพ — ไขมันรอบอวัยวะมากกว่าที่เห็นในภาพ` : "แถบสว่างคือตำแหน่งของคุณ"}
+        {" "}· ไขมันที่พันรอบตับ ลำไส้ ตับอ่อน มองไม่เห็นจากภายนอก · ระดับจากเครื่อง 1–30: 1–2 ดี · 3–5 ปกติ · 6–10 เริ่มเสี่ยง · 11–15 เสี่ยงสูง · 16+ อันตราย
+      </p>
+    </div>
   );
 }
 

@@ -85,8 +85,8 @@ export function Reveal({ scan }: { scan: RevealScan }) {
                 {on && (
                   <div className="px-4 pb-4">
                     <div className="rounded-2xl bg-white/60 p-3">
-                      {k === "fat_pct" && <FatLayerArt fatPct={v.value} />}
-                      {k === "visceral" && <VisceralArt level={v.level} />}
+                      {k === "fat_pct" && <FatLayerArt fatPct={v.value} gender={a.gender_used} level={v.level} />}
+                      {k === "visceral" && <VisceralArt level={v.level} value={v.value} />}
                       {k === "muscle_pct" && <MuscleArt level={v.level} />}
                       {k === "bmi" && <BmiArt bmi={v.value} />}
                       {k === "bmr" && <BmrArt bmr={bmr} total={total} />}
