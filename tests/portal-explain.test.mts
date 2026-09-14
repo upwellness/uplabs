@@ -50,8 +50,9 @@ test("validateAnswer: numbers must come from the facts; diagnosis/treatment/prod
   const rx = { ...good, action: "ควรกินยา metformin" };
   assert.equal(validateAnswer(rx, allowed).ok, false);
   assert.equal(validateAnswer({ what: "x" }, allowed).ok, false);
-  // small counts ("3 ข้อ") are allowed even when not in the facts
-  assert.equal(validateAnswer({ ...good, action: "ทำ 3 ข้อจากแผน" }, allowed).ok, true);
+  // small counts ("3 ข้อ") are allowed even when not in the facts; everyday "รักษาระดับ" (keep) is not a treatment word
+  assert.equal(validateAnswer({ ...good, action: "ทำ 3 ข้อจากแผน เพื่อรักษาระดับน้ำตาลให้คงที่" }, allowed).ok, true);
+  assert.equal(validateAnswer({ ...good, action: "ควรรับการรักษา" }, allowed).ok, false);
 
   const a = assess(input());
   const f = buildFacts({ kind: "metric", domain: "metabolic", metric: "hba1c" }, a, null, "female");

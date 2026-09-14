@@ -107,7 +107,11 @@ export function buildPrompt(f: ExplainFacts): string {
 
 export interface ExplainAnswer { what: string; where: string; action: string }
 
-const BANNED = /วินิจฉัย|เป็นโรค|เป็นเบาหวาน|เป็นไต|เป็นตับ|เป็นมะเร็ง|รักษา|ยา\s|กินยา|มิลลิกรัม|\bmg\b(?!\/dL)|Nutrilite|นิวทริไลท์|Double\s?X|Amway|แอมเวย์|โปรตีนเชค|ซื้อ|ราคา|โปรโมชั่น|การันตี|หายขาด/i;
+/**
+ * Diagnosis · treatment · drugs · products. Deliberately NOT the bare word "รักษา" —
+ * "รักษาระดับ/รักษาน้ำหนัก" (keep) is everyday Thai and was rejecting good answers.
+ */
+const BANNED = /วินิจฉัย|เป็นโรค|เป็นเบาหวาน|เป็นความดัน|เป็นไต|เป็นตับ|เป็นมะเร็ง|ป่วยเป็น|การรักษา|รักษาโรค|รับการรักษา|ต้องรักษา|หายขาด|กินยา|ใช้ยา|ยาลด|ยาเม็ด|ยาฉีด|มิลลิกรัม|\bmg\b(?!\/dL)|Nutrilite|นิวทริไลท์|Double\s?X|Amway|แอมเวย์|โปรตีนเชค|ซื้อ|ราคา|โปรโมชั่น|การันตี/i;
 
 /** Both checks; returns the reason when the answer must be discarded. */
 export function validateAnswer(ans: unknown, allowedNumbers: string[]): { ok: true; answer: ExplainAnswer } | { ok: false; reason: string } {

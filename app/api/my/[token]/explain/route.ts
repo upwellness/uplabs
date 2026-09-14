@@ -50,8 +50,8 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (!key) return respond(fallbackAnswer(facts), false, "ระบบ AI ยังไม่พร้อม — แสดงคำอธิบายจากระบบแทน");
   if (used >= PORTAL_EXPLAIN_CAP) return respond(fallbackAnswer(facts), false, `วันนี้ใช้ AI อธิบายครบ ${PORTAL_EXPLAIN_CAP} ครั้งแล้ว — แสดงคำอธิบายจากระบบแทน`);
 
-  await logPortalEvent(c.id, "explain", { kind: target.kind, domain: (target as any).domain ?? null, metric: (target as any).metric ?? null });
   quota.used = used + 1;
+  const meta = { kind: target.kind, domain: (target as any).domain ?? null, metric: (target as any).metric ?? null };
   try {
     const json = await geminiGenerate(GEMINI_TEXT_MODEL, key, {
       contents: [{ parts: [{ text: buildPrompt(facts) }] }],
@@ -62,10 +62,13 @@ export async function POST(req: Request, { params }: { params: { token: string }
     let parsed: unknown = null;
     try { parsed = JSON.parse(text); } catch { parsed = null; }
     const v = validateAnswer(parsed, facts.numbers);
+    // one event per call, with the outcome — the discard reason is what tells us the guardrail is too tight or too loose
+    await logPortalEvent(c.id, "explain", { ...meta, ai: v.ok, ...(v.ok ? {} : { discarded: v.reason, sample: text.slice(0, 300) }) });
     if (!v.ok) { console.warn("[portal explain] discarded:", v.reason); return respond(fallbackAnswer(facts), false, "คำตอบของ AI ไม่ผ่านการตรวจ — แสดงคำอธิบายจากระบบแทน"); }
     return respond(v.answer, true);
   } catch (e: any) {
     console.error("[portal explain]", e?.message ?? e);
+    await logPortalEvent(c.id, "explain", { ...meta, ai: false, error: String(e?.message ?? e).slice(0, 200) });
     return respond(fallbackAnswer(facts), false, "AI ตอบไม่สำเร็จ — แสดงคำอธิบายจากระบบแทน");
   }
 }

@@ -100,7 +100,7 @@ function groupLabs(rows: any[], assessment: HealthAssessment | null): { latest_a
       metric, label_th: latest.metric_label_th ?? metric, value: num(latest.value_num), value_text: latest.value ?? null, unit: latest.unit ?? null,
       level: engineLevel.has(metric) ? engineLevel.get(metric)! : labLevel(latest.status), recorded_at: String(latest.recorded_at),
       prev: numeric.length > 1 && numeric[0] === latest ? num(numeric[1].value_num) : null, prev_at: numeric.length > 1 && numeric[0] === latest ? String(numeric[1].recorded_at) : null,
-      history: numeric.slice(0, 6).reverse().map((h) => ({ at: String(h.recorded_at).slice(0, 10), value: num(h.value_num)! })),
+      history: numeric.slice(0, 6).reverse().map((h) => ({ at: String(h.recorded_at), value: num(h.value_num)! })),
     });
   }
   const groups = new Map<LabPanel, LabItem[]>();

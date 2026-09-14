@@ -46,8 +46,8 @@ export function resolveMetric(data: PortalData, metric: string, domainHint: Doma
   let history: { at: string; value: number }[] = [];
   let source_page: MetricView["source_page"] = null;
   if (labItem) { history = labItem.history; source_page = "src-labs"; }
-  else if (BCA_FIELD[metric]) { const f = BCA_FIELD[metric]; history = [...data.bca].reverse().filter((b) => b[f] != null).map((b) => ({ at: b.at.slice(0, 10), value: b[f] as number })); source_page = "src-bca"; }
-  else if (metric === "bmi" && data.customer.height_cm) { const h = data.customer.height_cm / 100; history = [...data.bca].reverse().filter((b) => b.weight != null).map((b) => ({ at: b.at.slice(0, 10), value: Math.round((b.weight! / (h * h)) * 10) / 10 })); source_page = "src-bca"; }
+  else if (BCA_FIELD[metric]) { const f = BCA_FIELD[metric]; history = [...data.bca].reverse().filter((b) => b[f] != null).map((b) => ({ at: b.at, value: b[f] as number })); source_page = "src-bca"; }
+  else if (metric === "bmi" && data.customer.height_cm) { const h = data.customer.height_cm / 100; history = [...data.bca].reverse().filter((b) => b.weight != null).map((b) => ({ at: b.at, value: Math.round((b.weight! / (h * h)) * 10) / 10 })); source_page = "src-bca"; }
   else if (WEAR_FIELD[metric]) { const f = WEAR_FIELD[metric]; history = data.wearable.days.filter((d) => d[f] != null).map((d) => ({ at: d.date, value: metric === "sleep" ? Math.round((d[f] as number) / 6) / 10 : (d[f] as number) })); source_page = "src-wearable"; }
   else if (metric.startsWith("cgm_") && data.cgm) { source_page = "src-cgm"; }
   else if (metric.startsWith("food_") || metric === "calories" || metric.startsWith("protein")) { source_page = "food"; }
