@@ -480,7 +480,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
-| 2026-09-14 | **BCA Reveal** `/r/bca/<token>` (§5.16) — หน้าผลตรวจร่างกายสำหรับลูกค้าใหม่บนมือถือ: รูปร่างกายแตะได้ · 6 การ์ดขยายมีรูป · ลองเล่น (เป้าไขมัน/TDEE/โปรตีน/เดิน) · แบบประเมิน 5 ข้อ · L1–L3 เฉพาะคน · CTA คอร์ส · ปุ่ม "ส่งผลให้ลูกค้า" ใน `/v2/bca` + `POST /api/customers/[id]/bca-share` · `measurements.share_token` · engine +3 tests (184) | _pending_ |
+| 2026-09-14 | **BCA Reveal** `/r/bca/<token>` (§5.16) — หน้าผลตรวจร่างกายสำหรับลูกค้าใหม่บนมือถือ: รูปร่างกายแตะได้ · 6 การ์ดขยายมีรูป · ลองเล่น (เป้าไขมัน/TDEE/โปรตีน/เดิน) · แบบประเมิน 5 ข้อ · L1–L3 เฉพาะคน · CTA คอร์ส · ปุ่ม "ส่งผลให้ลูกค้า" ใน `/v2/bca` + `POST /api/customers/[id]/bca-share` · `measurements.share_token` · engine +3 tests (184) | `9e8b713` |
 | 2026-09-14 | External API/MCP **`getPortalLink`** (`POST /customers/{id}/portal-link` · scope `links:write` · rotate) + intent `portal.link` — AI/n8n ขอลิงก์หน้าลูกค้าส่ง LINE ได้ · MCP tools 28 | `6ceba45` |
 | 2026-09-14 | Mobile Portal ทดสอบ live (บัญชีต้น): ทุกแท็บ + L1–L3 + อาหารถ่าย→ยืนยัน ผ่าน · แก้ 2 จุดจากของจริง — คำห้าม "รักษา" กว้างไปตัด "รักษาระดับ" (เหลือเฉพาะ การรักษา/กินยา/…) · Gemini ตอบไทย JSON ถูกตัดที่ 700 token → 2048 · `portal_events.meta` เก็บผลตรวจคำตอบ (ai/discarded/sample) เพื่อจูน guardrail จากของจริง · ชื่อโค้ชที่เป็นตัวเลขไม่แสดง | `86c1eb4`, `a2eec76` |
 | 2026-09-14 | **Mobile Portal M1–M4** — `/my/<token>` เป็นแอปมือถือ 4 แท็บ + บันได L0→L3 (§5.15) · `portal-data.ts` · `glossary.ts` (50 ค่า · unreviewed) · `explain.ts` + `/explain` (BYO-key ข้อยกเว้นที่ 3 · cap 20) · `portal_events` · หน้าแหล่งข้อมูล 4 หน้า · อาหารถ่าย→ยืนยัน · +8 tests (181) · ลบ `PortalTools.tsx` | `36a6a7d`, `52f1616` |
