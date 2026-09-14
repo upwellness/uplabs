@@ -1,4 +1,4 @@
-# UP Labs Mobile Portal — หน้าลูกค้าบนมือถือ (v0.2 · Approved for dev · 14 ก.ย. 2026)
+# UP Labs Mobile Portal — หน้าลูกค้าบนมือถือ (v0.2 · **M1–M4 built 14 ก.ย. 2026** · รอ Q4 รีวิว + R8 red-team ก่อนส่งลูกค้าจริง)
 
 > ต่อยอดจาก `SPEC-Health-Design.md` §3.6 (`/my/<token>` ที่มีอยู่) — เอกสารนี้คือ "เวอร์ชันแอป" ของหน้านั้น: เปิดจากมือถือ เห็นค่าทุกค่าของตัวเอง กดให้ AI อธิบายได้ · mockup: artifact "UP Labs Mobile Portal Screens" (v2 lean glass · 14 ก.ย.)
 >

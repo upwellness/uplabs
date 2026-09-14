@@ -293,6 +293,17 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 ---
 
+### 5.15 Mobile Portal — หน้าลูกค้าบนมือถือ (14 ก.ย. 2026 · `SPEC-Mobile-Portal.md` v0.2)
+
+- **`/my/<token>` เขียนใหม่เป็นแอปมือถือ** (token เดิม ลิงก์เดิมใช้ได้): โหลดข้อมูลครั้งเดียวใน `lib/health-design/portal-data.ts` → `PortalData` → client shell `app/my/[token]/_m/Portal.tsx` · **4 แท็บ** หน้าแรก · สุขภาพ · อาหาร · แผน (+ "ฉัน" หลังตัวอักษรย่อ) · hash router (`lib/health-design/portal-nav.ts` · 4 tests) ปุ่มย้อนกลับปิดแผ่นเลื่อนได้ · กระจก `.liquid` + `.aurora-bg` เดิม · Manrope/Sarabun
+- **บันได 4 ชั้น:** L0 หน้าแรก (แถบสี 7 ด้าน + นับ · ก้าว/นอน/น้ำตาลล่าสุด · "ทำต่อวันนี้" จากแผน) → L1 สุขภาพ = เมนู **ตาม 7 ด้านที่ engine ประเมิน** ขยายในที่ (สรุป 1 บรรทัดนับจาก level ของ driver · รายการค่า · ลิงก์แหล่งข้อมูล) → L2 `MetricSheet` (คำอธิบายจาก `glossary.ts` · แถบช่วงจาก cut-point เดียวกับ engine `bandsFor` · เปอร์เซ็นไทล์ · ประวัติจากตารางต้นทาง) → L3 `ExplainSheet`
+- **หน้าแหล่งข้อมูล** (หลังลิงก์ "ดูทั้งหมด ›"): ผลเลือดตาม panel (`panelOf`) + ลูกศรเทียบครั้งก่อน · BCA 4 ตัวเลข + เส้นไขมัน + ทุกครั้งที่ชั่ง · CGM (TIR/เฉลี่ย/GMI/CV · กราฟวันล่าสุด monotone cubic + จุดมื้อจาก food log · อัปโหลดไฟล์) · นาฬิกา (แท่งก้าว 14 วัน · นอน/HR/RHR/HRV · ค่าที่อุปกรณ์ไม่ส่ง บอกตรง ๆ · สถานะ sync/ต้องเชื่อมใหม่)
+- **อาหาร:** ปุ่มกล้องก้อนเดียว (ถ่าย · อัลบั้ม EXIF · พิมพ์) → หน้า "ตรวจก่อนบันทึก" AI เติมช่อง → ลูกค้าแก้ → **ยืนยันถึงบันทึก** (`confirmed:true` · route `/api/my/<token>/food` เดิม · โควตา 40/วัน) · C:P:F วันนี้เทียบเป้าจากแผน · มื้อยุบเป็นแถว · **แผน:** วันที่ x/90 + สถานะรวม → 5 หมวดยุบ (เป้า · โภชนาการ · ไลฟ์สไตล์ · อาหารเสริมจากเภสัชกร · ถึงกำหนด · เรื่องที่ควรให้แพทย์ดู)
+- **AI อธิบาย** (`lib/health-design/explain.ts` pure · 4 tests · `POST /api/my/<token>/explain`): โมเดลได้รับเฉพาะ facts ที่ engine ตัดสินแล้ว (ค่า · level · เกณฑ์ · เปอร์เซ็นไทล์ · แผนที่ยืนยัน) → 3 ช่องตายตัว · `validateAnswer` ตัดคำตอบที่มีตัวเลขนอกอินพุตหรือคำวินิจฉัย/ยา/สินค้า → ใช้ `fallbackAnswer` (ข้อความระบบ) · เพดาน `PORTAL_EXPLAIN_CAP` 20/คน/วัน นับจาก `portal_events` · = **ข้อยกเว้น BYO-key ข้อที่ 3** (AGENTS.md)
+- **glossary** `lib/health-design/glossary.ts`: 1 บรรทัดต่อค่า ~50 ตัว + panel + bands · ทุกบรรทัด `reviewed:false` → หน้าจอติดป้าย "รอเภสัชกรตรวจทาน" · test บังคับว่าทุก driver ของ engine มีคำอธิบาย · **ห้ามส่งลูกค้าจริงจนจิ้นรีวิว (Q4)**
+- **`portal_events`** (migration `20260914_portal_events.sql`): open / metric / explain / food_log / cgm_upload — วัด G2/G3 + โควตา
+- ยังไม่ทำ (P1): S2e อายุสุขภาพแยกหน้า · ภาษาอังกฤษ · โค้ชเห็นสรุปการใช้ในการ์ด · LINE nudge ลิงก์ `#plan`
+
 ### 5.14 UP Health Design — ติดตามผล (ปิดวง · 13 ก.ย. 2026)
 
 - **ความคืบหน้าเทียบแผน** `lib/health-design/progress.ts` (pure · 3 tests): เทียบ assessment ที่ใช้ร่างแผน (baseline) กับล่าสุด — ต่อเป้า: `achieved / improving / no_change / worsening / no_new_data` · นับเฉพาะค่าที่**วัดใหม่หลัง baseline** (ค่าเดิม = ยังไม่มีข้อมูลใหม่ ไม่ใช่ "ไม่เปลี่ยน") · ทิศทางต่อค่า (ไขมันลง = ดี · HDL ขึ้น = ดี · HRV/RHR ไม่ตัดสิน) · band ขยับ good ↔ watch ↔ attention ตัดสิน achieved/worsening · `due_now` = ตรวจซ้ำที่ถึงกำหนดตามวัน
@@ -450,7 +461,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 ## 13. Roadmap
 
 1. ปิดช่องว่าง v2 ให้ครบ แล้วเลิกใช้ v1
-2. ~~แก้เส้นทาง wearable~~ ✅ Google Health API ทดสอบผ่าน 13 ก.ย. · **ถัดไป: Mobile Portal** (`SPEC-Mobile-Portal.md` — M1–M4 ~10 วัน หลังเคาะ Q1/Q4)
+2. ~~แก้เส้นทาง wearable~~ ✅ Google Health API ทดสอบผ่าน 13 ก.ย. · **Mobile Portal M1–M4 ✅ 14 ก.ย.** — เหลือ: จิ้นรีวิว glossary (Q4) + red-team (R8) ก่อนส่งลูกค้าจริง
 3. Longevity Report ให้เป็นปุ่มเดียวในแอป (ตอนนี้สร้างนอกระบบแล้วอัปโหลด)
 4. ~~External API v1 → MCP server~~ ✅ ทำแล้ว (11–12 ก.ย. 2026) — `/api/mcp` + OAuth · claude.ai/ChatGPT ต่อตรงได้
 5. หมุน CGM passcode + ใส่ rate limit
@@ -462,6 +473,7 @@ admin สวมมุมมองผู้ใช้อื่นเพื่อ s
 
 | วันที่ | เปลี่ยนอะไร | commit |
 |---|---|---|
+| 2026-09-14 | **Mobile Portal M1–M4** — `/my/<token>` เป็นแอปมือถือ 4 แท็บ + บันได L0→L3 (§5.15) · `portal-data.ts` · `glossary.ts` (50 ค่า · unreviewed) · `explain.ts` + `/explain` (BYO-key ข้อยกเว้นที่ 3 · cap 20) · `portal_events` · หน้าแหล่งข้อมูล 4 หน้า · อาหารถ่าย→ยืนยัน · +8 tests (181) · ลบ `PortalTools.tsx` | _pending_ |
 | 2026-09-14 | `SPEC-Mobile-Portal.md` v0.2 **approved for dev** — lean: 4 แท็บ · เมนูตาม 7 ด้าน · บันได L0→L3 ขยายในที่ · กระจก `.liquid` เดิม · ตัดสินใจ Q1 (AI อธิบายด้วยคีย์ระบบ 20/คน/วัน = ข้อยกเว้น BYO-key ที่ 3) · Q5 แทนที่ `/my/<token>` · mockup v2 (artifact) | `ce58ad9` |
 | 2026-09-14 | สเปกใหม่ `docs/SPEC-Mobile-Portal.md` (v0.1 draft) — หน้าลูกค้าบนมือถือ 5 แท็บ + แผ่นรายละเอียดค่า + AI อธิบาย · mockup 9 หน้า (artifact) · รอเคาะ Q1 (BYO-key ข้อ 3) · Q4 (คลังคำอธิบาย) | `03a61ff` |
 | 2026-09-13 | **UP CGM Analyser → ส่งเข้า UP Labs**: `/api/v1` เปิด CORS ให้ origin ในรายการ (`lib/api/cors.ts` +2 tests · `API_CORS_ORIGINS`) · ฝั่ง upcgm (`06e041d`) ปุ่ม "ส่งเข้า UP Labs" + token ในเบราว์เซอร์โค้ช → `POST …/cgm/import` ตรงจากเบราว์เซอร์ | `a241a8a` |
