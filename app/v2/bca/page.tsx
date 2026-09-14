@@ -34,6 +34,7 @@ import { deriveBMI, deriveChronoAge, enrichMeasurement } from "@/lib/bca-derive"
 import { classifyBMI, classifyVisceralFat, classifyBodyFat, classifyMusclePct, classifyBodyAge, bandBMI, bandBodyFat, bandMusclePct, bandVisceralFat } from "@/lib/medical-status";
 import type { Customer, Measurement, MeasurementWithDerived } from "@/lib/types";
 import { buildScanData, type ScanRevealData } from "./_scan-data";
+import { FatLayerArt, MuscleArt, VisceralArt } from "@/components/bca/BcaArt";
 
 /**
  * Trends (recharts) + ReportBuilder (recharts + html-to-image) are loaded on demand
@@ -352,7 +353,10 @@ function BcaWorkspace({ customerId, onChange, onClear }: { customerId: string; o
 
       {/* Gauges + BMI */}
       {latest ? (
-        <GaugePanel customer={customer} latest={latest} classified={classified} />
+        <>
+          <GaugePanel customer={customer} latest={latest} classified={classified} />
+          <VisualPanel customer={customer} latest={latest} />
+        </>
       ) : (
         <Card><EmptyState icon={Scale} title="ยังไม่มีผลวัด BCA" hint="กด “บันทึกค่าใหม่” เพื่อเริ่มบันทึกครั้งแรก" /></Card>
       )}
@@ -543,6 +547,45 @@ function GaugePanel({ customer, latest, classified }: { customer: Customer; late
             {g.level && g.statusLabel && <div className="mt-0.5 text-center text-[10px] font-semibold" style={{ color: statusTextHex[g.level] }}>{g.statusLabel}</div>}
           </div>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ── Visual interpretation — same photos/scales the customer sees on /r/bca/<token> (ต้น, 14 ก.ย.) ── */
+
+function VisualPanel({ customer, latest }: { customer: Customer; latest: MeasurementWithDerived }) {
+  // same fallback as the customer reveal engine: unknown sex → female bands, said out loud
+  const gender: "male" | "female" = customer.gender === "male" ? "male" : "female";
+  const assumed = !(customer.gender === "male" || customer.gender === "female");
+  const fat = latest.fat_pct != null ? bandBodyFat(latest.fat_pct, gender) : null;
+  const mus = latest.muscle_pct != null ? bandMusclePct(latest.muscle_pct, gender) : null;
+  const vis = latest.visceral != null ? bandVisceralFat(latest.visceral) : null;
+  const head = (title: string, value: string | null, band: { level: StatusLevel; label: string } | null) => (
+    <div className="mb-2 flex items-baseline justify-between gap-2">
+      <span className="font-thai text-[14px] font-semibold text-ink">{title}</span>
+      <span className="font-head text-[15px] font-extrabold tabular-nums text-ink">{value ?? "—"}{band && <span className="ml-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ background: `${statusHex[band.level]}22`, color: statusTextHex[band.level] }}>{band.label}</span>}</span>
+    </div>
+  );
+  return (
+    <Card className="p-4 lg:p-5">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="font-head text-[15px] font-bold text-ink">แปลผลด้วยภาพ</h2>
+        <span className="font-thai text-[11px] text-ink-60">ภาพเดียวกับที่ลูกค้าเห็นในลิงก์{assumed ? " · ยังไม่ระบุเพศ ใช้เกณฑ์หญิงไปก่อน" : ""}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl bg-white/60 p-3">
+          {head("% ไขมัน", latest.fat_pct != null ? `${latest.fat_pct}%` : null, fat)}
+          <FatLayerArt fatPct={latest.fat_pct} gender={gender} level={fat?.level ?? null} />
+        </div>
+        <div className="rounded-2xl bg-white/60 p-3">
+          {head("% กล้ามเนื้อ", latest.muscle_pct != null ? `${latest.muscle_pct}%` : null, mus)}
+          <MuscleArt musclePct={latest.muscle_pct} gender={gender} />
+        </div>
+        <div className="rounded-2xl bg-white/60 p-3">
+          {head("ไขมันช่องท้อง", latest.visceral != null ? `คะแนน ${latest.visceral}` : null, vis)}
+          <VisceralArt level={vis?.level ?? null} value={latest.visceral} />
+        </div>
       </div>
     </Card>
   );

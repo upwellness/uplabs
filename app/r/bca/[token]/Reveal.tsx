@@ -14,7 +14,7 @@ import type { RevealScan } from "@/lib/bca-reveal/store";
 import { assessScan, guidance, fatScenario, estimateBmr, tdee, proteinRange, walkingKcal, ACTIVITY, QUIZ_EMPTY, type ActivityKey, type MetricKey, type Quiz } from "@/lib/bca-reveal/engine";
 import { statusHex, type StatusLevel } from "@/lib/medical-status";
 import { statusTextHex } from "@/lib/v2/status";
-import { BodyFigure, FatLayerArt, VisceralArt, MuscleArt, BmiArt, BmrArt, BodyAgeArt } from "./_art";
+import { BodyFigure, FatLayerArt, VisceralArt, MuscleArt, BmiArt, BmrArt, BodyAgeArt } from "@/components/bca/BcaArt";
 
 const TH_MONTH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const fmtDate = (iso: string) => { const d = new Date(new Date(iso).getTime() + 7 * 3_600_000); return `${d.getUTCDate()} ${TH_MONTH[d.getUTCMonth()]} ${d.getUTCFullYear() + 543}`; };

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Illustrations for the BCA reveal page. Most are inline SVG that take the person's own
+ * Illustrations for BCA results — shared by the customer reveal (/r/bca/<token>) and the coach page (/v2/bca). Most are inline SVG that take the person's own
  * numbers; fat% and visceral fat use reference photos (public/bca/*.webp) with the
  * person's position marked on them. Colours are the app's status ramp.
  */
